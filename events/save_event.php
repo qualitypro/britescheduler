@@ -1,68 +1,11 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-// Connect to the database using PDO
-// Replace the placeholders with your actual database credentials
-$dsn = "mysql:host=localhost;dbname=events";
-$username = "root";
-$password = "";
-
-try {
-    $pdo = new PDO($dsn, $username, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
-}
-
-// Extract data from the POST request
-$eventId = urldecode($_POST['event_id']);
-$userId = urldecode($_POST['user_id']);
-$startDate = urldecode($_POST['start_date']);
-$startTime = urldecode($_POST['start_time']);
-$endDate = urldecode($_POST['end_date']);
-$endTime = urldecode($_POST['end_time']);
-$description = urldecode($_POST['description']);
-$repeatType = urldecode($_POST['repeat_type']);
-$isPublic = urldecode($_POST['is_public']) === 'true' ? 'yes' : 'no';
-$isActive = urldecode($_POST['is_active']) === 'true' ? 'yes' : 'no';
-
-// Prepare and execute the SQL query to save/update the event
-try {
-    if ($eventId) {
-        $stmt = $pdo->prepare("UPDATE events
-                              SET start_date = str_to_date(:start_date, '%m/%d/%Y'),
-                                  end_date = str_to_date(:end_date, '%m/%d/%Y'),
-                                  start_time = STR_TO_DATE(:start_time, '%H:%i'),
-                                  end_time = STR_TO_DATE(:end_time, '%H:%i'),
-                                  description = :description,
-                                  repeat_type = :repeat_type,
-                                  is_public = :is_public,
-                                  is_active = :is_active
-                              WHERE event_id = :event_id AND user_id = :user_id");
-        
-        $stmt->bindParam(':event_id', $eventId, PDO::PARAM_INT);
-    } else {
-        $stmt = $pdo->prepare("INSERT INTO events
-                              (user_id, start_date, end_date, start_time, end_time, description, repeat_type, is_public, is_active)
-                              VALUES (:user_id, str_to_date(:start_date, '%m/%d/%Y'), str_to_date(:end_date, '%m/%d/%Y'), STR_TO_DATE(:start_time, '%H:%i'), STR_TO_DATE(:end_time, '%H:%i'), :description, :repeat_type, :is_public, :is_active)");
-    }
-    
-    $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
-    $stmt->bindParam(':start_date', $startDate, PDO::PARAM_STR);
-    $stmt->bindParam(':end_date', $endDate, PDO::PARAM_STR);
-    $stmt->bindParam(':start_time', $startTime, PDO::PARAM_STR);
-    $stmt->bindParam(':end_time', $endTime, PDO::PARAM_STR);
-    $stmt->bindParam(':description', $description, PDO::PARAM_STR);
-    $stmt->bindParam(':repeat_type', $repeatType, PDO::PARAM_STR);
-    $stmt->bindParam(':is_public', $isPublic, PDO::PARAM_STR);
-    $stmt->bindParam(':is_active', $isActive, PDO::PARAM_STR);
-    
-    $stmt->execute();
-    
-    echo "Event saved successfully";
-} catch (PDOException $ex) {
-    echo "Error: " . $ex->getMessage();
-}
-?>
+require_once dirname(__DIR__).'/app/bootstrap.php';
+$u=Auth::requireUser();Auth::requireRole('owner','admin','scheduler');verify_csrf();
+$tid=Auth::tenantId();$pdo=Database::connection();$d=request_data();
+$parse=function($date,$time){$x=DateTime::createFromFormat('m/d/Y H:i',trim($date.' '.$time));return $x?$x->format('Y-m-d H:i:s'):null;};
+$start=$parse($d['start_date']??'',$d['start_time']??'00:00');$end=$parse($d['end_date']??'',$d['end_time']??'00:00');
+if(!$start||!$end) json_response(['error'=>'Invalid date/time'],422);
+$id=(int)($d['event_id']??0);
+if($id){$q=$pdo->prepare("UPDATE appointments SET title=?,description=?,starts_at=?,ends_at=?,is_public=?,status=? WHERE id=? AND tenant_id=?");$q->execute([$d['description']??'Appointment',$d['description']??null,$start,$end,($d['is_public']??'false')==='true'?1:0,($d['is_active']??'true')==='true'?'scheduled':'cancelled',$id,$tid]);}
+else{$q=$pdo->prepare("INSERT INTO appointments(tenant_id,title,description,starts_at,ends_at,is_public,status,created_by) VALUES(?,?,?,?,?,?,?,?)");$q->execute([$tid,$d['description']??'Appointment',$d['description']??null,$start,$end,($d['is_public']??'false')==='true'?1:0,($d['is_active']??'true')==='true'?'scheduled':'cancelled',$u['id']]);$id=(int)$pdo->lastInsertId();}
+json_response(['ok'=>true,'id'=>$id]);

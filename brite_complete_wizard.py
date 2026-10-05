@@ -1,0 +1,872 @@
+#!/usr/bin/env python3
+"""
+BriteScheduler Completion Wizard
+Run from the ROOT of the qualitypro/britescheduler checkout.
+
+What it does:
+- Makes a timestamped backup of files it changes.
+- Creates a centralized PHP/PDO application layer.
+- Creates MySQL migrations for multi-tenancy, clients, contractors,
+  services, scheduling, invoices, payments, notifications, and audit logs.
+- Creates authentication and tenant/role enforcement.
+- Creates JSON API endpoints and functional dashboard pages.
+- Replaces the unsafe legacy event endpoints with tenant-scoped endpoints.
+- Can execute pending MySQL migrations using the mysql CLI.
+- Never stores card numbers; payments are ledger/provider-reference records only.
+
+Requires: PHP 8.1+, PDO MySQL, MySQL 8+, Python 3.9+.
+"""
+
+from __future__ import annotations
+import argparse
+import getpass
+import os
+import shutil
+import subprocess
+import sys
+import textwrap
+from datetime import datetime
+from pathlib import Path
+
+ROOT = Path.cwd()
+STAMP = datetime.now().strftime("%Y%m%d-%H%M%S")
+BACKUP = ROOT / ".brite-wizard-backup" / STAMP
+
+FILES = {}
+
+FILES[".env.example"] = r"""APP_ENV=development
+APP_URL=http://localhost
+APP_TIMEZONE=America/New_York
+SESSION_NAME=britescheduler
+
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=britescheduler
+DB_USER=britescheduler
+DB_PASS=change-me
+"""
+
+FILES[".gitignore"] = r""".env
+.env.local
+.brite-wizard-backup/
+vendor/
+*.log
+.DS_Store
+"""
+
+FILES["app/bootstrap.php"] = r"""<?php
+declare(strict_types=1);
+
+$root = dirname(__DIR__);
+
+function load_env(string $file): void {
+    if (!is_file($file)) return;
+    foreach (file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+        $line = trim($line);
+        if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) continue;
+        [$k, $v] = array_map('trim', explode('=', $line, 2));
+        $v = trim($v, "\"'");
+        if (getenv($k) === false) putenv("$k=$v");
+        $_ENV[$k] = $v;
+    }
+}
+load_env($root . '/.env');
+
+date_default_timezone_set(getenv('APP_TIMEZONE') ?: 'UTC');
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_name(getenv('SESSION_NAME') ?: 'britescheduler');
+    session_set_cookie_params([
+        'httponly' => true,
+        'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
+        'samesite' => 'Lax',
+        'path' => '/',
+    ]);
+    session_start();
+}
+
+require_once __DIR__ . '/Database.php';
+require_once __DIR__ . '/Auth.php';
+require_once __DIR__ . '/Http.php';
+require_once __DIR__ . '/Csrf.php';
+
+/**
+ * Build an absolute URL inside the BriteScheduler installation.
+ */
+function app_url(string $path = ''): string
+{
+    $base = rtrim($_ENV['APP_URL'] ?? 'http://localhost/dashboard', '/');
+
+    if ($path === '') {
+        return $base;
+    }
+
+    return $base . '/' . ltrim($path, '/');
+}
+"""
+
+FILES["app/Database.php"] = r"""<?php
+declare(strict_types=1);
+
+final class Database {
+    private static ?PDO $pdo = null;
+
+    public static function connection(): PDO {
+        if (self::$pdo) return self::$pdo;
+        $host = getenv('DB_HOST') ?: '127.0.0.1';
+        $port = getenv('DB_PORT') ?: '3306';
+        $name = getenv('DB_NAME') ?: 'britescheduler';
+        $user = getenv('DB_USER') ?: 'britescheduler';
+        $pass = getenv('DB_PASS') ?: '';
+        $dsn = "mysql:host={$host};port={$port};dbname={$name};charset=utf8mb4";
+        self::$pdo = new PDO($dsn, $user, $pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+        ]);
+        return self::$pdo;
+    }
+}
+"""
+
+FILES["app/Http.php"] = r"""<?php
+declare(strict_types=1);
+
+function json_response(mixed $data, int $status = 200): never {
+    http_response_code($status);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($data, JSON_UNESCAPED_SLASHES);
+    exit;
+}
+function request_data(): array {
+    $ct = $_SERVER['CONTENT_TYPE'] ?? '';
+    if (str_contains($ct, 'application/json')) {
+        $v = json_decode(file_get_contents('php://input'), true);
+        return is_array($v) ? $v : [];
+    }
+    return $_POST;
+}
+function require_method(string ...$allowed): void {
+    if (!in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', $allowed, true)) {
+        json_response(['error' => 'Method not allowed'], 405);
+    }
+}
+function int_or_null(mixed $v): ?int {
+    return ($v === null || $v === '') ? null : (int)$v;
+}
+"""
+
+FILES["app/Csrf.php"] = r"""<?php
+declare(strict_types=1);
+
+function csrf_token(): string {
+    if (empty($_SESSION['_csrf'])) $_SESSION['_csrf'] = bin2hex(random_bytes(32));
+    return $_SESSION['_csrf'];
+}
+function verify_csrf(): void {
+    $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($_POST['_csrf'] ?? '');
+    if (!$token || !hash_equals($_SESSION['_csrf'] ?? '', $token)) {
+        json_response(['error' => 'Invalid CSRF token'], 419);
+    }
+}
+"""
+
+FILES["app/Auth.php"] = r"""<?php
+declare(strict_types=1);
+
+final class Auth {
+    public static function user(): ?array {
+        if (empty($_SESSION['user_id'])) return null;
+        $q = Database::connection()->prepare(
+            "SELECT id,email,first_name,last_name,status FROM users WHERE id=? AND status='active'"
+        );
+        $q->execute([(int)$_SESSION['user_id']]);
+        return $q->fetch() ?: null;
+    }
+
+    public static function requireUser(): array {
+        $u = self::user();
+        if (!$u) {
+            if (str_starts_with($_SERVER['REQUEST_URI'] ?? '', '/api/')) json_response(['error'=>'Unauthenticated'], 401);
+            header('Location: /sign-in.php'); exit;
+        }
+        return $u;
+    }
+
+    public static function memberships(int $userId): array {
+        $q = Database::connection()->prepare(
+            "SELECT m.tenant_id,m.role,t.name,t.slug
+             FROM tenant_memberships m JOIN tenants t ON t.id=m.tenant_id
+             WHERE m.user_id=? AND m.status='active' AND t.status='active' ORDER BY t.name"
+        );
+        $q->execute([$userId]);
+        return $q->fetchAll();
+    }
+
+    public static function tenant(): array {
+        $u = self::requireUser();
+        $memberships = self::memberships((int)$u['id']);
+        if (!$memberships) json_response(['error'=>'No active tenant membership'], 403);
+
+        $requested = isset($_SESSION['tenant_id']) ? (int)$_SESSION['tenant_id'] : (int)$memberships[0]['tenant_id'];
+        foreach ($memberships as $m) {
+            if ((int)$m['tenant_id'] === $requested) {
+                $_SESSION['tenant_id'] = $requested;
+                $_SESSION['tenant_role'] = $m['role'];
+                return $m;
+            }
+        }
+        $_SESSION['tenant_id'] = (int)$memberships[0]['tenant_id'];
+        $_SESSION['tenant_role'] = $memberships[0]['role'];
+        return $memberships[0];
+    }
+
+    public static function tenantId(): int { return (int)self::tenant()['tenant_id']; }
+
+    public static function requireRole(string ...$roles): array {
+        $t = self::tenant();
+        if (!in_array($t['role'], $roles, true)) json_response(['error'=>'Forbidden'], 403);
+        return $t;
+    }
+}
+"""
+
+FILES["migrations/001_core.sql"] = r"""CREATE TABLE IF NOT EXISTS schema_migrations (
+  version VARCHAR(100) PRIMARY KEY,
+  applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS tenants (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(150) NOT NULL,
+  slug VARCHAR(150) NOT NULL UNIQUE,
+  timezone VARCHAR(64) NOT NULL DEFAULT 'America/New_York',
+  currency CHAR(3) NOT NULL DEFAULT 'USD',
+  status ENUM('active','suspended','closed') NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS users (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(190) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  phone VARCHAR(40) NULL,
+  status ENUM('active','invited','disabled') NOT NULL DEFAULT 'active',
+  last_login_at DATETIME NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS tenant_memberships (
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  role ENUM('owner','admin','scheduler','accounting','contractor','client') NOT NULL,
+  status ENUM('active','invited','disabled') NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (tenant_id,user_id),
+  CONSTRAINT fk_tm_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+  CONSTRAINT fk_tm_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_tm_user (user_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS clients (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NULL,
+  company_name VARCHAR(190) NULL,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  email VARCHAR(190) NULL,
+  phone VARCHAR(40) NULL,
+  address1 VARCHAR(190) NULL,
+  address2 VARCHAR(190) NULL,
+  city VARCHAR(100) NULL,
+  state VARCHAR(100) NULL,
+  postal_code VARCHAR(30) NULL,
+  notes TEXT NULL,
+  status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_clients_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+  CONSTRAINT fk_clients_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  INDEX idx_clients_tenant_name (tenant_id,last_name,first_name),
+  INDEX idx_clients_tenant_email (tenant_id,email)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS contractors (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NULL,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  business_name VARCHAR(190) NULL,
+  email VARCHAR(190) NULL,
+  phone VARCHAR(40) NULL,
+  hourly_rate DECIMAL(12,2) NULL,
+  color VARCHAR(20) NULL,
+  skills TEXT NULL,
+  status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_contractors_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+  CONSTRAINT fk_contractors_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  INDEX idx_contractors_tenant_name (tenant_id,last_name,first_name)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS services (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  name VARCHAR(150) NOT NULL,
+  description TEXT NULL,
+  duration_minutes INT UNSIGNED NOT NULL DEFAULT 60,
+  price DECIMAL(12,2) NOT NULL DEFAULT 0,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_services_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+  INDEX idx_services_tenant (tenant_id,active)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS appointments (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  client_id BIGINT UNSIGNED NULL,
+  service_id BIGINT UNSIGNED NULL,
+  title VARCHAR(190) NOT NULL,
+  description TEXT NULL,
+  starts_at DATETIME NOT NULL,
+  ends_at DATETIME NOT NULL,
+  status ENUM('tentative','scheduled','confirmed','in_progress','completed','cancelled','no_show') NOT NULL DEFAULT 'scheduled',
+  location VARCHAR(255) NULL,
+  is_public TINYINT(1) NOT NULL DEFAULT 0,
+  created_by BIGINT UNSIGNED NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_appt_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+  CONSTRAINT fk_appt_client FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE SET NULL,
+  CONSTRAINT fk_appt_service FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE SET NULL,
+  CONSTRAINT fk_appt_creator FOREIGN KEY (created_by) REFERENCES users(id),
+  INDEX idx_appt_tenant_start (tenant_id,starts_at),
+  INDEX idx_appt_client (tenant_id,client_id,starts_at)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS appointment_contractors (
+  appointment_id BIGINT UNSIGNED NOT NULL,
+  contractor_id BIGINT UNSIGNED NOT NULL,
+  status ENUM('assigned','accepted','declined','completed') NOT NULL DEFAULT 'assigned',
+  pay_amount DECIMAL(12,2) NULL,
+  PRIMARY KEY (appointment_id,contractor_id),
+  CONSTRAINT fk_ac_appt FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE,
+  CONSTRAINT fk_ac_contractor FOREIGN KEY (contractor_id) REFERENCES contractors(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS contractor_availability (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  contractor_id BIGINT UNSIGNED NOT NULL,
+  weekday TINYINT UNSIGNED NULL,
+  available_date DATE NULL,
+  starts_at TIME NOT NULL,
+  ends_at TIME NOT NULL,
+  is_available TINYINT(1) NOT NULL DEFAULT 1,
+  CONSTRAINT fk_ca_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+  CONSTRAINT fk_ca_contractor FOREIGN KEY (contractor_id) REFERENCES contractors(id) ON DELETE CASCADE,
+  INDEX idx_ca_lookup (tenant_id,contractor_id,available_date,weekday)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS invoices (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  client_id BIGINT UNSIGNED NOT NULL,
+  appointment_id BIGINT UNSIGNED NULL,
+  invoice_number VARCHAR(50) NOT NULL,
+  status ENUM('draft','sent','partial','paid','void','overdue') NOT NULL DEFAULT 'draft',
+  subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
+  tax_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+  total DECIMAL(12,2) NOT NULL DEFAULT 0,
+  balance_due DECIMAL(12,2) NOT NULL DEFAULT 0,
+  due_at DATETIME NULL,
+  notes TEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_invoice_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+  CONSTRAINT fk_invoice_client FOREIGN KEY (client_id) REFERENCES clients(id),
+  CONSTRAINT fk_invoice_appt FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE SET NULL,
+  UNIQUE KEY uq_invoice_number (tenant_id,invoice_number),
+  INDEX idx_invoice_status (tenant_id,status,due_at)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS invoice_items (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  invoice_id BIGINT UNSIGNED NOT NULL,
+  description VARCHAR(255) NOT NULL,
+  quantity DECIMAL(12,2) NOT NULL DEFAULT 1,
+  unit_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+  amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+  CONSTRAINT fk_item_invoice FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS payments (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  invoice_id BIGINT UNSIGNED NULL,
+  client_id BIGINT UNSIGNED NOT NULL,
+  amount DECIMAL(12,2) NOT NULL,
+  currency CHAR(3) NOT NULL DEFAULT 'USD',
+  status ENUM('pending','succeeded','failed','refunded','void') NOT NULL DEFAULT 'pending',
+  method VARCHAR(50) NULL,
+  provider VARCHAR(50) NULL,
+  provider_reference VARCHAR(190) NULL,
+  paid_at DATETIME NULL,
+  notes TEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_payment_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+  CONSTRAINT fk_payment_invoice FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE SET NULL,
+  CONSTRAINT fk_payment_client FOREIGN KEY (client_id) REFERENCES clients(id),
+  INDEX idx_payment_tenant_date (tenant_id,created_at)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NULL,
+  type VARCHAR(80) NOT NULL,
+  title VARCHAR(190) NOT NULL,
+  body TEXT NOT NULL,
+  read_at DATETIME NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_notif_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+  CONSTRAINT fk_notif_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_notif_user (tenant_id,user_id,read_at,created_at)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS audit_log (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NULL,
+  action VARCHAR(100) NOT NULL,
+  entity_type VARCHAR(80) NOT NULL,
+  entity_id BIGINT UNSIGNED NULL,
+  metadata JSON NULL,
+  ip_address VARCHAR(64) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_audit_tenant (tenant_id,created_at),
+  CONSTRAINT fk_audit_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+  CONSTRAINT fk_audit_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+"""
+
+FILES["migrations/002_legacy_events_import.sql"] = r"""-- Compatibility migration.
+-- The legacy `events` database/table is intentionally NOT auto-imported because its
+-- user_id values cannot safely be mapped to tenant membership without operator review.
+-- Export legacy events first, map them to a tenant/client/contractor, then import them
+-- into `appointments`. This migration exists as an explicit audit marker.
+SELECT 1;
+"""
+
+FILES["api/auth/login.php"] = r"""<?php
+require_once dirname(__DIR__,2).'/app/bootstrap.php';
+require_method('POST'); verify_csrf();
+$d=request_data(); $email=strtolower(trim($d['email']??'')); $password=$d['password']??'';
+$q=Database::connection()->prepare("SELECT * FROM users WHERE email=? AND status='active'");
+$q->execute([$email]); $u=$q->fetch();
+if(!$u || !password_verify($password,$u['password_hash'])) json_response(['error'=>'Invalid email or password'],422);
+session_regenerate_id(true); $_SESSION['user_id']=(int)$u['id'];
+Database::connection()->prepare("UPDATE users SET last_login_at=NOW() WHERE id=?")->execute([$u['id']]);
+$m=Auth::memberships((int)$u['id']); if($m) $_SESSION['tenant_id']=(int)$m[0]['tenant_id'];
+json_response(['ok'=>true,'redirect'=>app_url('/dashboard.v2.php')]);
+"""
+
+FILES["api/auth/logout.php"] = r"""<?php
+require_once dirname(__DIR__,2).'/app/bootstrap.php';
+require_method('POST'); verify_csrf();
+$_SESSION=[]; session_destroy(); json_response(['ok'=>true]);
+"""
+
+FILES["api/clients.php"] = r"""<?php
+require_once dirname(__DIR__).'/app/bootstrap.php';
+$u=Auth::requireUser(); $tid=Auth::tenantId(); $pdo=Database::connection();
+if($_SERVER['REQUEST_METHOD']==='GET'){
+  $q=$pdo->prepare("SELECT * FROM clients WHERE tenant_id=? ORDER BY last_name,first_name"); $q->execute([$tid]);
+  json_response(['clients'=>$q->fetchAll()]);
+}
+verify_csrf(); Auth::requireRole('owner','admin','scheduler','accounting'); $d=request_data();
+if($_SERVER['REQUEST_METHOD']==='POST'){
+  $q=$pdo->prepare("INSERT INTO clients(tenant_id,company_name,first_name,last_name,email,phone,address1,address2,city,state,postal_code,notes,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)");
+  $q->execute([$tid,$d['company_name']??null,trim($d['first_name']??''),trim($d['last_name']??''),$d['email']??null,$d['phone']??null,$d['address1']??null,$d['address2']??null,$d['city']??null,$d['state']??null,$d['postal_code']??null,$d['notes']??null,$d['status']??'active']);
+  json_response(['ok'=>true,'id'=>(int)$pdo->lastInsertId()],201);
+}
+if($_SERVER['REQUEST_METHOD']==='PUT'){
+  $id=(int)($d['id']??0);
+  $q=$pdo->prepare("UPDATE clients SET company_name=?,first_name=?,last_name=?,email=?,phone=?,address1=?,address2=?,city=?,state=?,postal_code=?,notes=?,status=? WHERE id=? AND tenant_id=?");
+  $q->execute([$d['company_name']??null,$d['first_name']??'',$d['last_name']??'',$d['email']??null,$d['phone']??null,$d['address1']??null,$d['address2']??null,$d['city']??null,$d['state']??null,$d['postal_code']??null,$d['notes']??null,$d['status']??'active',$id,$tid]);
+  json_response(['ok'=>true]);
+}
+json_response(['error'=>'Method not allowed'],405);
+"""
+
+FILES["api/contractors.php"] = r"""<?php
+require_once dirname(__DIR__).'/app/bootstrap.php';
+$u=Auth::requireUser(); $tid=Auth::tenantId(); $pdo=Database::connection();
+if($_SERVER['REQUEST_METHOD']==='GET'){
+ $q=$pdo->prepare("SELECT * FROM contractors WHERE tenant_id=? ORDER BY last_name,first_name");$q->execute([$tid]);json_response(['contractors'=>$q->fetchAll()]);
+}
+verify_csrf();Auth::requireRole('owner','admin','scheduler');$d=request_data();
+if($_SERVER['REQUEST_METHOD']==='POST'){
+ $q=$pdo->prepare("INSERT INTO contractors(tenant_id,first_name,last_name,business_name,email,phone,hourly_rate,color,skills,status) VALUES(?,?,?,?,?,?,?,?,?,?)");
+ $q->execute([$tid,$d['first_name']??'',$d['last_name']??'',$d['business_name']??null,$d['email']??null,$d['phone']??null,$d['hourly_rate']??null,$d['color']??null,$d['skills']??null,$d['status']??'active']);
+ json_response(['ok'=>true,'id'=>(int)$pdo->lastInsertId()],201);
+}
+if($_SERVER['REQUEST_METHOD']==='PUT'){
+ $id=(int)($d['id']??0);$q=$pdo->prepare("UPDATE contractors SET first_name=?,last_name=?,business_name=?,email=?,phone=?,hourly_rate=?,color=?,skills=?,status=? WHERE id=? AND tenant_id=?");
+ $q->execute([$d['first_name']??'',$d['last_name']??'',$d['business_name']??null,$d['email']??null,$d['phone']??null,$d['hourly_rate']??null,$d['color']??null,$d['skills']??null,$d['status']??'active',$id,$tid]);json_response(['ok'=>true]);
+}
+json_response(['error'=>'Method not allowed'],405);
+"""
+
+FILES["api/services.php"] = r"""<?php
+require_once dirname(__DIR__).'/app/bootstrap.php';
+Auth::requireUser();$tid=Auth::tenantId();$pdo=Database::connection();
+if($_SERVER['REQUEST_METHOD']==='GET'){$q=$pdo->prepare("SELECT * FROM services WHERE tenant_id=? ORDER BY name");$q->execute([$tid]);json_response(['services'=>$q->fetchAll()]);}
+verify_csrf();Auth::requireRole('owner','admin','scheduler');$d=request_data();
+if($_SERVER['REQUEST_METHOD']==='POST'){$q=$pdo->prepare("INSERT INTO services(tenant_id,name,description,duration_minutes,price,active) VALUES(?,?,?,?,?,?)");$q->execute([$tid,$d['name']??'',$d['description']??null,(int)($d['duration_minutes']??60),$d['price']??0,!empty($d['active'])?1:0]);json_response(['ok'=>true,'id'=>(int)$pdo->lastInsertId()],201);}
+json_response(['error'=>'Method not allowed'],405);
+"""
+
+FILES["api/appointments.php"] = r"""<?php
+require_once dirname(__DIR__).'/app/bootstrap.php';
+$u=Auth::requireUser();$tid=Auth::tenantId();$pdo=Database::connection();
+if($_SERVER['REQUEST_METHOD']==='GET'){
+ $start=$_GET['start']??date('Y-m-01 00:00:00');$end=$_GET['end']??date('Y-m-t 23:59:59');
+ $q=$pdo->prepare("SELECT a.*,c.first_name client_first,c.last_name client_last,s.name service_name,
+ GROUP_CONCAT(ac.contractor_id) contractor_ids
+ FROM appointments a LEFT JOIN clients c ON c.id=a.client_id AND c.tenant_id=a.tenant_id
+ LEFT JOIN services s ON s.id=a.service_id AND s.tenant_id=a.tenant_id
+ LEFT JOIN appointment_contractors ac ON ac.appointment_id=a.id
+ WHERE a.tenant_id=? AND a.starts_at < ? AND a.ends_at > ? GROUP BY a.id ORDER BY a.starts_at");
+ $q->execute([$tid,$end,$start]);json_response(['appointments'=>$q->fetchAll()]);
+}
+verify_csrf();Auth::requireRole('owner','admin','scheduler','contractor');$d=request_data();
+if($_SERVER['REQUEST_METHOD']==='POST'){
+ $pdo->beginTransaction();
+ try{
+  $q=$pdo->prepare("INSERT INTO appointments(tenant_id,client_id,service_id,title,description,starts_at,ends_at,status,location,is_public,created_by) VALUES(?,?,?,?,?,?,?,?,?,?,?)");
+  $q->execute([$tid,int_or_null($d['client_id']??null),int_or_null($d['service_id']??null),trim($d['title']??'Appointment'),$d['description']??null,$d['starts_at'],$d['ends_at'],$d['status']??'scheduled',$d['location']??null,!empty($d['is_public'])?1:0,$u['id']]);
+  $id=(int)$pdo->lastInsertId();
+  foreach(($d['contractor_ids']??[]) as $cid){$x=$pdo->prepare("INSERT INTO appointment_contractors(appointment_id,contractor_id) SELECT ?,id FROM contractors WHERE id=? AND tenant_id=?");$x->execute([$id,(int)$cid,$tid]);}
+  $pdo->commit();json_response(['ok'=>true,'id'=>$id],201);
+ }catch(Throwable $e){$pdo->rollBack();json_response(['error'=>$e->getMessage()],422);}
+}
+if($_SERVER['REQUEST_METHOD']==='PUT'){
+ $id=(int)($d['id']??0);$q=$pdo->prepare("UPDATE appointments SET client_id=?,service_id=?,title=?,description=?,starts_at=?,ends_at=?,status=?,location=?,is_public=? WHERE id=? AND tenant_id=?");
+ $q->execute([int_or_null($d['client_id']??null),int_or_null($d['service_id']??null),$d['title']??'Appointment',$d['description']??null,$d['starts_at'],$d['ends_at'],$d['status']??'scheduled',$d['location']??null,!empty($d['is_public'])?1:0,$id,$tid]);json_response(['ok'=>true]);
+}
+if($_SERVER['REQUEST_METHOD']==='DELETE'){
+ $id=(int)($d['id']??0);$q=$pdo->prepare("DELETE FROM appointments WHERE id=? AND tenant_id=?");$q->execute([$id,$tid]);json_response(['ok'=>true]);
+}
+json_response(['error'=>'Method not allowed'],405);
+"""
+
+FILES["api/invoices.php"] = r"""<?php
+require_once dirname(__DIR__).'/app/bootstrap.php';
+Auth::requireUser();$tid=Auth::tenantId();$pdo=Database::connection();
+if($_SERVER['REQUEST_METHOD']==='GET'){$q=$pdo->prepare("SELECT i.*,CONCAT(c.first_name,' ',c.last_name) client_name FROM invoices i JOIN clients c ON c.id=i.client_id AND c.tenant_id=i.tenant_id WHERE i.tenant_id=? ORDER BY i.created_at DESC");$q->execute([$tid]);json_response(['invoices'=>$q->fetchAll()]);}
+verify_csrf();Auth::requireRole('owner','admin','accounting');$d=request_data();
+if($_SERVER['REQUEST_METHOD']==='POST'){
+ $num=$d['invoice_number']??('INV-'.date('Ymd-His'));
+ $total=(float)($d['total']??0);
+ $q=$pdo->prepare("INSERT INTO invoices(tenant_id,client_id,appointment_id,invoice_number,status,subtotal,tax_amount,total,balance_due,due_at,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?)");
+ $q->execute([$tid,(int)$d['client_id'],int_or_null($d['appointment_id']??null),$num,$d['status']??'draft',$d['subtotal']??$total,$d['tax_amount']??0,$total,$d['balance_due']??$total,$d['due_at']??null,$d['notes']??null]);
+ json_response(['ok'=>true,'id'=>(int)$pdo->lastInsertId()],201);
+}
+json_response(['error'=>'Method not allowed'],405);
+"""
+
+FILES["api/payments.php"] = r"""<?php
+require_once dirname(__DIR__).'/app/bootstrap.php';
+Auth::requireUser();$tid=Auth::tenantId();$pdo=Database::connection();
+if($_SERVER['REQUEST_METHOD']==='GET'){$q=$pdo->prepare("SELECT p.*,CONCAT(c.first_name,' ',c.last_name) client_name,i.invoice_number FROM payments p JOIN clients c ON c.id=p.client_id AND c.tenant_id=p.tenant_id LEFT JOIN invoices i ON i.id=p.invoice_id AND i.tenant_id=p.tenant_id WHERE p.tenant_id=? ORDER BY p.created_at DESC");$q->execute([$tid]);json_response(['payments'=>$q->fetchAll()]);}
+verify_csrf();Auth::requireRole('owner','admin','accounting');$d=request_data();
+if($_SERVER['REQUEST_METHOD']==='POST'){
+ $pdo->beginTransaction();try{
+  $q=$pdo->prepare("INSERT INTO payments(tenant_id,invoice_id,client_id,amount,currency,status,method,provider,provider_reference,paid_at,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?)");
+  $q->execute([$tid,int_or_null($d['invoice_id']??null),(int)$d['client_id'],$d['amount'],$d['currency']??'USD',$d['status']??'succeeded',$d['method']??null,$d['provider']??null,$d['provider_reference']??null,$d['paid_at']??date('Y-m-d H:i:s'),$d['notes']??null]);
+  if(!empty($d['invoice_id']) && ($d['status']??'succeeded')==='succeeded'){
+   $x=$pdo->prepare("UPDATE invoices SET balance_due=GREATEST(0,balance_due-?),status=IF(balance_due-?<=0,'paid','partial') WHERE id=? AND tenant_id=?");
+   $x->execute([$d['amount'],$d['amount'],(int)$d['invoice_id'],$tid]);
+  }
+  $pdo->commit();json_response(['ok'=>true,'id'=>(int)$pdo->lastInsertId()],201);
+ }catch(Throwable $e){$pdo->rollBack();json_response(['error'=>$e->getMessage()],422);}
+}
+json_response(['error'=>'Method not allowed'],405);
+"""
+
+FILES["api/dashboard.php"] = r"""<?php
+require_once dirname(__DIR__).'/app/bootstrap.php';
+Auth::requireUser();$tid=Auth::tenantId();$pdo=Database::connection();
+function scalar(PDO $pdo,string $sql,array $p){$q=$pdo->prepare($sql);$q->execute($p);return $q->fetchColumn();}
+json_response([
+ 'clients'=>(int)scalar($pdo,"SELECT COUNT(*) FROM clients WHERE tenant_id=? AND status='active'",[$tid]),
+ 'contractors'=>(int)scalar($pdo,"SELECT COUNT(*) FROM contractors WHERE tenant_id=? AND status='active'",[$tid]),
+ 'appointments_today'=>(int)scalar($pdo,"SELECT COUNT(*) FROM appointments WHERE tenant_id=? AND DATE(starts_at)=CURDATE() AND status NOT IN('cancelled','no_show')",[$tid]),
+ 'appointments_week'=>(int)scalar($pdo,"SELECT COUNT(*) FROM appointments WHERE tenant_id=? AND starts_at>=CURDATE() AND starts_at<DATE_ADD(CURDATE(),INTERVAL 7 DAY) AND status NOT IN('cancelled','no_show')",[$tid]),
+ 'receivables'=>(float)scalar($pdo,"SELECT COALESCE(SUM(balance_due),0) FROM invoices WHERE tenant_id=? AND status IN('sent','partial','overdue')",[$tid]),
+ 'payments_month'=>(float)scalar($pdo,"SELECT COALESCE(SUM(amount),0) FROM payments WHERE tenant_id=? AND status='succeeded' AND paid_at>=DATE_FORMAT(CURDATE(),'%Y-%m-01')",[$tid]),
+]);
+"""
+
+# Legacy FullCalendar adapters: keep old scheduling.php useful while enforcing tenant isolation.
+FILES["events/events.json.php"] = r"""<?php
+require_once dirname(__DIR__).'/app/bootstrap.php';
+Auth::requireUser();$tid=Auth::tenantId();$pdo=Database::connection();
+$q=$pdo->prepare("SELECT id,title,description,starts_at,ends_at,status,is_public FROM appointments WHERE tenant_id=? AND starts_at>=DATE_SUB(NOW(),INTERVAL 1 YEAR) ORDER BY starts_at");
+$q->execute([$tid]);$out=[];
+foreach($q->fetchAll() as $a){$out[]=['event_id'=>$a['id'],'title'=>$a['title'],'description'=>$a['description'],'user_id'=>'','start'=>$a['starts_at'],'end'=>$a['ends_at'],'repeat_type'=>'0','is_public'=>(bool)$a['is_public'],'is_active'=>$a['status']!=='cancelled'];}
+json_response(['events'=>$out]);
+"""
+
+FILES["events/save_event.php"] = r"""<?php
+require_once dirname(__DIR__).'/app/bootstrap.php';
+$u=Auth::requireUser();Auth::requireRole('owner','admin','scheduler');verify_csrf();
+$tid=Auth::tenantId();$pdo=Database::connection();$d=request_data();
+$parse=function($date,$time){$x=DateTime::createFromFormat('m/d/Y H:i',trim($date.' '.$time));return $x?$x->format('Y-m-d H:i:s'):null;};
+$start=$parse($d['start_date']??'',$d['start_time']??'00:00');$end=$parse($d['end_date']??'',$d['end_time']??'00:00');
+if(!$start||!$end) json_response(['error'=>'Invalid date/time'],422);
+$id=(int)($d['event_id']??0);
+if($id){$q=$pdo->prepare("UPDATE appointments SET title=?,description=?,starts_at=?,ends_at=?,is_public=?,status=? WHERE id=? AND tenant_id=?");$q->execute([$d['description']??'Appointment',$d['description']??null,$start,$end,($d['is_public']??'false')==='true'?1:0,($d['is_active']??'true')==='true'?'scheduled':'cancelled',$id,$tid]);}
+else{$q=$pdo->prepare("INSERT INTO appointments(tenant_id,title,description,starts_at,ends_at,is_public,status,created_by) VALUES(?,?,?,?,?,?,?,?)");$q->execute([$tid,$d['description']??'Appointment',$d['description']??null,$start,$end,($d['is_public']??'false')==='true'?1:0,($d['is_active']??'true')==='true'?'scheduled':'cancelled',$u['id']]);$id=(int)$pdo->lastInsertId();}
+json_response(['ok'=>true,'id'=>$id]);
+"""
+
+FILES["partials/app_header.php"] = r"""<?php
+require_once dirname(__DIR__).'/app/bootstrap.php';
+$user=Auth::requireUser();$tenant=Auth::tenant();$csrf=csrf_token();
+?><!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title><?=htmlspecialchars($pageTitle??'BriteScheduler')?></title>
+<style>
+body{font-family:system-ui,sans-serif;margin:0;background:#f5f7fb;color:#1f2937}.top{background:#172033;color:#fff;padding:14px 24px;display:flex;justify-content:space-between}.nav{background:#fff;padding:10px 24px;border-bottom:1px solid #ddd}.nav a{margin-right:18px;color:#334155;text-decoration:none}.wrap{max-width:1250px;margin:24px auto;padding:0 18px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px;box-shadow:0 2px 8px #00000008}.metric{font-size:28px;font-weight:700}table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left}input,select,textarea,button{padding:9px;border:1px solid #cbd5e1;border-radius:6px}button{cursor:pointer}.row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}.row>*{flex:1;min-width:140px}.muted{color:#64748b}.danger{color:#b91c1c}
+</style>
+<script>
+window.BRITE_CSRF=<?=json_encode($csrf)?>;
+window.BRITE_BASE=<?=json_encode(rtrim($_ENV['APP_URL'] ?? 'http://localhost/dashboard','/'))?>;
+
+async function api(url,opt={}){
+    opt.headers={
+        ...(opt.headers||{}),
+        'X-CSRF-Token':window.BRITE_CSRF
+    };
+
+    if(url.startsWith('/')){
+        url=window.BRITE_BASE+url;
+    }
+
+    let r=await fetch(url,opt);
+    let j=await r.json();
+
+    if(!r.ok)throw new Error(j.error||'Request failed');
+    return j;
+}
+</script>
+</head><body><div class="top"><b>BriteScheduler</b><span><?=htmlspecialchars($tenant['name'])?> · <?=htmlspecialchars($user['first_name'].' '.$user['last_name'])?> (<?=htmlspecialchars($tenant['role'])?>)</span></div>
+<div class="nav"><a href="<?=htmlspecialchars(app_url('/dashboard.v2.php'))?>">Dashboard</a><a href="<?=htmlspecialchars(app_url('/clients.v2.php'))?>">Clients</a><a href="<?=htmlspecialchars(app_url('/contractors.v2.php'))?>">Contractors</a><a href="<?=htmlspecialchars(app_url('/scheduling.php'))?>">Schedule</a><a href="<?=htmlspecialchars(app_url('/billing.php'))?>">Billing</a></div><main class="wrap">
+"""
+
+FILES["partials/app_footer.php"] = r"""</main></body></html>"""
+
+FILES["dashboard.v2.php"] = r"""<?php $pageTitle='Dashboard';require __DIR__.'/partials/app_header.php';?>
+<h1>Operations Dashboard</h1><div id="metrics" class="grid"></div>
+<div class="card" style="margin-top:18px"><h2>System scope</h2><p class="muted">Tenant-isolated clients, contractors, scheduling, invoices and payments are active. Payment records are ledger entries; connect a PCI-compliant payment provider for card processing.</p></div>
+<script>
+api('/api/dashboard.php').then(d=>{let m=[['Active clients',d.clients],['Active contractors',d.contractors],['Appointments today',d.appointments_today],['Next 7 days',d.appointments_week],['Receivables','$'+Number(d.receivables).toFixed(2)],['Payments this month','$'+Number(d.payments_month).toFixed(2)]];document.querySelector('#metrics').innerHTML=m.map(x=>`<div class="card"><div class="muted">${x[0]}</div><div class="metric">${x[1]}</div></div>`).join('')});
+</script><?php require __DIR__.'/partials/app_footer.php';?>
+"""
+
+FILES["clients.v2.php"] = r"""<?php $pageTitle='Clients';require __DIR__.'/partials/app_header.php';?>
+<h1>Clients</h1><div class="card"><form id="f"><div class="row"><input name="first_name" placeholder="First name" required><input name="last_name" placeholder="Last name" required><input name="company_name" placeholder="Company"><input name="email" type="email" placeholder="Email"><input name="phone" placeholder="Phone"><button>Add client</button></div></form></div>
+<div class="card" style="margin-top:18px"><table><thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Phone</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table></div>
+<script>
+async function load(){let d=await api('/api/clients.php');rows.innerHTML=d.clients.map(c=>`<tr><td>${esc(c.first_name)} ${esc(c.last_name)}</td><td>${esc(c.company_name||'')}</td><td>${esc(c.email||'')}</td><td>${esc(c.phone||'')}</td><td>${esc(c.status)}</td></tr>`).join('')}
+function esc(s){return String(s).replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[x]))}
+f.onsubmit=async e=>{e.preventDefault();let d=Object.fromEntries(new FormData(f));await api('/api/clients.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});f.reset();load()};load();
+</script><?php require __DIR__.'/partials/app_footer.php';?>
+"""
+
+FILES["contractors.v2.php"] = r"""<?php $pageTitle='Contractors';require __DIR__.'/partials/app_header.php';?>
+<h1>Contractors</h1><div class="card"><form id="f"><div class="row"><input name="first_name" placeholder="First name" required><input name="last_name" placeholder="Last name" required><input name="business_name" placeholder="Business"><input name="email" type="email" placeholder="Email"><input name="phone" placeholder="Phone"><input name="hourly_rate" type="number" step=".01" placeholder="Hourly rate"><button>Add contractor</button></div></form></div>
+<div class="card" style="margin-top:18px"><table><thead><tr><th>Name</th><th>Business</th><th>Email</th><th>Phone</th><th>Rate</th></tr></thead><tbody id="rows"></tbody></table></div>
+<script>
+function esc(s){return String(s??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[x]))}
+async function load(){let d=await api('/api/contractors.php');rows.innerHTML=d.contractors.map(c=>`<tr><td>${esc(c.first_name)} ${esc(c.last_name)}</td><td>${esc(c.business_name)}</td><td>${esc(c.email)}</td><td>${esc(c.phone)}</td><td>${c.hourly_rate?'$'+Number(c.hourly_rate).toFixed(2):''}</td></tr>`).join('')}
+f.onsubmit=async e=>{e.preventDefault();let d=Object.fromEntries(new FormData(f));await api('/api/contractors.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});f.reset();load()};load();
+</script><?php require __DIR__.'/partials/app_footer.php';?>
+"""
+
+FILES["billing.php"] = r"""<?php $pageTitle='Billing';require __DIR__.'/partials/app_header.php';?>
+<h1>Billing & Payments</h1><div class="grid"><div class="card"><h2>Invoices</h2><table><thead><tr><th>#</th><th>Client</th><th>Status</th><th>Total</th><th>Due</th></tr></thead><tbody id="inv"></tbody></table></div><div class="card"><h2>Payments</h2><table><thead><tr><th>Client</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead><tbody id="pay"></tbody></table></div></div>
+<script>
+Promise.all([api('/api/invoices.php'),api('/api/payments.php')]).then(([a,b])=>{inv.innerHTML=a.invoices.map(x=>`<tr><td>${x.invoice_number}</td><td>${x.client_name}</td><td>${x.status}</td><td>$${Number(x.total).toFixed(2)}</td><td>$${Number(x.balance_due).toFixed(2)}</td></tr>`).join('');pay.innerHTML=b.payments.map(x=>`<tr><td>${x.client_name}</td><td>$${Number(x.amount).toFixed(2)}</td><td>${x.status}</td><td>${x.paid_at||''}</td></tr>`).join('')});
+</script><?php require __DIR__.'/partials/app_footer.php';?>
+"""
+
+FILES["setup/create_admin.php"] = r"""<?php
+require_once dirname(__DIR__).'/app/bootstrap.php';
+if (PHP_SAPI !== 'cli') { http_response_code(403); exit("CLI only\n"); }
+if ($argc < 6) { exit("Usage: php setup/create_admin.php tenant-slug \"Tenant Name\" email first last\n"); }
+[$script,$slug,$tenantName,$email,$first,$last]=$argv;
+$password=getenv('BRITE_ADMIN_PASSWORD'); if(!$password) exit("Set BRITE_ADMIN_PASSWORD first.\n");
+$pdo=Database::connection();$pdo->beginTransaction();
+try{
+ $q=$pdo->prepare("INSERT INTO tenants(name,slug) VALUES(?,?)");$q->execute([$tenantName,$slug]);$tid=(int)$pdo->lastInsertId();
+ $q=$pdo->prepare("INSERT INTO users(email,password_hash,first_name,last_name) VALUES(?,?,?,?)");$q->execute([strtolower($email),password_hash($password,PASSWORD_DEFAULT),$first,$last]);$uid=(int)$pdo->lastInsertId();
+ $pdo->prepare("INSERT INTO tenant_memberships(tenant_id,user_id,role) VALUES(?,?,'owner')")->execute([$tid,$uid]);
+ $pdo->commit();echo "Created tenant {$tenantName} and owner {$email}\n";
+}catch(Throwable $e){$pdo->rollBack();fwrite(STDERR,$e->getMessage()."\n");exit(1);}
+"""
+
+FILES["sign-in.v2.php"] = r"""<?php require_once __DIR__.'/app/bootstrap.php';$csrf=csrf_token();?><!doctype html><html><head><meta charset="utf-8"><title>BriteScheduler Sign In</title><style>body{font-family:system-ui;background:#f5f7fb}.box{max-width:360px;margin:10vh auto;background:white;padding:30px;border-radius:12px}input,button{box-sizing:border-box;width:100%;padding:11px;margin:7px 0}</style></head><body><div class="box"><h1>BriteScheduler</h1><form id="f"><input name="email" type="email" placeholder="Email" required><input name="password" type="password" placeholder="Password" required><button>Sign in</button><p id="e"></p></form></div><script>f.onsubmit=async x=>{x.preventDefault();let d=Object.fromEntries(new FormData(f));let r=await fetch(<?=json_encode(app_url('/api/auth/login.php'))?>,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':<?=json_encode($csrf)?>},body:JSON.stringify(d)}),j=await r.json();if(r.ok)location=j.redirect;else e.textContent=j.error}</script></body></html>"""
+
+FILES["README-BRITE-V2.md"] = r"""# BriteScheduler multi-tenant application layer
+
+Generated by `brite_complete_wizard.py`.
+
+## Architecture
+Every business row is tenant-scoped. Authentication is session based. Tenant membership
+determines role: owner, admin, scheduler, accounting, contractor, or client. Do not accept
+tenant IDs from browsers for authorization; the server resolves tenant from the session.
+
+## Setup
+1. Copy `.env.example` to `.env` and set a non-root MySQL user/password.
+2. Run the wizard with `--migrate`, or execute migrations in numeric order.
+3. Create the first owner:
+   `BRITE_ADMIN_PASSWORD='use-a-long-password' php setup/create_admin.php acme "Acme LLC" owner@example.com First Last`
+4. The wizard can activate the v2 dashboard/client/contractor/sign-in pages with `--activate`.
+
+## Payments
+The included payments module is an accounting ledger only. Never store PAN/CVV/card
+credentials in BriteScheduler. Add Stripe/another PCI-compliant provider through hosted
+checkout/tokenization and store only provider references.
+
+## Legacy events
+The old code used a separate `events` database and user IDs with no tenant boundary.
+It is not automatically imported. Review and map legacy records before importing them as
+appointments.
+"""
+
+def write_file(rel: str, content: str, activate: bool=False):
+    path = ROOT / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        dest = BACKUP / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(path, dest)
+    path.write_text(content, encoding="utf-8")
+    print(f"WRITE {rel}")
+
+def merge_gitignore():
+    p=ROOT/".gitignore"
+    wanted=[".env",".env.local",".brite-wizard-backup/","vendor/","*.log"]
+    old=p.read_text(encoding="utf-8") if p.exists() else ""
+    lines=old.splitlines()
+    for x in wanted:
+        if x not in lines: lines.append(x)
+    write_file(".gitignore","\n".join(lines).rstrip()+"\n")
+
+def activate_pages():
+    mapping={
+      "dashboard.v2.php":"dashboard.php",
+      "clients.v2.php":"clients.php",
+      "contractors.v2.php":"contractors.php",
+      "sign-in.v2.php":"sign-in.php",
+    }
+    for src,dst in mapping.items():
+        target=ROOT/dst
+        if target.exists():
+            b=BACKUP/dst;b.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(target,b)
+        shutil.copy2(ROOT/src,target)
+        print(f"ACTIVATE {dst}")
+
+def migrate(env):
+    mysql=shutil.which("mysql")
+    if not mysql:
+        print("mysql CLI not found; files generated but migrations were not executed.", file=sys.stderr); return False
+    host=env.get("DB_HOST","127.0.0.1");port=env.get("DB_PORT","3306")
+    name=env.get("DB_NAME","britescheduler");user=env.get("DB_USER","britescheduler");pw=env.get("DB_PASS","")
+    # Create DB must be done by a privileged operator if it does not exist.
+    for sqlfile in sorted((ROOT/"migrations").glob("*.sql")):
+        version=sqlfile.name
+        check=[mysql,f"-h{host}",f"-P{port}",f"-u{user}",f"-p{pw}",name,"-Nse",
+               f"SELECT COUNT(*) FROM schema_migrations WHERE version='{version}'"] if version!="001_core.sql" else None
+        if check:
+            r=subprocess.run(check,capture_output=True,text=True)
+            if r.returncode==0 and r.stdout.strip()=="1":
+                print("SKIP",version);continue
+        print("MIGRATE",version)
+        proc=subprocess.run([mysql,f"-h{host}",f"-P{port}",f"-u{user}",f"-p{pw}",name],
+                            input=sqlfile.read_text(),text=True)
+        if proc.returncode: return False
+        # 001 creates schema_migrations itself
+        mark=subprocess.run([mysql,f"-h{host}",f"-P{port}",f"-u{user}",f"-p{pw}",name,
+            "-e",f"INSERT IGNORE INTO schema_migrations(version) VALUES('{version}')"])
+        if mark.returncode:return False
+    return True
+
+def read_env():
+    out={}
+    p=ROOT/".env"
+    if p.exists():
+        for line in p.read_text().splitlines():
+            if "=" in line and not line.lstrip().startswith("#"):
+                k,v=line.split("=",1);out[k.strip()]=v.strip().strip("\"'")
+    return out
+
+def main():
+    ap=argparse.ArgumentParser()
+    ap.add_argument("--migrate",action="store_true",help="execute MySQL migrations after generating")
+    ap.add_argument("--activate",action="store_true",help="replace selected legacy root pages with v2 pages (backed up first)")
+    ap.add_argument("--yes",action="store_true",help="non-interactive confirmation")
+    args=ap.parse_args()
+
+    if not (ROOT/".git").exists():
+        sys.exit("Run this wizard from the BriteScheduler Git repository root (directory containing .git).")
+    print("BriteScheduler completion wizard")
+    print("Root:",ROOT)
+    print("Backup:",BACKUP)
+    if not args.yes:
+        ans=input("Generate the multi-tenant application layer here? [y/N] ").strip().lower()
+        if ans not in ("y","yes"): return
+
+    BACKUP.mkdir(parents=True,exist_ok=True)
+    for rel,content in FILES.items():
+        if rel==".gitignore": continue
+        write_file(rel,content)
+    merge_gitignore()
+
+    if not (ROOT/".env").exists():
+        shutil.copy2(ROOT/".env.example",ROOT/".env")
+        print("CREATE .env (edit DB credentials before migration)")
+
+    if args.activate:
+        activate_pages()
+    else:
+        print("NOTE: v2 pages generated but legacy root dashboard/client/contractor/sign-in pages were not replaced.")
+        print("      Re-run with --activate after reviewing them.")
+
+    if args.migrate:
+        env=read_env()
+        if env.get("DB_PASS") in ("","change-me"):
+            print("Refusing migration: set DB credentials in .env first.",file=sys.stderr)
+        else:
+            migrate(env)
+
+    print("\nDONE.")
+    print("1) Review: git diff --stat && git diff")
+    print("2) Configure .env (never commit it)")
+    print("3) Run migrations: python3 brite_complete_wizard.py --migrate --yes")
+    print("4) Create owner with setup/create_admin.php")
+    print("5) Activate v2 pages after review: python3 brite_complete_wizard.py --activate --yes")
+    print("6) Test locally, then git add/commit/push.")
+
+if __name__=="__main__":
+    main()
