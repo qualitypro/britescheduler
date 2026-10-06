@@ -15,6 +15,142 @@ $pdo = Database::connection();
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
+    /*
+     * Detailed single-invoice response.
+     */
+    $invoiceId=(int)($_GET['id'] ?? 0);
+
+    if ($invoiceId > 0) {
+
+        $q=$pdo->prepare("
+            SELECT
+                i.*,
+
+                CONCAT(
+                    c.first_name,
+                    ' ',
+                    c.last_name
+                ) AS client_name,
+
+                c.company_name,
+                c.email AS client_email,
+                c.phone AS client_phone,
+                c.address1,
+                c.address2,
+                c.city,
+                c.state,
+                c.postal_code,
+
+                a.title AS appointment_title,
+                a.starts_at AS appointment_starts_at,
+                a.ends_at AS appointment_ends_at,
+
+                t.name AS tenant_name,
+                t.currency AS tenant_currency,
+
+                COALESCE((
+                    SELECT SUM(p.amount)
+                    FROM payments p
+                    WHERE p.invoice_id=i.id
+                      AND p.tenant_id=i.tenant_id
+                      AND p.status='succeeded'
+                ),0) AS amount_paid
+
+            FROM invoices i
+
+            JOIN clients c
+              ON c.id=i.client_id
+             AND c.tenant_id=i.tenant_id
+
+            JOIN tenants t
+              ON t.id=i.tenant_id
+
+            LEFT JOIN appointments a
+              ON a.id=i.appointment_id
+             AND a.tenant_id=i.tenant_id
+
+            WHERE i.id=?
+              AND i.tenant_id=?
+
+            LIMIT 1
+        ");
+
+        $q->execute([
+            $invoiceId,
+            $tid
+        ]);
+
+        $invoice=$q->fetch();
+
+        if (!$invoice) {
+            json_response([
+                'error'=>'Invoice not found'
+            ],404);
+        }
+
+        /*
+         * Display overdue dynamically.
+         * Do not overwrite paid, partial or void.
+         */
+        if (
+            in_array(
+                $invoice['status'],
+                ['draft','sent','overdue'],
+                true
+            ) &&
+            (float)$invoice['balance_due'] > 0 &&
+            !empty($invoice['due_at']) &&
+            strtotime($invoice['due_at']) < time()
+        ) {
+            $invoice['status']='overdue';
+        }
+
+        $items=$pdo->prepare("
+            SELECT
+                id,
+                description,
+                quantity,
+                unit_price,
+                amount
+            FROM invoice_items
+            WHERE invoice_id=?
+            ORDER BY id
+        ");
+
+        $items->execute([$invoiceId]);
+
+        $payments=$pdo->prepare("
+            SELECT
+                id,
+                amount,
+                currency,
+                status,
+                method,
+                provider,
+                provider_reference,
+                paid_at,
+                notes,
+                created_at
+            FROM payments
+            WHERE tenant_id=?
+              AND invoice_id=?
+            ORDER BY
+                COALESCE(paid_at,created_at) DESC,
+                id DESC
+        ");
+
+        $payments->execute([
+            $tid,
+            $invoiceId
+        ]);
+
+        json_response([
+            'invoice'=>$invoice,
+            'items'=>$items->fetchAll(),
+            'payments'=>$payments->fetchAll()
+        ]);
+    }
+
     $q = $pdo->prepare("
         SELECT
             i.*,
@@ -285,6 +421,187 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'invoice_number'=>$invoiceNumber,
             'total'=>$price
         ],201);
+
+    } catch(Throwable $e) {
+
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        json_response([
+            'error'=>$e->getMessage()
+        ],422);
+    }
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| PUT — Invoice lifecycle
+|--------------------------------------------------------------------------
+*/
+
+if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+
+    $invoiceId=(int)($d['id'] ?? 0);
+
+    if ($invoiceId <= 0) {
+        json_response([
+            'error'=>'Invoice required'
+        ],422);
+    }
+
+    try {
+
+        $pdo->beginTransaction();
+
+        $q=$pdo->prepare("
+            SELECT
+                id,
+                status,
+                total,
+                balance_due,
+                due_at
+            FROM invoices
+            WHERE id=?
+              AND tenant_id=?
+            FOR UPDATE
+        ");
+
+        $q->execute([
+            $invoiceId,
+            $tid
+        ]);
+
+        $invoice=$q->fetch();
+
+        if (!$invoice) {
+            throw new RuntimeException(
+                'Invoice not found'
+            );
+        }
+
+        $newStatus=
+            $d['status'] ?? $invoice['status'];
+
+        $allowed=[
+            'draft',
+            'sent',
+            'void'
+        ];
+
+        /*
+         * partial/paid are controlled by the payment ledger.
+         * overdue is derived from the due date.
+         */
+        if (!in_array($newStatus,$allowed,true)) {
+            throw new RuntimeException(
+                'Invalid manual invoice status'
+            );
+        }
+
+        if ($invoice['status']==='paid') {
+            throw new RuntimeException(
+                'Paid invoices cannot be manually changed'
+            );
+        }
+
+        if ($invoice['status']==='partial' && $newStatus==='draft') {
+            throw new RuntimeException(
+                'Partially paid invoices cannot return to draft'
+            );
+        }
+
+        if ($newStatus==='void') {
+
+            $p=$pdo->prepare("
+                SELECT COUNT(*)
+                FROM payments
+                WHERE tenant_id=?
+                  AND invoice_id=?
+                  AND status='succeeded'
+            ");
+
+            $p->execute([
+                $tid,
+                $invoiceId
+            ]);
+
+            if ((int)$p->fetchColumn() > 0) {
+                throw new RuntimeException(
+                    'Invoice with successful payments cannot be voided'
+                );
+            }
+        }
+
+        $dueAt=$invoice['due_at'];
+
+        if (array_key_exists('due_at',$d)) {
+
+            if (!$d['due_at']) {
+                $dueAt=null;
+            } else {
+                try {
+                    $dueAt=(new DateTime($d['due_at']))
+                        ->format('Y-m-d H:i:s');
+                } catch(Throwable $e) {
+                    throw new RuntimeException(
+                        'Invalid due date'
+                    );
+                }
+            }
+        }
+
+        $notes=
+            array_key_exists('notes',$d)
+                ? (trim((string)$d['notes']) ?: null)
+                : null;
+
+        if (array_key_exists('notes',$d)) {
+
+            $u=$pdo->prepare("
+                UPDATE invoices
+                SET status=?,
+                    due_at=?,
+                    notes=?
+                WHERE id=?
+                  AND tenant_id=?
+            ");
+
+            $u->execute([
+                $newStatus,
+                $dueAt,
+                $notes,
+                $invoiceId,
+                $tid
+            ]);
+
+        } else {
+
+            $u=$pdo->prepare("
+                UPDATE invoices
+                SET status=?,
+                    due_at=?
+                WHERE id=?
+                  AND tenant_id=?
+            ");
+
+            $u->execute([
+                $newStatus,
+                $dueAt,
+                $invoiceId,
+                $tid
+            ]);
+        }
+
+        $pdo->commit();
+
+        json_response([
+            'ok'=>true,
+            'id'=>$invoiceId,
+            'status'=>$newStatus,
+            'due_at'=>$dueAt
+        ]);
 
     } catch(Throwable $e) {
 

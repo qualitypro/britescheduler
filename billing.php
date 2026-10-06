@@ -306,22 +306,25 @@ function renderInvoices(){
             const paid =
                 Number(x.amount_paid || 0);
 
-            let action='';
+            let action=`
+                <button type="button"
+                        onclick="viewInvoice(${Number(x.id)})">
+                    View
+                </button>
+            `;
 
             if(
                 balance > 0 &&
                 x.status !== 'void'
             ){
-                action=`
+                action += `
                     <button type="button"
                             onclick="openPayment(${Number(x.id)})">
                         Record Payment
                     </button>
                 `;
             }else if(x.status === 'paid'){
-                action='Paid';
-            }else{
-                action='—';
+                action += ' <span>Paid</span>';
             }
 
             return `
@@ -430,6 +433,15 @@ async function loadBilling(){
         billingError.textContent=e.message;
     }
 }
+
+
+window.viewInvoice=function(id){
+
+    window.location.href =
+        window.BRITE_BASE +
+        '/invoice.php?id=' +
+        encodeURIComponent(id);
+};
 
 window.openPayment=function(id){
 
