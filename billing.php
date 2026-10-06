@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__.'/app/bootstrap.php';
+Auth::requireRole('owner','admin','accounting');
+
 
 $pageTitle='Billing';
 
@@ -287,6 +290,15 @@ function statusLabel(status){
     return labels[status] || status;
 }
 
+
+window.viewInvoice=function(id){
+
+    location.href =
+        window.BRITE_BASE +
+        '/invoice.php?id=' +
+        encodeURIComponent(id);
+};
+
 function renderInvoices(){
 
     if(!invoices.length){
@@ -306,25 +318,32 @@ function renderInvoices(){
             const paid =
                 Number(x.amount_paid || 0);
 
+            /*
+             * Every invoice can be viewed regardless of
+             * payment state.
+             */
             let action=`
                 <button type="button"
                         onclick="viewInvoice(${Number(x.id)})">
-                    View
+                    View Invoice
                 </button>
             `;
 
+            /*
+             * Only invoices with an outstanding balance
+             * can accept another payment.
+             */
             if(
                 balance > 0 &&
                 x.status !== 'void'
             ){
                 action += `
                     <button type="button"
-                            onclick="openPayment(${Number(x.id)})">
+                            onclick="openPayment(${Number(x.id)})"
+                            style="margin-left:6px">
                         Record Payment
                     </button>
                 `;
-            }else if(x.status === 'paid'){
-                action += ' <span>Paid</span>';
             }
 
             return `
@@ -433,15 +452,6 @@ async function loadBilling(){
         billingError.textContent=e.message;
     }
 }
-
-
-window.viewInvoice=function(id){
-
-    window.location.href =
-        window.BRITE_BASE +
-        '/invoice.php?id=' +
-        encodeURIComponent(id);
-};
 
 window.openPayment=function(id){
 

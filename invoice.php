@@ -8,60 +8,231 @@ require __DIR__.'/partials/app_header.php';
 
 <style>
 
-.invoice-sheet{
-    max-width:900px;
-    margin:0 auto;
-    background:#fff;
-    border:1px solid #e5e7eb;
-    border-radius:12px;
-    padding:32px;
-}
-
-.invoice-heading{
-    display:flex;
-    justify-content:space-between;
-    gap:30px;
-    align-items:flex-start;
-    margin-bottom:30px;
-}
-
-.invoice-number{
-    font-size:28px;
-    font-weight:700;
-}
-
-.invoice-meta{
-    text-align:right;
-}
-
-.invoice-address{
-    line-height:1.6;
-}
-
-.invoice-total{
-    max-width:360px;
-    margin-left:auto;
-    margin-top:24px;
-}
-
-.invoice-total table td:last-child{
-    text-align:right;
-}
-
-.invoice-actions{
-    max-width:900px;
-    margin:0 auto 18px;
+.invoice-toolbar{
+    max-width:920px;
+    margin:0 auto 16px;
     display:flex;
     gap:10px;
     flex-wrap:wrap;
 }
 
-.status-badge{
+.invoice-paper{
+    max-width:920px;
+    margin:0 auto;
+    background:#fff;
+    border:1px solid #e2e8f0;
+    border-radius:12px;
+    padding:46px 52px;
+    box-shadow:0 3px 14px #0000000d;
+}
+
+.invoice-top{
+    display:flex;
+    justify-content:space-between;
+    gap:40px;
+    padding-bottom:28px;
+    border-bottom:2px solid #172033;
+}
+
+.business-name{
+    font-size:26px;
+    font-weight:750;
+    margin-bottom:8px;
+}
+
+.business-contact{
+    line-height:1.55;
+    color:#475569;
+}
+
+.invoice-title{
+    text-align:right;
+}
+
+.invoice-title h1{
+    margin:0 0 8px;
+    font-size:34px;
+    letter-spacing:2px;
+}
+
+.invoice-number{
+    font-weight:650;
+}
+
+.status{
     display:inline-block;
-    padding:5px 10px;
+    margin-top:12px;
+    padding:6px 13px;
     border-radius:999px;
     background:#eef2ff;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    font-size:12px;
+}
+
+.invoice-info{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:60px;
+    margin:32px 0;
+}
+
+.section-label{
+    color:#64748b;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    font-size:12px;
+    font-weight:700;
+    margin-bottom:9px;
+}
+
+.bill-to{
+    line-height:1.6;
+}
+
+.meta-table{
+    width:100%;
+    background:transparent;
+}
+
+.meta-table td{
+    padding:4px 0;
+    border:0;
+}
+
+.meta-table td:last-child{
+    text-align:right;
     font-weight:600;
+}
+
+.appointment-box{
+    margin-bottom:30px;
+    padding:16px 18px;
+    background:#f8fafc;
+    border-radius:8px;
+}
+
+.items-table{
+    margin-top:10px;
+}
+
+.items-table th{
+    background:#172033;
+    color:#fff;
+    border:0;
+}
+
+.items-table th:nth-child(n+2),
+.items-table td:nth-child(n+2){
+    text-align:right;
+}
+
+.summary{
+    width:360px;
+    margin:24px 0 0 auto;
+}
+
+.summary td{
+    border:0;
+    padding:6px 8px;
+}
+
+.summary td:last-child{
+    text-align:right;
+}
+
+.summary .total-row td{
+    border-top:1px solid #cbd5e1;
+    padding-top:10px;
+    font-weight:700;
+}
+
+.balance-box{
+    margin-top:8px;
+    padding:14px 12px;
+    background:#172033;
+    color:#fff;
+    border-radius:7px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.balance-box strong{
+    font-size:22px;
+}
+
+.paid-stamp{
+    margin:30px 0 0 auto;
+    width:max-content;
+    border:3px solid #334155;
+    padding:8px 18px;
+    font-size:18px;
+    font-weight:800;
+    letter-spacing:2px;
+    transform:rotate(-2deg);
+}
+
+.invoice-notes{
+    margin-top:36px;
+    padding-top:22px;
+    border-top:1px solid #e2e8f0;
+}
+
+.payment-history{
+    margin-top:34px;
+}
+
+.payment-history th:nth-child(3),
+.payment-history td:nth-child(3),
+.payment-history th:nth-child(4),
+.payment-history td:nth-child(4){
+    text-align:right;
+}
+
+.invoice-footer{
+    margin-top:42px;
+    padding-top:20px;
+    border-top:1px solid #e2e8f0;
+    text-align:center;
+    color:#64748b;
+    font-size:13px;
+}
+
+#error{
+    max-width:920px;
+    margin:0 auto 12px;
+}
+
+@media(max-width:700px){
+
+    .invoice-paper{
+        padding:25px;
+    }
+
+    .invoice-top,
+    .invoice-info{
+        display:block;
+    }
+
+    .invoice-title{
+        text-align:left;
+        margin-top:25px;
+    }
+
+    .invoice-info > div{
+        margin-bottom:25px;
+    }
+
+    .summary{
+        width:100%;
+    }
+}
+
+@page{
+    size:Letter;
+    margin:0.45in;
 }
 
 @media print{
@@ -72,8 +243,8 @@ require __DIR__.'/partials/app_header.php';
 
     .top,
     .nav,
-    .invoice-actions,
-    #invoiceError{
+    .invoice-toolbar,
+    #error{
         display:none !important;
     }
 
@@ -83,49 +254,72 @@ require __DIR__.'/partials/app_header.php';
         padding:0;
     }
 
-    .invoice-sheet{
-        border:0;
-        box-shadow:none;
+    .invoice-paper{
         max-width:none;
+        margin:0;
         padding:0;
+        border:0;
+        border-radius:0;
+        box-shadow:none;
+    }
+
+    table,
+    tr,
+    .appointment-box,
+    .summary,
+    .payment-history{
+        break-inside:avoid;
+        page-break-inside:avoid;
+    }
+
+    .items-table th{
+        background:#172033 !important;
+        color:#fff !important;
+        -webkit-print-color-adjust:exact;
+        print-color-adjust:exact;
+    }
+
+    .balance-box{
+        background:#172033 !important;
+        color:#fff !important;
+        -webkit-print-color-adjust:exact;
+        print-color-adjust:exact;
     }
 }
 
 </style>
 
-<div id="invoiceError"
-     class="danger"
-     style="max-width:900px;margin:0 auto 12px"></div>
+<div id="error" class="danger"></div>
 
-<div class="invoice-actions">
+<div class="invoice-toolbar">
 
     <button type="button"
-            onclick="window.location.href=window.BRITE_BASE+'/billing.php'">
+            onclick="location.href=window.BRITE_BASE+'/billing.php'">
         Back to Billing
     </button>
 
     <button type="button"
             onclick="window.print()">
-        Print Invoice
+        Print / Save PDF
     </button>
 
-    <button type="button"
-            id="markSent"
+    <button id="markSent"
+            type="button"
             style="display:none">
         Mark Sent
     </button>
 
-    <button type="button"
-            id="voidInvoice"
+    <button id="voidInvoice"
+            type="button"
             style="display:none">
         Void Invoice
     </button>
 
 </div>
 
-<div class="invoice-sheet">
+<div class="invoice-paper">
 
-    <div id="invoiceContent">
+    <div id="invoice">
         Loading invoice...
     </div>
 
@@ -133,19 +327,16 @@ require __DIR__.'/partials/app_header.php';
 
 <script>
 
-const params =
-    new URLSearchParams(
-        window.location.search
+const invoiceId =
+    Number(
+        new URLSearchParams(location.search).get('id')
     );
 
-const invoiceId =
-    Number(params.get('id'));
+const output =
+    document.getElementById('invoice');
 
-const invoiceError =
-    document.getElementById('invoiceError');
-
-const invoiceContent =
-    document.getElementById('invoiceContent');
+const errorBox =
+    document.getElementById('error');
 
 const markSent =
     document.getElementById('markSent');
@@ -153,24 +344,7 @@ const markSent =
 const voidInvoice =
     document.getElementById('voidInvoice');
 
-let currentInvoice=null;
-
-function money(value,currency='USD'){
-
-    try{
-        return new Intl.NumberFormat(
-            undefined,
-            {
-                style:'currency',
-                currency:currency
-            }
-        ).format(Number(value || 0));
-    }catch(e){
-        return '$'+Number(value || 0).toFixed(2);
-    }
-}
-
-function escapeHtml(value){
+function esc(value){
 
     return String(value ?? '')
         .replaceAll('&','&amp;')
@@ -180,95 +354,115 @@ function escapeHtml(value){
         .replaceAll("'","&#039;");
 }
 
-function dateOnly(value){
+function money(value,currency='USD'){
+
+    try{
+        return new Intl.NumberFormat(
+            'en-US',
+            {
+                style:'currency',
+                currency
+            }
+        ).format(Number(value || 0));
+    }catch(e){
+        return '$'+Number(value || 0).toFixed(2);
+    }
+}
+
+function parseDate(value){
 
     if(!value){
-        return '';
+        return null;
     }
 
-    const d =
-        new Date(
-            value.replace(' ','T')
-        );
+    const d=new Date(
+        String(value).replace(' ','T')
+    );
 
-    if(Number.isNaN(d.getTime())){
-        return value;
-    }
+    return Number.isNaN(d.getTime())
+        ? null
+        : d;
+}
 
-    return d.toLocaleDateString();
+function dateOnly(value){
+
+    const d=parseDate(value);
+
+    return d
+        ? d.toLocaleDateString(
+            'en-US',
+            {
+                month:'short',
+                day:'numeric',
+                year:'numeric'
+            }
+        )
+        : '';
 }
 
 function dateTime(value){
 
-    if(!value){
-        return '';
-    }
+    const d=parseDate(value);
 
-    const d =
-        new Date(
-            value.replace(' ','T')
-        );
-
-    if(Number.isNaN(d.getTime())){
-        return value;
-    }
-
-    return d.toLocaleString();
+    return d
+        ? d.toLocaleString(
+            'en-US',
+            {
+                month:'short',
+                day:'numeric',
+                year:'numeric',
+                hour:'numeric',
+                minute:'2-digit'
+            }
+        )
+        : '';
 }
 
-function statusLabel(value){
+function phone(value){
 
-    const labels={
+    const raw=String(value || '').trim();
+    const digits=raw.replace(/\D/g,'');
+
+    if(digits.length===10){
+        return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+    }
+
+    if(digits.length===11 && digits[0]==='1'){
+        return `+1 (${digits.slice(1,4)}) ${digits.slice(4,7)}-${digits.slice(7)}`;
+    }
+
+    return raw;
+}
+
+function lines(values){
+
+    return values
+        .filter(v=>String(v || '').trim()!=='')
+        .map(v=>esc(v))
+        .join('<br>');
+}
+
+function cityStateZip(city,state,zip){
+
+    let left=[city,state]
+        .filter(Boolean)
+        .join(', ');
+
+    return [left,zip]
+        .filter(Boolean)
+        .join(' ');
+}
+
+function statusLabel(status){
+
+    return {
         draft:'Draft',
         sent:'Sent',
         partial:'Partial',
         paid:'Paid',
         overdue:'Overdue',
         void:'Void'
-    };
-
-    return labels[value] || value;
-}
-
-function addressHtml(i){
-
-    const lines=[];
-
-    if(i.company_name){
-        lines.push(i.company_name);
-    }
-
-    lines.push(i.client_name);
-
-    if(i.address1){
-        lines.push(i.address1);
-    }
-
-    if(i.address2){
-        lines.push(i.address2);
-    }
-
-    const locality=[
-        i.city,
-        i.state,
-        i.postal_code
-    ].filter(Boolean).join(' ');
-
-    if(locality){
-        lines.push(locality);
-    }
-
-    if(i.client_email){
-        lines.push(i.client_email);
-    }
-
-    if(i.client_phone){
-        lines.push(i.client_phone);
-    }
-
-    return lines
-        .map(escapeHtml)
-        .join('<br>');
+    }[status] || status;
 }
 
 function render(data){
@@ -276,98 +470,169 @@ function render(data){
     const i=data.invoice;
     const currency=i.tenant_currency || 'USD';
 
-    currentInvoice=i;
+    const businessAddress=lines([
+        i.tenant_address1,
+        i.tenant_address2,
+        cityStateZip(
+            i.tenant_city,
+            i.tenant_state,
+            i.tenant_postal_code
+        )
+    ]);
 
-    const itemRows =
-        (data.items || []).map(item=>`
+    const businessContact=lines([
+        i.tenant_phone ? phone(i.tenant_phone) : '',
+        i.tenant_email,
+        i.tenant_website
+    ]);
+
+    const clientAddress=lines([
+        i.company_name,
+        i.client_name,
+        i.address1,
+        i.address2,
+        cityStateZip(
+            i.city,
+            i.state,
+            i.postal_code
+        ),
+        i.client_email,
+        i.client_phone ? phone(i.client_phone) : ''
+    ]);
+
+    const itemRows=(data.items || [])
+        .map(item=>`
             <tr>
-                <td>${escapeHtml(item.description)}</td>
+                <td>${esc(item.description)}</td>
                 <td>${Number(item.quantity).toFixed(2)}</td>
                 <td>${money(item.unit_price,currency)}</td>
                 <td>${money(item.amount,currency)}</td>
             </tr>
-        `).join('');
+        `)
+        .join('');
 
-    const paymentRows =
-        (data.payments || []).map(p=>`
+    const paymentRows=(data.payments || [])
+        .map(p=>`
             <tr>
-                <td>${escapeHtml(dateTime(p.paid_at))}</td>
-                <td>${escapeHtml(p.method || '')}</td>
-                <td>${escapeHtml(p.status)}</td>
+                <td>${esc(dateTime(p.paid_at || p.created_at))}</td>
+                <td>${esc(p.method || '')}</td>
+                <td>${esc(p.status)}</td>
                 <td>${money(p.amount,p.currency || currency)}</td>
             </tr>
-        `).join('');
+        `)
+        .join('');
 
-    invoiceContent.innerHTML=`
+    output.innerHTML=`
 
-        <div class="invoice-heading">
+        <div class="invoice-top">
 
             <div>
-                <div class="invoice-number">
-                    INVOICE
+
+                <div class="business-name">
+                    ${esc(i.tenant_name)}
                 </div>
 
-                <h2>
-                    ${escapeHtml(i.tenant_name)}
-                </h2>
+                ${
+                    businessAddress
+                    ? `<div class="business-contact">${businessAddress}</div>`
+                    : ''
+                }
+
+                ${
+                    businessContact
+                    ? `<div class="business-contact"
+                            style="margin-top:5px">
+                           ${businessContact}
+                       </div>`
+                    : ''
+                }
+
             </div>
 
-            <div class="invoice-meta">
+            <div class="invoice-title">
 
-                <strong>
-                    ${escapeHtml(i.invoice_number)}
-                </strong>
+                <h1>INVOICE</h1>
 
-                <p>
-                    <span class="status-badge">
-                        ${escapeHtml(statusLabel(i.status))}
-                    </span>
-                </p>
-
-                <div>
-                    Created:
-                    ${escapeHtml(dateOnly(i.created_at))}
+                <div class="invoice-number">
+                    ${esc(i.invoice_number)}
                 </div>
 
-                <div>
-                    Due:
-                    ${escapeHtml(dateOnly(i.due_at))}
+                <div class="status">
+                    ${esc(statusLabel(i.status))}
                 </div>
 
             </div>
 
         </div>
 
-        <div class="grid"
-             style="margin-bottom:28px">
+        <div class="invoice-info">
 
             <div>
-                <div class="muted">
+
+                <div class="section-label">
                     Bill To
                 </div>
 
-                <div class="invoice-address">
-                    ${addressHtml(i)}
+                <div class="bill-to">
+                    ${clientAddress}
                 </div>
+
             </div>
 
             <div>
-                <div class="muted">
-                    Service Appointment
+
+                <div class="section-label">
+                    Invoice Details
                 </div>
 
-                <strong>
-                    ${escapeHtml(i.appointment_title || '')}
-                </strong>
+                <table class="meta-table">
 
-                <div>
-                    ${escapeHtml(dateTime(i.appointment_starts_at))}
-                </div>
+                    <tr>
+                        <td>Invoice Date</td>
+                        <td>${esc(dateOnly(i.created_at))}</td>
+                    </tr>
+
+                    <tr>
+                        <td>Due Date</td>
+                        <td>${esc(dateOnly(i.due_at))}</td>
+                    </tr>
+
+                    <tr>
+                        <td>Status</td>
+                        <td>${esc(statusLabel(i.status))}</td>
+                    </tr>
+
+                </table>
+
             </div>
 
         </div>
 
-        <table>
+        ${
+            i.appointment_title
+            ? `
+                <div class="appointment-box">
+
+                    <div class="section-label">
+                        Service Appointment
+                    </div>
+
+                    <strong>
+                        ${esc(i.appointment_title)}
+                    </strong>
+
+                    ${
+                        i.appointment_starts_at
+                        ? `<div>${esc(dateTime(i.appointment_starts_at))}</div>`
+                        : ''
+                    }
+
+                </div>
+              `
+            : ''
+        }
+
+        <table class="items-table">
 
             <thead>
                 <tr>
@@ -384,45 +649,86 @@ function render(data){
 
         </table>
 
-        <div class="invoice-total">
+        <table class="summary">
 
-            <table>
+            <tr>
+                <td>Subtotal</td>
+                <td>${money(i.subtotal,currency)}</td>
+            </tr>
 
-                <tr>
-                    <td>Subtotal</td>
-                    <td>${money(i.subtotal,currency)}</td>
-                </tr>
+            <tr>
+                <td>Tax</td>
+                <td>${money(i.tax_amount,currency)}</td>
+            </tr>
 
-                <tr>
-                    <td>Tax</td>
-                    <td>${money(i.tax_amount,currency)}</td>
-                </tr>
+            <tr class="total-row">
+                <td>Total</td>
+                <td>${money(i.total,currency)}</td>
+            </tr>
 
-                <tr>
-                    <td><strong>Total</strong></td>
-                    <td><strong>${money(i.total,currency)}</strong></td>
-                </tr>
+            <tr>
+                <td>Payments</td>
+                <td>-${money(i.amount_paid,currency)}</td>
+            </tr>
 
-                <tr>
-                    <td>Paid</td>
-                    <td>${money(i.amount_paid,currency)}</td>
-                </tr>
+        </table>
 
-                <tr>
-                    <td><strong>Balance Due</strong></td>
-                    <td><strong>${money(i.balance_due,currency)}</strong></td>
-                </tr>
+        <div class="summary">
 
-            </table>
+            <div class="balance-box">
+
+                <span>
+                    BALANCE DUE
+                </span>
+
+                <strong>
+                    ${money(i.balance_due,currency)}
+                </strong>
+
+            </div>
 
         </div>
 
         ${
+            i.status==='paid' ||
+            Number(i.balance_due) <= 0
+            ? `<div class="paid-stamp">PAID IN FULL</div>`
+            : ''
+        }
+
+        ${
+            i.payment_instructions
+            ? `
+                <div class="invoice-notes">
+
+                    <div class="section-label">
+                        Payment Instructions
+                    </div>
+
+                    <div>
+                        ${esc(i.payment_instructions)
+                            .replaceAll('\n','<br>')}
+                    </div>
+
+                </div>
+              `
+            : ''
+        }
+
+        ${
             i.notes
             ? `
-                <div style="margin-top:28px">
-                    <div class="muted">Notes</div>
-                    <div>${escapeHtml(i.notes)}</div>
+                <div class="invoice-notes">
+
+                    <div class="section-label">
+                        Notes
+                    </div>
+
+                    <div>
+                        ${esc(i.notes)
+                            .replaceAll('\n','<br>')}
+                    </div>
+
                 </div>
               `
             : ''
@@ -431,11 +737,14 @@ function render(data){
         ${
             data.payments && data.payments.length
             ? `
-                <div style="margin-top:32px">
+                <div class="payment-history">
 
-                    <h3>Payment History</h3>
+                    <div class="section-label">
+                        Payment History
+                    </div>
 
                     <table>
+
                         <thead>
                             <tr>
                                 <th>Date</th>
@@ -444,11 +753,24 @@ function render(data){
                                 <th>Amount</th>
                             </tr>
                         </thead>
+
                         <tbody>
                             ${paymentRows}
                         </tbody>
+
                     </table>
 
+                </div>
+              `
+            : ''
+        }
+
+        ${
+            i.invoice_footer
+            ? `
+                <div class="invoice-footer">
+                    ${esc(i.invoice_footer)
+                        .replaceAll('\n','<br>')}
                 </div>
               `
             : ''
@@ -456,13 +778,13 @@ function render(data){
     `;
 
     markSent.style.display =
-        i.status === 'draft'
+        i.status==='draft'
             ? 'inline-block'
             : 'none';
 
     voidInvoice.style.display =
         ['draft','sent','overdue'].includes(i.status) &&
-        Number(i.amount_paid || 0) === 0
+        Number(i.amount_paid || 0)===0
             ? 'inline-block'
             : 'none';
 }
@@ -471,36 +793,32 @@ async function loadInvoice(){
 
     if(!invoiceId){
 
-        invoiceError.textContent=
-            'Invalid invoice';
-
+        errorBox.textContent='Invalid invoice.';
         return;
     }
 
-    invoiceError.textContent='';
-
     try{
 
-        const data =
-            await api(
-                '/api/invoices.php?id=' +
-                encodeURIComponent(invoiceId)
-            );
+        errorBox.textContent='';
+
+        const data=await api(
+            '/api/invoices.php?id='+
+            encodeURIComponent(invoiceId)
+        );
 
         render(data);
 
     }catch(e){
 
-        invoiceError.textContent=
-            e.message;
+        errorBox.textContent=e.message;
     }
 }
 
-async function updateStatus(status){
-
-    invoiceError.textContent='';
+async function changeStatus(status){
 
     try{
+
+        errorBox.textContent='';
 
         await api(
             '/api/invoices.php',
@@ -511,7 +829,7 @@ async function updateStatus(status){
                 },
                 body:JSON.stringify({
                     id:invoiceId,
-                    status:status
+                    status
                 })
             }
         );
@@ -520,31 +838,22 @@ async function updateStatus(status){
 
     }catch(e){
 
-        invoiceError.textContent=
-            e.message;
+        errorBox.textContent=e.message;
     }
 }
 
 markSent.onclick=async ()=>{
 
-    if(!confirm(
-        'Mark this invoice as sent?'
-    )){
-        return;
+    if(confirm('Mark this invoice as sent?')){
+        await changeStatus('sent');
     }
-
-    await updateStatus('sent');
 };
 
 voidInvoice.onclick=async ()=>{
 
-    if(!confirm(
-        'Void this invoice? This cannot be used when successful payments exist.'
-    )){
-        return;
+    if(confirm('Void this invoice?')){
+        await changeStatus('void');
     }
-
-    await updateStatus('void');
 };
 
 loadInvoice();

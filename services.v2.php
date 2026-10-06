@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__.'/app/bootstrap.php';
+Auth::requireRole('owner','admin','scheduler');
+
 $pageTitle='Services';
 require __DIR__.'/partials/app_header.php';
 ?>

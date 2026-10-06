@@ -26,6 +26,97 @@ async function api(url,opt={}){
     if(!r.ok)throw new Error(j.error||'Request failed');
     return j;
 }
+
+
+async function briteSignOut(){
+
+    try{
+
+        await api('/api/auth/logout.php',{
+            method:'POST'
+        });
+
+        location.href =
+            window.BRITE_BASE +
+            '/sign-in.v2.php';
+
+    }catch(err){
+
+        alert(
+            err.message ||
+            'Unable to sign out'
+        );
+    }
+}
+
 </script>
-</head><body><div class="top"><b>BriteScheduler</b><span><?=htmlspecialchars($tenant['name'])?> · <?=htmlspecialchars($user['first_name'].' '.$user['last_name'])?> (<?=htmlspecialchars($tenant['role'])?>)</span></div>
-<div class="nav"><a href="<?=htmlspecialchars(app_url('/dashboard.v2.php'))?>">Dashboard</a><a href="<?=htmlspecialchars(app_url('/clients.v2.php'))?>">Clients</a><a href="<?=htmlspecialchars(app_url('/contractors.v2.php'))?>">Contractors</a><a href="<?=htmlspecialchars(app_url('/contractor-availability.php'))?>">Availability</a><a href="<?=htmlspecialchars(app_url('/services.v2.php'))?>">Services</a><a href="<?=htmlspecialchars(app_url('/scheduling.php'))?>">Schedule</a><a href="<?=htmlspecialchars(app_url('/billing.php'))?>">Billing</a></div><main class="wrap">
+</head><body><div class="top"><b>BriteScheduler</b><span><?=htmlspecialchars($tenant['name'])?> · <?=htmlspecialchars($user['first_name'].' '.$user['last_name'])?> (<?=htmlspecialchars($tenant['role'])?>) &nbsp; <button type="button" onclick="briteSignOut()" style="padding:5px 10px;background:#fff;color:#172033;border:0;border-radius:5px;font-weight:600">Sign Out</button></span></div>
+<div class="nav">
+
+<?php if(in_array($tenant['role'],['owner','admin','scheduler','accounting'],true)): ?>
+
+<a href="<?=htmlspecialchars(app_url('/dashboard.v2.php'))?>">
+Dashboard
+</a>
+
+<?php endif; ?>
+
+<?php if(in_array($tenant['role'],['owner','admin','scheduler','accounting'],true)): ?>
+<a href="<?=htmlspecialchars(app_url('/clients.v2.php'))?>">
+Clients
+</a>
+<?php endif; ?>
+
+<?php if(in_array($tenant['role'],['owner','admin','scheduler'],true)): ?>
+<a href="<?=htmlspecialchars(app_url('/contractors.v2.php'))?>">
+Contractors
+</a>
+
+<a href="<?=htmlspecialchars(app_url('/contractor-availability.php'))?>">
+Availability
+</a>
+
+<a href="<?=htmlspecialchars(app_url('/services.v2.php'))?>">
+Services
+</a>
+
+<a href="<?=htmlspecialchars(app_url('/scheduling.php'))?>">
+Schedule
+</a>
+<?php endif; ?>
+
+<?php if(in_array($tenant['role'],['owner','admin','accounting'],true)): ?>
+<a href="<?=htmlspecialchars(app_url('/billing.php'))?>">
+Billing
+</a>
+<?php endif; ?>
+
+<?php if(in_array($tenant['role'],['owner','admin'],true)): ?>
+<a href="<?=htmlspecialchars(app_url('/settings.php'))?>">
+Settings
+</a>
+<?php endif; ?>
+
+
+<?php if($tenant['role']==='contractor'): ?>
+
+<a href="<?=htmlspecialchars(app_url('/contractor-dashboard.php'))?>">
+My Dashboard
+</a>
+
+<a href="<?=htmlspecialchars(app_url('/my-availability.php'))?>">
+My Availability
+</a>
+
+<?php endif; ?>
+
+
+<?php if($tenant['role']==='client'): ?>
+
+<a href="<?=htmlspecialchars(app_url('/client-dashboard.php'))?>">
+My Dashboard
+</a>
+
+<?php endif; ?>
+
+</div><main class="wrap">

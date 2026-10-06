@@ -1,4 +1,7 @@
-<?php $pageTitle='Dashboard';require __DIR__.'/partials/app_header.php';?>
+<?php
+require_once __DIR__.'/app/bootstrap.php';
+Auth::requireRole('owner','admin','scheduler','accounting');
+ $pageTitle='Dashboard';require __DIR__.'/partials/app_header.php';?>
 <h1>Operations Dashboard</h1><div id="metrics" class="grid"></div>
 <div class="card" style="margin-top:18px"><h2>System scope</h2><p class="muted">Tenant-isolated clients, contractors, scheduling, invoices and payments are active. Payment records are ledger entries; connect a PCI-compliant payment provider for card processing.</p></div>
 <script>

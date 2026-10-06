@@ -1,6 +1,6 @@
 <?php
 require_once dirname(__DIR__).'/app/bootstrap.php';
-Auth::requireUser();$tid=Auth::tenantId();$pdo=Database::connection();
+Auth::requireUser();Auth::requireRole('owner','admin','scheduler','accounting');$tid=Auth::tenantId();$pdo=Database::connection();
 function scalar(PDO $pdo,string $sql,array $p){$q=$pdo->prepare($sql);$q->execute($p);return $q->fetchColumn();}
 json_response([
  'clients'=>(int)scalar($pdo,"SELECT COUNT(*) FROM clients WHERE tenant_id=? AND status='active'",[$tid]),

@@ -1,159 +1,194 @@
 <?php
-require_once __DIR__.'/app/bootstrap.php';
-Auth::requireRole('owner','admin','scheduler');
 
-$pageTitle='Contractor Availability';
+require_once __DIR__.'/app/bootstrap.php';
+
+Auth::requireRole('contractor');
+
+$pageTitle='My Availability';
+
 require __DIR__.'/partials/app_header.php';
+
 ?>
 
 <style>
+
 .availability-layout{
     display:grid;
     grid-template-columns:340px minmax(0,1fr);
     gap:18px;
 }
+
 .availability-form label{
     display:block;
     font-weight:600;
     font-size:13px;
     margin-top:10px;
 }
+
 .availability-form input,
 .availability-form select{
     width:100%;
     box-sizing:border-box;
     margin-top:4px;
 }
+
 .rule-available{
     font-weight:600;
 }
+
 .rule-unavailable{
     font-weight:600;
 }
+
 @media(max-width:900px){
     .availability-layout{
         grid-template-columns:1fr;
     }
 }
+
 </style>
 
-<h1>Contractor Availability</h1>
+
+<h1>My Availability</h1>
+
+<p class="muted">
+Set your normal weekly working hours and add
+specific dates when you are available or unavailable.
+</p>
+
 
 <div class="availability-layout">
 
 <div class="card">
 
-    <h2>Add Availability Rule</h2>
+<h2>Add Availability Rule</h2>
 
-    <form id="availabilityForm"
-          class="availability-form">
+<form id="availabilityForm"
+      class="availability-form">
 
-        <label>Contractor</label>
-        <select id="contractorId"
-                name="contractor_id"
-                required>
-            <option value="">Select contractor</option>
-        </select>
+<label>Rule Type</label>
 
-        <label>Rule Type</label>
-        <select id="ruleType">
-            <option value="weekly">
-                Weekly recurring hours
-            </option>
-            <option value="date">
-                Specific date
-            </option>
-        </select>
+<select id="ruleType">
 
-        <div id="weekdayContainer">
-            <label>Weekday</label>
-            <select id="weekday"
-                    name="weekday">
-                <option value="0">Sunday</option>
-                <option value="1">Monday</option>
-                <option value="2">Tuesday</option>
-                <option value="3">Wednesday</option>
-                <option value="4">Thursday</option>
-                <option value="5">Friday</option>
-                <option value="6">Saturday</option>
-            </select>
-        </div>
+<option value="weekly">
+Weekly recurring hours
+</option>
 
-        <div id="dateContainer"
-             style="display:none">
-            <label>Specific Date</label>
-            <input id="availableDate"
-                   type="date"
-                   name="available_date">
-        </div>
+<option value="date">
+Specific date
+</option>
 
-        <label>Start</label>
-        <input id="startsAt"
-               name="starts_at"
-               type="time"
-               value="08:00"
-               required>
+</select>
 
-        <label>End</label>
-        <input id="endsAt"
-               name="ends_at"
-               type="time"
-               value="17:00"
-               required>
 
-        <label>Status</label>
-        <select id="isAvailable"
-                name="is_available">
-            <option value="1">Available</option>
-            <option value="">
-                Unavailable / Time Off
-            </option>
-        </select>
+<div id="weekdayContainer">
 
-        <div style="margin-top:15px">
-            <button type="submit">
-                Add Rule
-            </button>
-        </div>
+<label>Weekday</label>
 
-        <p id="availabilityError"
-           class="danger"></p>
+<select id="weekday">
 
-    </form>
+<option value="0">Sunday</option>
+<option value="1">Monday</option>
+<option value="2">Tuesday</option>
+<option value="3">Wednesday</option>
+<option value="4">Thursday</option>
+<option value="5">Friday</option>
+<option value="6">Saturday</option>
+
+</select>
 
 </div>
+
+
+<div id="dateContainer"
+     style="display:none">
+
+<label>Specific Date</label>
+
+<input id="availableDate"
+       type="date">
+
+</div>
+
+
+<label>Start</label>
+
+<input id="startsAt"
+       type="time"
+       value="08:00"
+       required>
+
+
+<label>End</label>
+
+<input id="endsAt"
+       type="time"
+       value="17:00"
+       required>
+
+
+<label>Status</label>
+
+<select id="isAvailable">
+
+<option value="1">
+Available
+</option>
+
+<option value="0">
+Unavailable / Time Off
+</option>
+
+</select>
+
+
+<div style="margin-top:15px">
+
+<button type="submit">
+Add Rule
+</button>
+
+</div>
+
+<p id="availabilityError"
+   class="danger"></p>
+
+</form>
+
+</div>
+
 
 <div class="card">
 
-    <h2>Availability Rules</h2>
+<h2>My Availability Rules</h2>
 
-    <p class="muted">
-        Specific-date rules will later override
-        recurring weekly hours.
-    </p>
+<p class="muted">
+Specific-date rules override your normal
+recurring schedule for that date.
+</p>
 
-    <table>
-        <thead>
-        <tr>
-            <th>When</th>
-            <th>Hours</th>
-            <th>Status</th>
-            <th></th>
-        </tr>
-        </thead>
+<table>
 
-        <tbody id="availabilityRows">
-        </tbody>
-    </table>
+<thead>
+<tr>
+<th>When</th>
+<th>Hours</th>
+<th>Status</th>
+<th></th>
+</tr>
+</thead>
+
+<tbody id="availabilityRows">
+</tbody>
+
+</table>
 
 </div>
 
 </div>
+
 
 <script>
-
-const contractorId =
-    document.getElementById('contractorId');
 
 const availabilityForm =
     document.getElementById('availabilityForm');
@@ -168,10 +203,14 @@ const availableDate =
     document.getElementById('availableDate');
 
 const weekdayContainer =
-    document.getElementById('weekdayContainer');
+    document.getElementById(
+        'weekdayContainer'
+    );
 
 const dateContainer =
-    document.getElementById('dateContainer');
+    document.getElementById(
+        'dateContainer'
+    );
 
 const startsAt =
     document.getElementById('startsAt');
@@ -183,10 +222,14 @@ const isAvailable =
     document.getElementById('isAvailable');
 
 const availabilityRows =
-    document.getElementById('availabilityRows');
+    document.getElementById(
+        'availabilityRows'
+    );
 
 const availabilityError =
-    document.getElementById('availabilityError');
+    document.getElementById(
+        'availabilityError'
+    );
 
 const weekdays=[
     'Sunday',
@@ -198,7 +241,9 @@ const weekdays=[
     'Saturday'
 ];
 
+
 function esc(s){
+
     return String(s ?? '').replace(
         /[&<>"']/g,
         x=>({
@@ -211,6 +256,7 @@ function esc(s){
     );
 }
 
+
 function shortTime(value){
 
     if(!value) return '';
@@ -220,7 +266,8 @@ function shortTime(value){
     let hour=Number(parts[0]);
     const minute=parts[1];
 
-    const suffix=hour >= 12 ? 'PM' : 'AM';
+    const suffix=
+        hour >= 12 ? 'PM' : 'AM';
 
     hour=hour % 12;
 
@@ -229,30 +276,20 @@ function shortTime(value){
     return `${hour}:${minute} ${suffix}`;
 }
 
-async function loadContractors(){
-
-    const d=await api('/api/contractors.php');
-
-    contractorId.innerHTML=
-        '<option value="">Select contractor</option>'+
-        d.contractors.map(c=>
-            `<option value="${c.id}">
-                ${esc(c.first_name)} ${esc(c.last_name)}
-            </option>`
-        ).join('');
-}
 
 async function loadAvailability(){
 
     availabilityRows.innerHTML='';
 
-    if(!contractorId.value){
-        return;
-    }
+    /*
+     * No contractor_id is sent.
+     *
+     * The server derives the contractor from
+     * the authenticated user's account.
+     */
 
     const d=await api(
-        '/api/contractor_availability.php?contractor_id='+
-        encodeURIComponent(contractorId.value)
+        '/api/contractor_availability.php'
     );
 
     if(!d.availability.length){
@@ -274,19 +311,26 @@ async function loadAvailability(){
 
             const when=r.available_date
                 ? esc(r.available_date)
-                : weekdays[Number(r.weekday)];
+                : weekdays[
+                    Number(r.weekday)
+                ];
 
-            const status=Number(r.is_available)
-                ? 'Available'
-                : 'Unavailable';
+            const status=
+                Number(r.is_available)
+                    ? 'Available'
+                    : 'Unavailable';
 
-            const css=Number(r.is_available)
-                ? 'rule-available'
-                : 'rule-unavailable';
+            const css=
+                Number(r.is_available)
+                    ? 'rule-available'
+                    : 'rule-unavailable';
 
             return `
                 <tr>
-                    <td>${when}</td>
+
+                    <td>
+                        ${when}
+                    </td>
 
                     <td>
                         ${shortTime(r.starts_at)}
@@ -301,14 +345,18 @@ async function loadAvailability(){
                     <td>
                         <button
                             type="button"
-                            onclick="deleteRule(${Number(r.id)})">
+                            onclick="deleteRule(
+                                ${Number(r.id)}
+                            )">
                             Delete
                         </button>
                     </td>
+
                 </tr>
             `;
         }).join('');
 }
+
 
 ruleType.onchange=()=>{
 
@@ -322,7 +370,9 @@ ruleType.onchange=()=>{
         specific ? '' : 'none';
 
     weekday.disabled=specific;
-    availableDate.disabled=!specific;
+
+    availableDate.disabled=
+        !specific;
 
     if(specific){
         weekday.value='1';
@@ -331,7 +381,6 @@ ruleType.onchange=()=>{
     }
 };
 
-contractorId.onchange=loadAvailability;
 
 availabilityForm.onsubmit=async e=>{
 
@@ -341,29 +390,30 @@ availabilityForm.onsubmit=async e=>{
 
     try{
 
-        if(!contractorId.value){
-            throw new Error(
-                'Select a contractor'
-            );
-        }
-
         const specific=
             ruleType.value==='date';
 
-        if(specific && !availableDate.value){
+        if(
+            specific &&
+            !availableDate.value
+        ){
             throw new Error(
                 'Choose a specific date'
             );
         }
 
+        /*
+         * contractor_id intentionally omitted.
+         */
+
         const payload={
-            contractor_id:
-                Number(contractorId.value),
 
             weekday:
                 specific
                     ? null
-                    : Number(weekday.value),
+                    : Number(
+                        weekday.value
+                    ),
 
             available_date:
                 specific
@@ -384,11 +434,14 @@ availabilityForm.onsubmit=async e=>{
             '/api/contractor_availability.php',
             {
                 method:'POST',
+
                 headers:{
                     'Content-Type':
                         'application/json'
                 },
-                body:JSON.stringify(payload)
+
+                body:
+                    JSON.stringify(payload)
             }
         );
 
@@ -401,6 +454,7 @@ availabilityForm.onsubmit=async e=>{
     }
 };
 
+
 async function deleteRule(id){
 
     if(!confirm(
@@ -409,17 +463,24 @@ async function deleteRule(id){
         return;
     }
 
+    availabilityError.textContent='';
+
     try{
 
         await api(
             '/api/contractor_availability.php',
             {
                 method:'DELETE',
+
                 headers:{
                     'Content-Type':
                         'application/json'
                 },
-                body:JSON.stringify({id})
+
+                body:
+                    JSON.stringify({
+                        id:Number(id)
+                    })
             }
         );
 
@@ -432,6 +493,7 @@ async function deleteRule(id){
     }
 }
 
+
 document.addEventListener(
     'DOMContentLoaded',
     async ()=>{
@@ -442,7 +504,7 @@ document.addEventListener(
                 new Event('change')
             );
 
-            await loadContractors();
+            await loadAvailability();
 
         }catch(e){
 
@@ -454,4 +516,6 @@ document.addEventListener(
 
 </script>
 
-<?php require __DIR__.'/partials/app_footer.php'; ?>
+<?php
+require __DIR__.'/partials/app_footer.php';
+?>

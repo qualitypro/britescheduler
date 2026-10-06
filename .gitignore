@@ -3,3 +3,15 @@
 .brite-wizard-backup/
 vendor/
 *.log
+
+# Python generated files
+__pycache__/
+*.py[cod]
+
+# Development backup files
+*.before-*
+*.legacy.php
+
+# One-off patch utilities
+patch_*.py
+restore_*.py

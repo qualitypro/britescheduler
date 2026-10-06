@@ -35,9 +35,6 @@ require_once __DIR__ . '/Csrf.php';
 
 /**
  * Build an absolute URL inside the BriteScheduler installation.
- *
- * APP_URL example:
- * http://localhost/dashboard
  */
 function app_url(string $path = ''): string
 {

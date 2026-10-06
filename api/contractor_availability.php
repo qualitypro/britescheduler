@@ -2,9 +2,99 @@
 
 require_once dirname(__DIR__).'/app/bootstrap.php';
 
-Auth::requireUser();
-$tid = Auth::tenantId();
+$user = Auth::requireUser();
+$tenant = Auth::tenant();
+
+$tid  = (int)$tenant['tenant_id'];
+$role = (string)$tenant['role'];
+
 $pdo = Database::connection();
+
+$managementRoles = [
+    'owner',
+    'admin',
+    'scheduler'
+];
+
+/*
+|--------------------------------------------------------------------------
+| Resolve contractor
+|--------------------------------------------------------------------------
+|
+| Management users may specify contractor_id.
+|
+| Contractors NEVER control contractor_id. Their contractor record is
+| derived from the authenticated users.id -> contractors.user_id link.
+|
+*/
+
+function resolve_availability_contractor(
+    PDO $pdo,
+    int $tid,
+    array $user,
+    string $role,
+    array $managementRoles,
+    int $requestedId = 0
+): int {
+
+    if ($role === 'contractor') {
+
+        $q=$pdo->prepare("
+            SELECT id
+            FROM contractors
+            WHERE tenant_id=?
+              AND user_id=?
+              AND status='active'
+            LIMIT 1
+        ");
+
+        $q->execute([
+            $tid,
+            (int)$user['id']
+        ]);
+
+        $id=(int)($q->fetchColumn() ?: 0);
+
+        if ($id <= 0) {
+            json_response([
+                'error'=>'Contractor profile not found'
+            ],403);
+        }
+
+        return $id;
+    }
+
+    if (!in_array($role,$managementRoles,true)) {
+        json_response(['error'=>'Forbidden'],403);
+    }
+
+    if ($requestedId <= 0) {
+        json_response([
+            'error'=>'Contractor required'
+        ],422);
+    }
+
+    $q=$pdo->prepare("
+        SELECT id
+        FROM contractors
+        WHERE id=?
+          AND tenant_id=?
+    ");
+
+    $q->execute([
+        $requestedId,
+        $tid
+    ]);
+
+    if (!$q->fetchColumn()) {
+        json_response([
+            'error'=>'Contractor not found'
+        ],404);
+    }
+
+    return $requestedId;
+}
+
 
 /*
 |--------------------------------------------------------------------------
@@ -14,25 +104,20 @@ $pdo = Database::connection();
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
-    $contractorId = (int)($_GET['contractor_id'] ?? 0);
+    $requestedId =
+        (int)($_GET['contractor_id'] ?? 0);
 
-    if ($contractorId <= 0) {
-        json_response(['error'=>'Contractor required'],422);
-    }
+    $contractorId =
+        resolve_availability_contractor(
+            $pdo,
+            $tid,
+            $user,
+            $role,
+            $managementRoles,
+            $requestedId
+        );
 
-    $check = $pdo->prepare("
-        SELECT id
-        FROM contractors
-        WHERE id=? AND tenant_id=?
-    ");
-
-    $check->execute([$contractorId,$tid]);
-
-    if (!$check->fetchColumn()) {
-        json_response(['error'=>'Contractor not found'],404);
-    }
-
-    $q = $pdo->prepare("
+    $q=$pdo->prepare("
         SELECT
             id,
             contractor_id,
@@ -45,18 +130,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         WHERE tenant_id=?
           AND contractor_id=?
         ORDER BY
-            CASE WHEN available_date IS NULL THEN 0 ELSE 1 END,
+            CASE
+                WHEN available_date IS NULL
+                THEN 0 ELSE 1
+            END,
             weekday,
             available_date,
             starts_at
     ");
 
-    $q->execute([$tid,$contractorId]);
+    $q->execute([
+        $tid,
+        $contractorId
+    ]);
 
     json_response([
+        'contractor_id'=>$contractorId,
         'availability'=>$q->fetchAll()
     ]);
 }
+
 
 /*
 |--------------------------------------------------------------------------
@@ -65,9 +158,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 */
 
 verify_csrf();
-Auth::requireRole('owner','admin','scheduler');
 
-$d = request_data();
+if (
+    $role !== 'contractor' &&
+    !in_array($role,$managementRoles,true)
+) {
+    json_response(['error'=>'Forbidden'],403);
+}
+
+$d=request_data();
+
 
 /*
 |--------------------------------------------------------------------------
@@ -79,19 +179,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
 
-        $contractorId=(int)($d['contractor_id'] ?? 0);
+        $requestedId =
+            (int)($d['contractor_id'] ?? 0);
 
-        $check=$pdo->prepare("
-            SELECT id
-            FROM contractors
-            WHERE id=? AND tenant_id=?
-        ");
-
-        $check->execute([$contractorId,$tid]);
-
-        if (!$check->fetchColumn()) {
-            throw new RuntimeException('Invalid contractor');
-        }
+        $contractorId =
+            resolve_availability_contractor(
+                $pdo,
+                $tid,
+                $user,
+                $role,
+                $managementRoles,
+                $requestedId
+            );
 
         $weekday =
             ($d['weekday'] ?? '') === ''
@@ -99,23 +198,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 : (int)$d['weekday'];
 
         $availableDate =
-            trim($d['available_date'] ?? '') ?: null;
+            trim($d['available_date'] ?? '')
+                ?: null;
 
-        if ($weekday === null && $availableDate === null) {
+        if (
+            $weekday === null &&
+            $availableDate === null
+        ) {
             throw new RuntimeException(
                 'Choose a weekday or a specific date'
             );
         }
 
-        if ($weekday !== null && ($weekday < 0 || $weekday > 6)) {
-            throw new RuntimeException('Invalid weekday');
+        if (
+            $weekday !== null &&
+            ($weekday < 0 || $weekday > 6)
+        ) {
+            throw new RuntimeException(
+                'Invalid weekday'
+            );
         }
 
-        /*
-         * A specific-date rule should not also contain
-         * a recurring weekday.
-         */
         if ($availableDate !== null) {
+
             $weekday=null;
 
             $dt=DateTime::createFromFormat(
@@ -125,20 +230,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (
                 !$dt ||
-                $dt->format('Y-m-d') !== $availableDate
+                $dt->format('Y-m-d')
+                    !== $availableDate
             ) {
-                throw new RuntimeException('Invalid date');
+                throw new RuntimeException(
+                    'Invalid date'
+                );
             }
         }
 
-        $startsAt=trim($d['starts_at'] ?? '');
-        $endsAt=trim($d['ends_at'] ?? '');
+        $startsAt=
+            trim($d['starts_at'] ?? '');
+
+        $endsAt=
+            trim($d['ends_at'] ?? '');
 
         if (
-            !preg_match('/^\d{2}:\d{2}(:\d{2})?$/',$startsAt) ||
-            !preg_match('/^\d{2}:\d{2}(:\d{2})?$/',$endsAt)
+            !preg_match(
+                '/^\d{2}:\d{2}(:\d{2})?$/',
+                $startsAt
+            ) ||
+            !preg_match(
+                '/^\d{2}:\d{2}(:\d{2})?$/',
+                $endsAt
+            )
         ) {
-            throw new RuntimeException('Invalid time');
+            throw new RuntimeException(
+                'Invalid time'
+            );
         }
 
         if (strlen($startsAt)===5) {
@@ -156,7 +275,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $isAvailable =
-            !empty($d['is_available']) ? 1 : 0;
+            !empty($d['is_available'])
+                ? 1 : 0;
 
         $q=$pdo->prepare("
             INSERT INTO contractor_availability(
@@ -194,6 +314,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+
 /*
 |--------------------------------------------------------------------------
 | DELETE
@@ -204,12 +325,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
 
     $id=(int)($d['id'] ?? 0);
 
-    $q=$pdo->prepare("
-        DELETE FROM contractor_availability
-        WHERE id=? AND tenant_id=?
-    ");
+    if ($id <= 0) {
+        json_response([
+            'error'=>'Availability rule required'
+        ],422);
+    }
 
-    $q->execute([$id,$tid]);
+    /*
+     * Contractor deletion is restricted to rules
+     * belonging to their own contractor profile.
+     */
+
+    if ($role === 'contractor') {
+
+        $contractorId =
+            resolve_availability_contractor(
+                $pdo,
+                $tid,
+                $user,
+                $role,
+                $managementRoles
+            );
+
+        $q=$pdo->prepare("
+            DELETE FROM contractor_availability
+            WHERE id=?
+              AND tenant_id=?
+              AND contractor_id=?
+        ");
+
+        $q->execute([
+            $id,
+            $tid,
+            $contractorId
+        ]);
+
+    } else {
+
+        $q=$pdo->prepare("
+            DELETE FROM contractor_availability
+            WHERE id=?
+              AND tenant_id=?
+        ");
+
+        $q->execute([
+            $id,
+            $tid
+        ]);
+    }
 
     if (!$q->rowCount()) {
         json_response([
@@ -219,6 +382,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
 
     json_response(['ok'=>true]);
 }
+
 
 json_response([
     'error'=>'Method not allowed'

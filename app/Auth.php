@@ -15,7 +15,7 @@ final class Auth {
         $u = self::user();
         if (!$u) {
             if (str_starts_with($_SERVER['REQUEST_URI'] ?? '', '/api/')) json_response(['error'=>'Unauthenticated'], 401);
-            header('Location: /sign-in.php'); exit;
+            header('Location: '.app_url('/sign-in.v2.php')); exit;
         }
         return $u;
     }
@@ -49,6 +49,23 @@ final class Auth {
     }
 
     public static function tenantId(): int { return (int)self::tenant()['tenant_id']; }
+
+    public static function homeUrl(?string $role = null): string {
+        if ($role === null) {
+            $role = (string)self::tenant()['role'];
+        }
+
+        return match ($role) {
+            'client' =>
+                app_url('/client-dashboard.php'),
+
+            'contractor' =>
+                app_url('/contractor-dashboard.php'),
+
+            default =>
+                app_url('/dashboard.v2.php'),
+        };
+    }
 
     public static function requireRole(string ...$roles): array {
         $t = self::tenant();

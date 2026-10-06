@@ -2,9 +2,11 @@
 
 require_once dirname(__DIR__).'/app/bootstrap.php';
 
-$u   = Auth::requireUser();
-$tid = Auth::tenantId();
-$pdo = Database::connection();
+$u      = Auth::requireUser();
+$tenant = Auth::tenant();
+$tid    = (int)$tenant['tenant_id'];
+$role   = (string)$tenant['role'];
+$pdo    = Database::connection();
 
 function appointment_datetime(string $value, string $field): string
 {
@@ -356,19 +358,159 @@ function validate_times(string $startsAt, string $endsAt): void
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
-    $start = $_GET['start'] ?? date('Y-m-01 00:00:00');
-    $end   = $_GET['end']   ?? date('Y-m-t 23:59:59');
+    $start =
+        $_GET['start']
+        ?? date('Y-m-01 00:00:00');
 
-    $q = $pdo->prepare("
+    $end =
+        $_GET['end']
+        ?? date('Y-m-t 23:59:59');
+
+
+    /*
+     * Base tenant filter.
+     */
+    $where = "
+        a.tenant_id=?
+        AND a.starts_at < ?
+        AND a.ends_at > ?
+    ";
+
+    $params=[
+        $tid,
+        $end,
+        $start
+    ];
+
+
+    /*
+     * CLIENT
+     *
+     * Resolve clients.id from authenticated
+     * users.id. Never trust client_id supplied
+     * by the browser.
+     */
+    if ($role === 'client') {
+
+        $cq=$pdo->prepare("
+            SELECT id
+            FROM clients
+            WHERE tenant_id=?
+              AND user_id=?
+              AND status='active'
+            LIMIT 1
+        ");
+
+        $cq->execute([
+            $tid,
+            (int)$u['id']
+        ]);
+
+        $clientId=
+            (int)($cq->fetchColumn() ?: 0);
+
+        if ($clientId <= 0) {
+            json_response([
+                'error'=>'Client profile not found'
+            ],403);
+        }
+
+        $where .= "
+            AND a.client_id=?
+        ";
+
+        $params[]=$clientId;
+    }
+
+
+    /*
+     * CONTRACTOR
+     *
+     * Resolve contractors.id from the
+     * authenticated user and require an
+     * appointment_contractors assignment.
+     */
+    elseif ($role === 'contractor') {
+
+        $cq=$pdo->prepare("
+            SELECT id
+            FROM contractors
+            WHERE tenant_id=?
+              AND user_id=?
+              AND status='active'
+            LIMIT 1
+        ");
+
+        $cq->execute([
+            $tid,
+            (int)$u['id']
+        ]);
+
+        $contractorId=
+            (int)($cq->fetchColumn() ?: 0);
+
+        if ($contractorId <= 0) {
+            json_response([
+                'error'=>'Contractor profile not found'
+            ],403);
+        }
+
+        $where .= "
+            AND EXISTS (
+                SELECT 1
+                FROM appointment_contractors own_ac
+                WHERE
+                    own_ac.appointment_id=a.id
+                    AND own_ac.contractor_id=?
+            )
+        ";
+
+        $params[]=$contractorId;
+    }
+
+
+    /*
+     * Only approved management roles may
+     * perform tenant-wide appointment reads.
+     */
+    elseif (
+        !in_array(
+            $role,
+            [
+                'owner',
+                'admin',
+                'scheduler',
+                'accounting'
+            ],
+            true
+        )
+    ) {
+
+        json_response([
+            'error'=>'Forbidden'
+        ],403);
+    }
+
+
+    $sql="
         SELECT
             a.*,
+
             c.first_name client_first,
             c.last_name client_last,
+
             s.name service_name,
             s.price service_price,
             s.duration_minutes,
-            GROUP_CONCAT(DISTINCT ac.contractor_id) contractor_ids,
-            GROUP_CONCAT(DISTINCT ct.color) contractor_colors
+
+            GROUP_CONCAT(
+                DISTINCT ac.contractor_id
+            ) contractor_ids,
+
+            GROUP_CONCAT(
+                DISTINCT ct.color
+            ) contractor_colors
+
         FROM appointments a
 
         LEFT JOIN clients c
@@ -386,19 +528,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             ON ct.id=ac.contractor_id
             AND ct.tenant_id=a.tenant_id
 
-        WHERE
-            a.tenant_id=?
-            AND a.starts_at < ?
-            AND a.ends_at > ?
+        WHERE {$where}
 
         GROUP BY a.id
-        ORDER BY a.starts_at
-    ");
 
-    $q->execute([$tid, $end, $start]);
+        ORDER BY a.starts_at
+    ";
+
+    $q=$pdo->prepare($sql);
+    $q->execute($params);
 
     json_response([
-        'appointments' => $q->fetchAll()
+        'appointments'=>$q->fetchAll()
     ]);
 }
 
@@ -413,8 +554,7 @@ verify_csrf();
 Auth::requireRole(
     'owner',
     'admin',
-    'scheduler',
-    'contractor'
+    'scheduler'
 );
 
 $d = request_data();
