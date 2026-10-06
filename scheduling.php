@@ -107,6 +107,11 @@ require __DIR__.'/partials/app_header.php';
             <button type="button" id="newButton">Clear</button>
             <button type="button" id="deleteButton"
                     style="display:none">Delete</button>
+<button type="button"
+        id="invoiceButton"
+        style="display:none">
+    Generate Invoice
+</button>
         </div>
 
         <p id="appointmentError" class="danger"></p>
@@ -125,6 +130,7 @@ let services=[];
 
 const appointmentForm = document.getElementById('appointmentForm');
 const appointmentId = document.getElementById('appointmentId');
+const invoiceButton = document.getElementById('invoiceButton');
 const clientId = document.getElementById('clientId');
 const serviceId = document.getElementById('serviceId');
 const contractorId = document.getElementById('contractorId');
@@ -195,6 +201,8 @@ async function loadLookups(){
 }
 
 function resetForm(){
+    invoiceButton.style.display = 'none';
+
 
     appointmentForm.reset();
 
@@ -335,6 +343,11 @@ function editAppointment(event){
     formTitle.textContent='Edit Appointment';
     saveButton.textContent='Save Changes';
     deleteButton.style.display='inline-block';
+    invoiceButton.style.display =
+        a.status === 'completed'
+            ? 'inline-block'
+            : 'none';
+
 
     window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -407,6 +420,57 @@ deleteButton.onclick=async ()=>{
 
     } catch(e){
         appointmentError.textContent=e.message;
+    }
+};
+
+
+invoiceButton.onclick = async () => {
+
+    if (!appointmentId.value) {
+        alert('Select an appointment first.');
+        return;
+    }
+
+    if (!confirm(
+        'Generate an invoice for this completed appointment?'
+    )) {
+        return;
+    }
+
+    if (typeof appointmentError !== 'undefined') {
+        appointmentError.textContent = '';
+    }
+
+    try {
+
+        const result = await api(
+            '/api/invoices.php',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    appointment_id:
+                        Number(appointmentId.value)
+                })
+            }
+        );
+
+        alert(
+            `Invoice ${result.invoice_number} created for $${Number(result.total).toFixed(2)}`
+        );
+
+        window.location.href =
+            window.BRITE_BASE + '/billing.php';
+
+    } catch (e) {
+
+        if (typeof appointmentError !== 'undefined') {
+            appointmentError.textContent = e.message;
+        } else {
+            alert(e.message);
+        }
     }
 };
 
