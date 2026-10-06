@@ -2,9 +2,12 @@
 
 require_once dirname(__DIR__).'/app/bootstrap.php';
 
-Auth::requireUser();
+$u      = Auth::requireUser();
+$tenant = Auth::tenant();
 
-$tid = Auth::tenantId();
+$tid  = (int)$tenant['tenant_id'];
+$role = (string)$tenant['role'];
+
 $pdo = Database::connection();
 
 /*
@@ -99,6 +102,89 @@ function recalculate_invoice(PDO $pdo, int $tenantId, int $invoiceId): array
 */
 
 if ($_SERVER['REQUEST_METHOD']==='GET') {
+
+    /*
+     * Contractors and schedulers do not have access to
+     * tenant financial/payment records.
+     */
+    if (
+        $role === 'contractor' ||
+        $role === 'scheduler'
+    ) {
+        json_response([
+            'error'=>'Forbidden'
+        ],403);
+    }
+
+    /*
+     * Clients may view only payments attached to their own
+     * client identity. Never trust a client_id supplied by
+     * the browser.
+     */
+    if ($role === 'client') {
+
+        $client=$pdo->prepare("
+            SELECT id
+            FROM clients
+            WHERE tenant_id=?
+              AND user_id=?
+            LIMIT 1
+        ");
+
+        $client->execute([
+            $tid,
+            (int)$u['id']
+        ]);
+
+        $clientId=(int)($client->fetchColumn() ?: 0);
+
+        if ($clientId <= 0) {
+            json_response([
+                'payments'=>[]
+            ]);
+        }
+
+        $q=$pdo->prepare("
+            SELECT
+                p.*,
+                CONCAT(c.first_name,' ',c.last_name) AS client_name,
+                i.invoice_number
+            FROM payments p
+
+            JOIN clients c
+              ON c.id=p.client_id
+             AND c.tenant_id=p.tenant_id
+
+            LEFT JOIN invoices i
+              ON i.id=p.invoice_id
+             AND i.tenant_id=p.tenant_id
+
+            WHERE p.tenant_id=?
+              AND p.client_id=?
+
+            ORDER BY
+                COALESCE(p.paid_at,p.created_at) DESC,
+                p.id DESC
+        ");
+
+        $q->execute([
+            $tid,
+            $clientId
+        ]);
+
+        json_response([
+            'payments'=>$q->fetchAll()
+        ]);
+    }
+
+    /*
+     * Financial management roles may view the tenant ledger.
+     */
+    Auth::requireRole(
+        'owner',
+        'admin',
+        'accounting'
+    );
 
     $q=$pdo->prepare("
         SELECT

@@ -7,6 +7,23 @@ Auth::requireUser();
 $tid = Auth::tenantId();
 $pdo = Database::connection();
 
+/*
+|--------------------------------------------------------------------------
+| Authorization
+|--------------------------------------------------------------------------
+|
+| This endpoint exposes business configuration, including invoice footer
+| and payment instructions. It is restricted to business administrators.
+| Invoice presentation retrieves its required business data separately
+| through the authorized invoice workflow.
+|
+*/
+
+Auth::requireRole(
+    'owner',
+    'admin'
+);
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     $q=$pdo->prepare("
@@ -47,11 +64,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 }
 
 verify_csrf();
-
-Auth::requireRole(
-    'owner',
-    'admin'
-);
 
 $d=request_data();
 
