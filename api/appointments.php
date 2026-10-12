@@ -87,6 +87,39 @@ function tenant_reference(
     return $id;
 }
 
+function appointment_client_location(
+    PDO $pdo,
+    int $tenantId,
+    ?int $clientId,
+    $locationId
+): ?int {
+    $locationId = int_or_null($locationId);
+
+    if ($locationId === null) {
+        return null;
+    }
+
+    if ($clientId === null) {
+        throw new RuntimeException(
+            'Select a client before selecting a service location'
+        );
+    }
+
+    $q = $pdo->prepare(
+        'SELECT id FROM client_locations
+         WHERE id=? AND tenant_id=? AND client_id=?'
+    );
+    $q->execute([$locationId, $tenantId, $clientId]);
+
+    if (!$q->fetchColumn()) {
+        throw new RuntimeException(
+            'Service location does not belong to the selected client'
+        );
+    }
+
+    return $locationId;
+}
+
 function validate_contractors(
     PDO $pdo,
     int $tenantId,
@@ -577,6 +610,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'client'
         );
 
+        $clientLocationId = appointment_client_location(
+            $pdo,
+            $tid,
+            $clientId,
+            $d['client_location_id'] ?? null
+        );
+
         $serviceId = tenant_reference(
             $pdo,
             'services',
@@ -629,6 +669,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             INSERT INTO appointments(
                 tenant_id,
                 client_id,
+                client_location_id,
                 service_id,
                 title,
                 description,
@@ -639,12 +680,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 is_public,
                 created_by
             )
-            VALUES(?,?,?,?,?,?,?,?,?,?,?)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
         ");
 
         $q->execute([
             $tid,
             $clientId,
+            $clientLocationId,
             $serviceId,
             trim($d['title'] ?? 'Appointment'),
             $d['description'] ?? null,
@@ -727,6 +769,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
             'client'
         );
 
+        $clientLocationId = appointment_client_location(
+            $pdo,
+            $tid,
+            $clientId,
+            $d['client_location_id'] ?? null
+        );
+
         $serviceId = tenant_reference(
             $pdo,
             'services',
@@ -780,6 +829,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
             UPDATE appointments
             SET
                 client_id=?,
+                client_location_id=?,
                 service_id=?,
                 title=?,
                 description=?,
@@ -793,6 +843,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 
         $q->execute([
             $clientId,
+            $clientLocationId,
             $serviceId,
             $d['title'] ?? 'Appointment',
             $d['description'] ?? null,

@@ -95,6 +95,11 @@ require __DIR__.'/partials/app_header.php';
             <option value="no_show">No Show</option>
         </select>
 
+        <label>Saved Client Location</label>
+        <select name="client_location_id" id="clientLocationId">
+            <option value="">Manual / Other Location</option>
+        </select>
+
         <label>Location</label>
         <input name="location"
                id="appointmentLocation"
@@ -142,6 +147,54 @@ const startsAt = document.getElementById('startsAt');
 const endsAt = document.getElementById('endsAt');
 const appointmentStatus = document.getElementById('appointmentStatus');
 const appointmentLocation = document.getElementById('appointmentLocation');
+const clientLocationId = document.getElementById('clientLocationId');
+let locationLoadSequence = 0;
+
+async function loadClientLocations(selectedId='', usePrimary=true){
+    const sequence = ++locationLoadSequence;
+    const selectedClient = clientId.value;
+
+    clientLocationId.innerHTML =
+        '<option value="">Manual / Other Location</option>';
+
+    if(!selectedClient) return;
+
+    const data = await api(
+        '/api/client_locations.php?client_id=' +
+        encodeURIComponent(selectedClient)
+    );
+
+    if(sequence !== locationLoadSequence ||
+       clientId.value !== selectedClient) return;
+
+    clientLocationId.innerHTML =
+        '<option value="">Manual / Other Location</option>' +
+        data.locations.map(l =>
+            `<option value="${Number(l.id)}">` +
+            `${esc(l.label)} — ${esc(l.address1)}, ` +
+            `${esc(l.city)}, ${esc(l.state)} ` +
+            `${esc(l.postal_code)}</option>`
+        ).join('');
+
+    if(selectedId){
+        clientLocationId.value = String(selectedId);
+    } else if(usePrimary) {
+        const primary = data.locations.find(l => Number(l.is_primary) === 1);
+        if(primary) clientLocationId.value = String(primary.id);
+    }
+}
+
+clientId.onchange = async () => {
+    clientLocationId.innerHTML =
+        '<option value="">Manual / Other Location</option>';
+    appointmentLocation.value = '';
+    try {
+        await loadClientLocations();
+    } catch(e) {
+        appointmentError.textContent = e.message;
+    }
+};
+
 const appointmentDescription = document.getElementById('appointmentDescription');
 const appointmentError = document.getElementById('appointmentError');
 const formTitle = document.getElementById('formTitle');
@@ -208,6 +261,9 @@ function resetForm(){
 
 
     appointmentForm.reset();
+    ++locationLoadSequence;
+    clientLocationId.innerHTML =
+        '<option value="">Manual / Other Location</option>';
 
     appointmentId.value='';
     appointmentStatus.value='scheduled';
@@ -295,6 +351,7 @@ async function persistCalendarMove(info){
             body:JSON.stringify({
                 id:Number(event.id),
                 client_id:a.client_id || null,
+                client_location_id:a.client_location_id || null,
                 service_id:a.service_id || null,
                 title:a.title || 'Appointment',
                 description:a.description || null,
@@ -321,7 +378,7 @@ async function persistCalendarMove(info){
     }
 }
 
-function editAppointment(event){
+async function editAppointment(event){
 
     const a=event.extendedProps;
 
@@ -329,6 +386,12 @@ function editAppointment(event){
 
     clientId.value=a.client_id || '';
     serviceId.value=a.service_id || '';
+
+    try {
+        await loadClientLocations(a.client_location_id || '', false);
+    } catch(e) {
+        appointmentError.textContent = e.message;
+    }
 
     const contractors=String(a.contractor_ids || '')
         .split(',')
@@ -368,6 +431,7 @@ appointmentForm.onsubmit=async e=>{
 
         // Explicitly capture relationship selections.
         d.client_id = clientId.value || null;
+        d.client_location_id = clientLocationId.value || null;
         d.service_id = serviceId.value || null;
 
         d.contractor_ids =
@@ -520,8 +584,8 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                     endsAt.value=localDateTime(end);
                 },
 
-                eventClick:info=>{
-                    editAppointment(info.event);
+                eventClick:async info=>{
+                    await editAppointment(info.event);
                 }
             }
         );
