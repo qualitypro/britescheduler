@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS client_locations (
+ id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+ tenant_id BIGINT UNSIGNED NOT NULL,
+ client_id BIGINT UNSIGNED NOT NULL,
+ label VARCHAR(120) NOT NULL,
+ address1 VARCHAR(190) NOT NULL,
+ address2 VARCHAR(190) NULL,
+ city VARCHAR(100) NOT NULL,
+ state VARCHAR(100) NOT NULL,
+ postal_code VARCHAR(30) NOT NULL,
+ service_instructions TEXT NULL,
+ latitude DECIMAL(10,7) NULL,
+ longitude DECIMAL(10,7) NULL,
+ is_primary TINYINT(1) NOT NULL DEFAULT 0,
+ primary_client_id BIGINT UNSIGNED GENERATED ALWAYS AS (CASE WHEN is_primary = 1 THEN client_id ELSE NULL END) STORED,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ CONSTRAINT fk_cl_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+ CONSTRAINT fk_cl_client FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+ UNIQUE KEY uq_cl_one_primary (primary_client_id),
+ INDEX idx_cl_tenant_client (tenant_id,client_id)
+) ENGINE=InnoDB;

@@ -68,6 +68,12 @@ Clients
 <?php endif; ?>
 
 <?php if(in_array($tenant['role'],['owner','admin','scheduler'],true)): ?>
+<a href="<?=htmlspecialchars(app_url('/client-locations.php'))?>">
+Locations
+</a>
+<?php endif; ?>
+
+<?php if(in_array($tenant['role'],['owner','admin','scheduler'],true)): ?>
 <a href="<?=htmlspecialchars(app_url('/contractors.v2.php'))?>">
 Contractors
 </a>
@@ -115,6 +121,10 @@ My Availability
 
 <a href="<?=htmlspecialchars(app_url('/client-dashboard.php'))?>">
 My Dashboard
+</a>
+
+<a href="<?=htmlspecialchars(app_url('/client-locations.php'))?>">
+My Locations
 </a>
 
 <?php endif; ?>
