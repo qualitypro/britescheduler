@@ -15,3 +15,6 @@ __pycache__/
 # One-off patch utilities
 patch_*.py
 restore_*.py
+
+# Local application configuration (never commit)
+/config/local/
