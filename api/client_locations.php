@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once dirname(__DIR__).'/app/bootstrap.php';
+require_once dirname(__DIR__).'/app/Geocoding.php';
 $user = Auth::requireUser();
 $tenant = Auth::tenant();
 $tid = (int)$tenant['tenant_id'];
@@ -40,13 +41,14 @@ if ($method !== 'DELETE') {
     $primary=!empty($d['is_primary']) ? 1 : 0;
 }
 try {
+    $shouldGeocode = false;
     $pdo->beginTransaction();
     // Serialize modifications to a client's primary-location selection.
     $lock=$pdo->prepare('SELECT id FROM clients WHERE id=? AND tenant_id=? FOR UPDATE');
     $lock->execute([$clientId,$tid]);
     if (!$lock->fetchColumn()) { $pdo->rollBack(); json_response(['error'=>'Client not found'],404); }
     if ($method !== 'POST') {
-        $q=$pdo->prepare('SELECT id,is_primary FROM client_locations WHERE id=? AND client_id=? AND tenant_id=? FOR UPDATE');
+        $q=$pdo->prepare('SELECT id,is_primary,address1,address2,city,state,postal_code FROM client_locations WHERE id=? AND client_id=? AND tenant_id=? FOR UPDATE');
         $q->execute([$id,$clientId,$tid]);
         $existing=$q->fetch();
         if (!$existing) { $pdo->rollBack(); json_response(['error'=>'Location not found'],404); }
@@ -67,8 +69,39 @@ try {
             $q=$pdo->prepare('INSERT INTO client_locations (label,address1,address2,city,state,postal_code,service_instructions,is_primary,tenant_id,client_id) VALUES (?,?,?,?,?,?,?,?,?,?)');
             $q->execute([...$values,$tid,$clientId]);
             $id=(int)$pdo->lastInsertId();
+            $shouldGeocode = true;
         } else {
-            $q=$pdo->prepare('UPDATE client_locations SET label=?,address1=?,address2=?,city=?,state=?,postal_code=?,service_instructions=?,is_primary=? WHERE id=? AND tenant_id=? AND client_id=?');
+            // Coordinates remain valid only while the address is unchanged.
+            $addressChanged = false;
+
+            foreach (['address1','address2','city','state','postal_code'] as $key) {
+                if (
+                    (string)($existing[$key] ?? '') !==
+                    (string)($fields[$key] ?? '')
+                ) {
+                    $addressChanged = true;
+                    break;
+                }
+            }
+
+            if ($addressChanged) {
+                $shouldGeocode = true;
+                $q=$pdo->prepare(
+                    'UPDATE client_locations
+                     SET label=?,address1=?,address2=?,city=?,state=?,
+                         postal_code=?,service_instructions=?,is_primary=?,
+                         latitude=NULL,longitude=NULL
+                     WHERE id=? AND tenant_id=? AND client_id=?'
+                );
+            } else {
+                $q=$pdo->prepare(
+                    'UPDATE client_locations
+                     SET label=?,address1=?,address2=?,city=?,state=?,
+                         postal_code=?,service_instructions=?,is_primary=?
+                     WHERE id=? AND tenant_id=? AND client_id=?'
+                );
+            }
+
             $q->execute([...$values,$id,$tid,$clientId]);
         }
     }
@@ -81,6 +114,52 @@ try {
         $q->execute([(int)$first,$tid,$clientId]);
     }
     $pdo->commit();
+
+    // External geocoding must never run inside the location transaction.
+    if ($method !== 'DELETE' && $shouldGeocode) {
+        try {
+            $result = Geocoding::resolve($pdo, $fields);
+
+            if (
+                ($result['status'] ?? '') === 'resolved' &&
+                isset($result['latitude'], $result['longitude'])
+            ) {
+                // Assign coordinates only if the address is still current.
+                $q = $pdo->prepare(
+                    'UPDATE client_locations
+                     SET latitude=?,longitude=?
+                     WHERE id=? AND tenant_id=? AND client_id=?
+                       AND address1=?
+                       AND city=?
+                       AND state=?
+                       AND postal_code=?
+                       AND address2 <=> ?
+                       AND latitude IS NULL
+                       AND longitude IS NULL'
+                );
+
+                $q->execute([
+                    $result['latitude'],
+                    $result['longitude'],
+                    $id,
+                    $tid,
+                    $clientId,
+                    $fields['address1'],
+                    $fields['city'],
+                    $fields['state'],
+                    $fields['postal_code'],
+                    $fields['address2']
+                ]);
+            }
+        } catch (Throwable $geocodingError) {
+            // A provider failure must not invalidate a saved location.
+            error_log(
+                'Client location geocoding failed: ' .
+                get_class($geocodingError)
+            );
+        }
+    }
+
     json_response(['ok'=>true,'id'=>$id],$method==='POST'?201:200);
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();

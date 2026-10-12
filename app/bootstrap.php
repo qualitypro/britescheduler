@@ -15,6 +15,7 @@ function load_env(string $file): void {
     }
 }
 load_env($root . '/.env');
+load_env('/opt/lampp/etc/britescheduler/geocoding.env');
 
 date_default_timezone_set(getenv('APP_TIMEZONE') ?: 'UTC');
 if (session_status() !== PHP_SESSION_ACTIVE) {
