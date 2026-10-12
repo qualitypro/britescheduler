@@ -117,14 +117,68 @@ async function refresh(){
     return;
 }
  try {const j=await api('/api/client_locations.php?client_id='+encodeURIComponent(clientSelect.value));locations=j.locations;refreshMap();
- list.innerHTML=locations.length?locations.map(x=>`<div style="padding:12px;border-bottom:1px solid #ddd"><b>${escapeHtml(x.label)}</b> ${Number(x.is_primary)?'(Primary)':''}<p>${escapeHtml([x.address1,x.address2,x.city,x.state,x.postal_code].filter(Boolean).join(', '))}</p><button type="button" data-edit="${x.id}">Edit</button> <button type="button" data-delete="${x.id}">Delete</button></div>`).join(''):'No locations saved.';
+ list.innerHTML=locations.length?locations.map(x=>{
+    const status=String(x.geocoding_status||'pending');
+    const retryable=['pending','unavailable'].includes(status)
+        && x.latitude==null && x.longitude==null;
+    const statusLabel={
+        pending:'Pending',
+        resolved:'Resolved',
+        not_found:'Address not found',
+        rejected:'Address rejected',
+        unavailable:'Service unavailable'
+    }[status]||'Unknown';
+
+    return `<div style="padding:12px;border-bottom:1px solid #ddd">
+        <b>${escapeHtml(x.label)}</b> ${Number(x.is_primary)?'(Primary)':''}
+        <p>${escapeHtml([x.address1,x.address2,x.city,x.state,x.postal_code].filter(Boolean).join(', '))}</p>
+        <p class="muted">Geocoding: ${escapeHtml(statusLabel)}</p>
+        <button type="button" data-edit="${x.id}">Edit</button>
+        <button type="button" data-delete="${x.id}">Delete</button>
+        ${retryable?`<button type="button" data-geocode-retry="${x.id}">Retry Geocoding</button>`:''}
+    </div>`;
+ }).join(''):'No locations saved.';
  }catch(e){say(e.message);}
 }
 function clearForm(){form.reset();document.getElementById('locationId').value='';document.getElementById('formTitle').textContent='Add Location';}
 document.getElementById('resetForm').onclick=clearForm;
 clientSelect.onchange=()=>{say('');clearForm();refresh();};
 list.addEventListener('click',async e=>{
- const edit=e.target.closest('[data-edit]'), del=e.target.closest('[data-delete]');
+ const edit=e.target.closest('[data-edit]'),
+       del=e.target.closest('[data-delete]'),
+       retry=e.target.closest('[data-geocode-retry]');
+
+ if(retry){
+    const id=Number(retry.dataset.geocodeRetry);
+    const clientId=Number(clientSelect.value);
+    const location=locations.find(x=>Number(x.id)===id);
+
+    if(!location || !['pending','unavailable'].includes(
+        String(location.geocoding_status)
+    ) || location.latitude!=null || location.longitude!=null){
+        say('Location is not eligible for retry. Refresh the page.');
+        return;
+    }
+
+    retry.disabled=true;
+    retry.textContent='Geocoding...';
+
+    try{
+        const result=await api('/api/client_location_geocode_retry.php',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({id,client_id:clientId})
+        });
+
+        say('Geocoding result: '+String(result.geocoding_status||'unknown'));
+        await refresh();
+    }catch(err){
+        say(err.message||'Unable to retry geocoding.');
+        retry.disabled=false;
+        retry.textContent='Retry Geocoding';
+    }
+    return;
+ }
  if(edit){const x=locations.find(x=>String(x.id)===edit.dataset.edit);if(!x)return;clearForm();for(const [k,v] of Object.entries(x)){const el=form.elements.namedItem(k);if(el&&k!=='is_primary')el.value=v??'';}form.elements.namedItem('is_primary').checked=Number(x.is_primary)===1;document.getElementById('formTitle').textContent='Edit Location';form.scrollIntoView({behavior:'smooth'});}
  if(del&&confirm('Delete this service location?')){try{await api('/api/client_locations.php',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(del.dataset.delete),client_id:Number(clientSelect.value)})});say('Location deleted');clearForm();await refresh();}catch(err){say(err.message);}}
 });

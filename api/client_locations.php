@@ -23,7 +23,7 @@ $q=$pdo->prepare('SELECT id FROM clients WHERE id=? AND tenant_id=?');
 $q->execute([$clientId,$tid]);
 if (!$q->fetchColumn()) json_response(['error'=>'Client not found'],404);
 if ($method === 'GET') {
-    $q=$pdo->prepare('SELECT id,client_id,label,address1,address2,city,state,postal_code,service_instructions,latitude,longitude,is_primary FROM client_locations WHERE tenant_id=? AND client_id=? ORDER BY is_primary DESC,label,id');
+    $q=$pdo->prepare('SELECT id,client_id,label,address1,address2,city,state,postal_code,service_instructions,latitude,longitude,geocoding_status,geocoding_attempted_at,geocoding_resolved_at,is_primary FROM client_locations WHERE tenant_id=? AND client_id=? ORDER BY is_primary DESC,label,id');
     $q->execute([$tid,$clientId]);
     json_response(['locations'=>$q->fetchAll()]);
 }
@@ -90,7 +90,10 @@ try {
                     'UPDATE client_locations
                      SET label=?,address1=?,address2=?,city=?,state=?,
                          postal_code=?,service_instructions=?,is_primary=?,
-                         latitude=NULL,longitude=NULL
+                         latitude=NULL,longitude=NULL,
+                         geocoding_status=\'pending\',
+                         geocoding_attempted_at=NULL,
+                         geocoding_resolved_at=NULL
                      WHERE id=? AND tenant_id=? AND client_id=?'
                 );
             } else {
@@ -120,14 +123,27 @@ try {
         try {
             $result = Geocoding::resolve($pdo, $fields);
 
+            $status = (string)($result['status'] ?? 'unavailable');
+
+            if (!in_array(
+                $status,
+                ['resolved','rejected','not_found','unavailable'],
+                true
+            )) {
+                $status = 'unavailable';
+            }
+
             if (
-                ($result['status'] ?? '') === 'resolved' &&
+                $status === 'resolved' &&
                 isset($result['latitude'], $result['longitude'])
             ) {
                 // Assign coordinates only if the address is still current.
                 $q = $pdo->prepare(
                     'UPDATE client_locations
-                     SET latitude=?,longitude=?
+                     SET latitude=?,longitude=?,
+                         geocoding_status=\'resolved\',
+                         geocoding_attempted_at=UTC_TIMESTAMP(6),
+                         geocoding_resolved_at=UTC_TIMESTAMP(6)
                      WHERE id=? AND tenant_id=? AND client_id=?
                        AND address1=?
                        AND city=?
@@ -135,7 +151,9 @@ try {
                        AND postal_code=?
                        AND address2 <=> ?
                        AND latitude IS NULL
-                       AND longitude IS NULL'
+                       AND longitude IS NULL
+                       AND geocoding_status=\'pending\'
+                       AND geocoding_attempted_at IS NULL'
                 );
 
                 $q->execute([
@@ -150,9 +168,69 @@ try {
                     $fields['postal_code'],
                     $fields['address2']
                 ]);
+            } else {
+                // Record unsuccessful attempts only if the same address
+                // still has no coordinates.
+                $q = $pdo->prepare(
+                    'UPDATE client_locations
+                     SET geocoding_status=?,
+                         geocoding_attempted_at=UTC_TIMESTAMP(6),
+                         geocoding_resolved_at=NULL
+                     WHERE id=? AND tenant_id=? AND client_id=?
+                       AND address1=? AND city=? AND state=?
+                       AND postal_code=? AND address2 <=> ?
+                       AND latitude IS NULL AND longitude IS NULL
+                       AND geocoding_status=\'pending\'
+                       AND geocoding_attempted_at IS NULL'
+                );
+
+                $q->execute([
+                    $status,
+                    $id,
+                    $tid,
+                    $clientId,
+                    $fields['address1'],
+                    $fields['city'],
+                    $fields['state'],
+                    $fields['postal_code'],
+                    $fields['address2']
+                ]);
             }
         } catch (Throwable $geocodingError) {
             // A provider failure must not invalidate a saved location.
+            // Preserve the address and record a retryable failure.
+            try {
+                $statusUpdate = $pdo->prepare(
+                    'UPDATE client_locations
+                     SET geocoding_status=?,
+                         geocoding_attempted_at=UTC_TIMESTAMP(6),
+                         geocoding_resolved_at=NULL
+                     WHERE id=? AND tenant_id=? AND client_id=?
+                       AND address1=? AND city=? AND state=?
+                       AND postal_code=? AND address2 <=> ?
+                       AND latitude IS NULL AND longitude IS NULL
+                       AND geocoding_status=\'pending\'
+                       AND geocoding_attempted_at IS NULL'
+                );
+
+                $statusUpdate->execute([
+                    'unavailable',
+                    $id,
+                    $tid,
+                    $clientId,
+                    $fields['address1'],
+                    $fields['city'],
+                    $fields['state'],
+                    $fields['postal_code'],
+                    $fields['address2']
+                ]);
+            } catch (Throwable $statusError) {
+                // Status persistence must not invalidate the saved location.
+                error_log(
+                    'Client location geocoding status update failed: ' .
+                    get_class($statusError)
+                );
+            }
             error_log(
                 'Client location geocoding failed: ' .
                 get_class($geocodingError)
