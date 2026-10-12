@@ -17,7 +17,7 @@ $pageTitle='Client Locations';
 require __DIR__.'/partials/app_header.php';
 ?>
 <h1>Client Locations</h1>
-<p class="muted">Manage service addresses for each client. Coordinates and map display will follow in WBS 1.7.</p>
+<p class="muted">Manage service addresses for each client. Saved service locations are displayed on the map when coordinates are available.</p>
 <div class="card">
 <label for="client">Client</label>
 <select id="client">
@@ -27,6 +27,14 @@ require __DIR__.'/partials/app_header.php';
 </select>
 <p id="message" role="status"></p>
 <div id="locations"></div>
+<div style="margin-top:20px">
+<h2>Service Location Map</h2>
+<div id="clientLocationMap"
+     style="height:420px;max-width:100%;border-radius:8px"
+     role="region"
+     aria-label="Client service locations map"></div>
+<p id="mapMessage" class="muted"></p>
+</div>
 </div>
 <div class="card" style="margin-top:18px">
 <h2 id="formTitle">Add Location</h2>
@@ -40,14 +48,75 @@ require __DIR__.'/partials/app_header.php';
 <div style="margin-top:14px"><button type="submit">Save Location</button> <button type="button" id="resetForm">Clear</button></div>
 </form>
 </div>
+<link rel="stylesheet" href="/dashboard/assets/vendor/leaflet/leaflet.css">
+<script src="/dashboard/assets/vendor/leaflet/leaflet.js"></script>
 <script>
 const clientSelect=document.getElementById('client'), list=document.getElementById('locations'), form=document.getElementById('locationForm'), msg=document.getElementById('message');
 let locations=[];
+const mapMessage=document.getElementById('mapMessage');
+
+const locationMap=L.map('clientLocationMap').setView([28.39,-80.61],10);
+
+L.tileLayer(
+    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {
+        maxZoom:19,
+        attribution:'&copy; OpenStreetMap contributors'
+    }
+).addTo(locationMap);
+
+const locationMarkers=L.featureGroup().addTo(locationMap);
+
+function refreshMap(){
+    locationMarkers.clearLayers();
+
+    for(const x of locations){
+        if(x.latitude===null || x.longitude===null ||
+           x.latitude==='' || x.longitude==='') continue;
+
+        const lat=Number(x.latitude);
+        const lng=Number(x.longitude);
+
+        if(!Number.isFinite(lat) || !Number.isFinite(lng) ||
+           Math.abs(lat)>90 || Math.abs(lng)>180) continue;
+
+        L.marker([lat,lng])
+            .bindPopup(
+                '<strong>'+escapeHtml(x.label)+'</strong><p>'+
+                escapeHtml(
+                    [x.address1,x.city,x.state,x.postal_code]
+                    .filter(Boolean).join(', ')
+                )+'</p>'
+            )
+            .addTo(locationMarkers);
+    }
+
+    const count=locationMarkers.getLayers().length;
+
+    mapMessage.textContent=count
+        ? count+' mapped service location(s).'
+        : 'No coordinates available for this client yet.';
+
+    if(count){
+        locationMap.fitBounds(
+            locationMarkers.getBounds().pad(0.2),
+            {maxZoom:15}
+        );
+    }
+
+    setTimeout(()=>locationMap.invalidateSize(),0);
+}
+
 function say(s){msg.textContent=s;}
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 async function refresh(){
- if(!clientSelect.value){list.textContent='No client profile available.';return;}
- try {const j=await api('/api/client_locations.php?client_id='+encodeURIComponent(clientSelect.value));locations=j.locations;
+ if(!clientSelect.value){
+    locations=[];
+    refreshMap();
+    list.textContent='No client profile available.';
+    return;
+}
+ try {const j=await api('/api/client_locations.php?client_id='+encodeURIComponent(clientSelect.value));locations=j.locations;refreshMap();
  list.innerHTML=locations.length?locations.map(x=>`<div style="padding:12px;border-bottom:1px solid #ddd"><b>${escapeHtml(x.label)}</b> ${Number(x.is_primary)?'(Primary)':''}<p>${escapeHtml([x.address1,x.address2,x.city,x.state,x.postal_code].filter(Boolean).join(', '))}</p><button type="button" data-edit="${x.id}">Edit</button> <button type="button" data-delete="${x.id}">Delete</button></div>`).join(''):'No locations saved.';
  }catch(e){say(e.message);}
 }
