@@ -78,6 +78,10 @@ Locations
 Contractors
 </a>
 
+<a href="<?=htmlspecialchars(app_url('/contractor-service-areas.php'))?>">
+Service Areas
+</a>
+
 <a href="<?=htmlspecialchars(app_url('/contractor-availability.php'))?>">
 Availability
 </a>
