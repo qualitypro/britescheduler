@@ -118,21 +118,18 @@ async function refresh(){
 }
  try {const j=await api('/api/client_locations.php?client_id='+encodeURIComponent(clientSelect.value));locations=j.locations;refreshMap();
  list.innerHTML=locations.length?locations.map(x=>{
-    const status=String(x.geocoding_status||'pending');
-    const retryable=['pending','unavailable'].includes(status)
-        && x.latitude==null && x.longitude==null;
-    const statusLabel={
-        pending:'Pending',
-        resolved:'Resolved',
-        not_found:'Address not found',
-        rejected:'Address rejected',
-        unavailable:'Service unavailable'
-    }[status]||'Unknown';
+    const diagnostics=x.geocoding_diagnostics||{};
+    const statusLabel=String(diagnostics.label||'Unknown geocoding status');
+    const statusMessage=String(diagnostics.message||'');
+    const statusAction=String(diagnostics.action||'');
+    const retryable=x.geocoding_retry_available===true;
 
     return `<div style="padding:12px;border-bottom:1px solid #ddd">
         <b>${escapeHtml(x.label)}</b> ${Number(x.is_primary)?'(Primary)':''}
         <p>${escapeHtml([x.address1,x.address2,x.city,x.state,x.postal_code].filter(Boolean).join(', '))}</p>
         <p class="muted">Geocoding: ${escapeHtml(statusLabel)}</p>
+        ${statusMessage?`<p class="muted">${escapeHtml(statusMessage)}</p>`:''}
+        ${statusAction?`<p class="muted">${escapeHtml(statusAction)}</p>`:''}
         <button type="button" data-edit="${x.id}">Edit</button>
         <button type="button" data-delete="${x.id}">Delete</button>
         ${retryable?`<button type="button" data-geocode-retry="${x.id}">Retry Geocoding</button>`:''}
@@ -153,9 +150,8 @@ list.addEventListener('click',async e=>{
     const clientId=Number(clientSelect.value);
     const location=locations.find(x=>Number(x.id)===id);
 
-    if(!location || !['pending','unavailable'].includes(
-        String(location.geocoding_status)
-    ) || location.latitude!=null || location.longitude!=null){
+    if(!location || location.geocoding_retry_available!==true
+        || location.latitude!=null || location.longitude!=null){
         say('Location is not eligible for retry. Refresh the page.');
         return;
     }

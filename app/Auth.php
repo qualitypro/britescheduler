@@ -14,7 +14,32 @@ final class Auth {
     public static function requireUser(): array {
         $u = self::user();
         if (!$u) {
-            if (str_starts_with($_SERVER['REQUEST_URI'] ?? '', '/api/')) json_response(['error'=>'Unauthenticated'], 401);
+            $requestPath = parse_url(
+                $_SERVER['REQUEST_URI'] ?? '',
+                PHP_URL_PATH
+            );
+
+            $requestPath = is_string($requestPath)
+                ? $requestPath
+                : '';
+
+            $appPath = parse_url(
+                app_url(),
+                PHP_URL_PATH
+            );
+
+            $appPath = is_string($appPath)
+                ? rtrim($appPath, '/')
+                : '';
+
+            $apiPrefix = $appPath . '/api/';
+
+            if (
+                str_starts_with($requestPath, $apiPrefix)
+                || str_starts_with($requestPath, '/api/')
+            ) {
+                json_response(['error'=>'Unauthenticated'], 401);
+            }
             header('Location: '.app_url('/sign-in.v2.php')); exit;
         }
         return $u;

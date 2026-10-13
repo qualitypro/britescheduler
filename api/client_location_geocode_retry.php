@@ -75,10 +75,30 @@ if (
 
 if (!in_array(
     $location['geocoding_status'],
-    ['pending', 'unavailable'],
+    ['pending', 'unavailable', 'not_found'],
     true
 )) {
     return [['error' => 'Correct the address before retrying'], 409];
+}
+
+if ($location['geocoding_status'] === 'not_found') {
+    $attemptedAt = $location['geocoding_attempted_at'];
+
+    if ($attemptedAt === null) {
+        return [['error' => 'Retry timestamp unavailable; correct the address'], 409];
+    }
+
+    $q = $pdo->prepare(
+        'SELECT UTC_TIMESTAMP(6) >=
+                CAST(? AS DATETIME(6)) + INTERVAL 24 HOUR'
+    );
+    $q->execute([$attemptedAt]);
+
+    if ((int)$q->fetchColumn() !== 1) {
+        return [[
+            'error' => 'Address not found. Retry is available 24 hours after the previous attempt.'
+        ], 409];
+    }
 }
 
 $address = [
@@ -127,7 +147,7 @@ if ($status === 'resolved') {
                AND address1=? AND address2 <=> ?
                AND city=? AND state=? AND postal_code=?
                AND latitude IS NULL AND longitude IS NULL
-               AND geocoding_status IN (?,?)
+               AND geocoding_status IN (?,?,?)
                AND geocoding_attempted_at <=> ?'
         );
 
@@ -145,6 +165,7 @@ if ($status === 'resolved') {
             $address['postal_code'],
             'pending',
             'unavailable',
+            'not_found',
             $location['geocoding_attempted_at']
         ]);
     } else {
@@ -157,7 +178,7 @@ if ($status === 'resolved') {
                AND address1=? AND address2 <=> ?
                AND city=? AND state=? AND postal_code=?
                AND latitude IS NULL AND longitude IS NULL
-               AND geocoding_status IN (?,?)
+               AND geocoding_status IN (?,?,?)
                AND geocoding_attempted_at <=> ?'
         );
 
@@ -173,6 +194,7 @@ if ($status === 'resolved') {
             $address['postal_code'],
             'pending',
             'unavailable',
+            'not_found',
             $location['geocoding_attempted_at']
         ]);
     }

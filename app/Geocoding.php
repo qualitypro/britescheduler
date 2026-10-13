@@ -151,7 +151,12 @@ final class Geocoding
         $q = $pdo->prepare(
             'SELECT status,latitude,longitude,precision_type,display_name
              FROM geocoding_cache
-             WHERE provider=? AND address_hash=? LIMIT 1'
+             WHERE provider=? AND address_hash=?
+               AND (
+                   status=\'resolved\'
+                   OR updated_at > UTC_TIMESTAMP() - INTERVAL 24 HOUR
+               )
+             LIMIT 1'
         );
         $q->execute([self::PROVIDER, $hash]);
 

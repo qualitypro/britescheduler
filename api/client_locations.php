@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once dirname(__DIR__).'/app/bootstrap.php';
 require_once dirname(__DIR__).'/app/Geocoding.php';
+require_once dirname(__DIR__).'/app/GeocodingDiagnostics.php';
 $user = Auth::requireUser();
 $tenant = Auth::tenant();
 $tid = (int)$tenant['tenant_id'];
@@ -25,7 +26,53 @@ if (!$q->fetchColumn()) json_response(['error'=>'Client not found'],404);
 if ($method === 'GET') {
     $q=$pdo->prepare('SELECT id,client_id,label,address1,address2,city,state,postal_code,service_instructions,latitude,longitude,geocoding_status,geocoding_attempted_at,geocoding_resolved_at,is_primary FROM client_locations WHERE tenant_id=? AND client_id=? ORDER BY is_primary DESC,label,id');
     $q->execute([$tid,$clientId]);
-    json_response(['locations'=>$q->fetchAll()]);
+    $locations = $q->fetchAll(PDO::FETCH_ASSOC);
+
+    // Determine retry availability using the database UTC clock.
+    $clock = $pdo->query(
+        'SELECT UTC_TIMESTAMP(6)'
+    )->fetchColumn();
+
+    $now = new DateTimeImmutable(
+        (string)$clock,
+        new DateTimeZone('UTC')
+    );
+
+    foreach ($locations as &$location) {
+        $status = (string)(
+            $location['geocoding_status'] ?? 'pending'
+        );
+
+        $diagnostics = GeocodingDiagnostics::describe($status);
+
+        $available = (
+            $diagnostics['retryable'] === true
+            && $location['latitude'] === null
+            && $location['longitude'] === null
+        );
+
+        if ($status === 'not_found') {
+            $attemptedAt = $location['geocoding_attempted_at'];
+
+            if ($attemptedAt === null) {
+                $available = false;
+            } else {
+                $attempt = new DateTimeImmutable(
+                    (string)$attemptedAt,
+                    new DateTimeZone('UTC')
+                );
+
+                $available = $available
+                    && $now >= $attempt->modify('+24 hours');
+            }
+        }
+
+        $location['geocoding_diagnostics'] = $diagnostics;
+        $location['geocoding_retry_available'] = $available;
+    }
+    unset($location);
+
+    json_response(['locations'=>$locations]);
 }
 if (!in_array($method,['POST','PUT','DELETE'],true)) json_response(['error'=>'Method not allowed'],405);
 $id=(int)($d['id'] ?? 0);
