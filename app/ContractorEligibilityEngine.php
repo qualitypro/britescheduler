@@ -179,7 +179,13 @@ final class ContractorEligibilityEngine
                 ON ac.appointment_id=a.id
             WHERE a.tenant_id=?
               AND ac.contractor_id=?
-              AND a.status NOT IN ('cancelled','no_show')
+              AND ac.status IN ('assigned','accepted')
+              AND a.status IN (
+                  'tentative',
+                  'scheduled',
+                  'confirmed',
+                  'in_progress'
+              )
               AND a.starts_at < ?
               AND a.ends_at > ?
         ";

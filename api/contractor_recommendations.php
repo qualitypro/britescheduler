@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/app/bootstrap.php';
 require_once dirname(__DIR__) . '/app/ContractorEligibilityEngine.php';
+require_once dirname(__DIR__) . '/app/ContractorRankingEngine.php';
 
 Auth::requireUser();
 $tenant = Auth::tenant();
@@ -143,6 +144,14 @@ try {
         $endsAt,
         $excludeAppointmentId,
         $serviceId
+    );
+
+    $contractors = ContractorRankingEngine::rank(
+        $pdo,
+        $tenantId,
+        $startsAt,
+        $contractors,
+        $excludeAppointmentId
     );
 
     $reviewCount = 0;
