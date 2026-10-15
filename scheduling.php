@@ -33,6 +33,54 @@ require __DIR__.'/partials/app_header.php';
 #calendar{
     min-height:700px;
 }
+
+.contractor-recommendations{
+    margin-top:16px;
+    padding:14px;
+    border:1px solid #cbd5e1;
+    border-radius:8px;
+}
+
+.contractor-recommendations h3{
+    margin:0 0 8px;
+    font-size:16px;
+}
+
+.recommendations-help{
+    font-size:12px;
+    line-height:1.5;
+    opacity:.8;
+}
+
+#loadRecommendations{
+    margin-top:10px;
+}
+
+#recommendationsStatus{
+    font-size:13px;
+    margin:12px 0;
+}
+
+#recommendationsResults{
+    display:grid;
+    gap:10px;
+}
+
+.recommendation-card{
+    padding:12px;
+    border:1px solid #cbd5e1;
+    border-radius:8px;
+}
+
+.recommendation-score{
+    font-weight:700;
+    font-size:18px;
+}
+
+.recommendation-details{
+    font-size:12px;
+    line-height:1.6;
+}
 @media(max-width:900px){
     .scheduler-layout{
         grid-template-columns:1fr;
@@ -65,6 +113,43 @@ require __DIR__.'/partials/app_header.php';
         <select id="contractorId">
             <option value="">Unassigned</option>
         </select>
+
+        <!-- Advisory contractor recommendations; no automatic assignment. -->
+        <section id="contractorRecommendations"
+                 class="contractor-recommendations"
+                 aria-labelledby="recommendationsTitle">
+
+            <h3 id="recommendationsTitle">
+                Contractor Recommendations
+            </h3>
+
+            <p class="recommendations-help">
+                Review geographic coverage, availability,
+                qualifications, and workload before selecting
+                a contractor.
+            </p>
+
+            <button type="button"
+                    id="loadRecommendations"
+                    disabled>
+                Find Recommended Contractors
+            </button>
+
+            <p id="recommendationsStatus"
+               role="status"
+               aria-live="polite">
+                Select a saved client location and appointment
+                times to view recommendations.
+            </p>
+
+            <div id="recommendationsResults"></div>
+
+            <p class="recommendations-help">
+                Recommendations are advisory.
+                Selecting a contractor does not assign them
+                until the appointment is saved.
+            </p>
+        </section>
 
         <label>Title</label>
         <input name="title"
@@ -150,12 +235,240 @@ const appointmentLocation = document.getElementById('appointmentLocation');
 const clientLocationId = document.getElementById('clientLocationId');
 let locationLoadSequence = 0;
 
+// Advisory recommendations never save or assign contractors.
+const recommendationsButton =
+    document.getElementById('loadRecommendations');
+const recommendationsStatus =
+    document.getElementById('recommendationsStatus');
+const recommendationsResults =
+    document.getElementById('recommendationsResults');
+
+let recommendationSequence = 0;
+let recommendationSignature = '';
+
+function recommendationInputs(){
+    const location = clientLocationId.value;
+    const start = sqlDateTime(startsAt.value);
+    const end = sqlDateTime(endsAt.value);
+
+    if(!location || !start || !end || end <= start){
+        return null;
+    }
+
+    return {
+        location_id: location,
+        starts_at: start,
+        ends_at: end,
+        service_id: serviceId.value,
+        exclude_appointment_id: appointmentId.value
+    };
+}
+
+function recommendationKey(inputs){
+    return JSON.stringify(inputs);
+}
+
+function invalidateRecommendations(){
+    ++recommendationSequence;
+    recommendationSignature = '';
+    recommendationsResults.replaceChildren();
+
+    const inputs = recommendationInputs();
+    recommendationsButton.disabled = !inputs;
+
+    recommendationsStatus.textContent = inputs
+        ? 'Ready to find recommended contractors.'
+        : 'Select a saved client location and valid appointment times.';
+}
+
+function recommendationText(parent, className, content){
+    const element = document.createElement('div');
+    element.className = className;
+    element.textContent = content;
+    parent.appendChild(element);
+    return element;
+}
+
+function renderRecommendations(contractors){
+    recommendationsResults.replaceChildren();
+
+    if(!contractors.length){
+        recommendationsStatus.textContent =
+            'No contractors match this location and time. ' +
+            'Review geographic coverage and availability.';
+        return;
+    }
+
+    recommendationsStatus.textContent =
+        contractors.length + ' contractor recommendation(s) found.';
+
+    for(const contractor of contractors){
+        const ranking = contractor.ranking || {};
+        const workload = ranking.workload || {};
+        const card = document.createElement('article');
+        card.className = 'recommendation-card';
+
+        recommendationText(
+            card,
+            '',
+            [
+                contractor.first_name,
+                contractor.last_name
+            ].filter(Boolean).join(' ')
+        );
+
+        recommendationText(
+            card,
+            'recommendation-score',
+            Number(ranking.score || 0).toFixed(2) + ' / 100'
+        );
+
+        const details = [
+            'Qualification: ' +
+                (contractor.qualification_status || 'unverified'),
+            'Availability: ' +
+                (contractor.availability_ok && contractor.conflict_free
+                    ? 'Available'
+                    : 'Restricted'),
+            'Geographic coverage: ' +
+                (contractor.geographic_match ? 'Matched' : 'Not matched'),
+            'Workload: ' + Number(workload.hours || 0) +
+                ' hours / ' + Number(workload.jobs || 0) + ' jobs'
+        ];
+
+        recommendationText(
+            card,
+            'recommendation-details',
+            details.join(' | ')
+        );
+
+        for(const explanation of ranking.explanations || []){
+            recommendationText(
+                card,
+                'recommendation-details',
+                explanation
+            );
+        }
+
+        const select = document.createElement('button');
+        select.type = 'button';
+        select.textContent = 'Select Contractor';
+
+        const eligible = Boolean(contractor.eligible_for_review);
+        select.disabled = !eligible;
+
+        if(!eligible){
+            select.title = 'Contractor is not eligible for review';
+        }
+
+        select.addEventListener('click', () => {
+            const inputs = recommendationInputs();
+
+            if(!inputs ||
+               recommendationKey(inputs) !== recommendationSignature){
+                invalidateRecommendations();
+                return;
+            }
+
+            const id = String(contractor.contractor_id);
+
+            if(!Array.from(contractorId.options)
+                .some(option => option.value === id)){
+                recommendationsStatus.textContent =
+                    'Contractor is no longer in the selection list.';
+                return;
+            }
+
+            contractorId.value = id;
+
+            recommendationsStatus.textContent =
+                'Contractor selected. Save the appointment ' +
+                'to submit the assignment.';
+        });
+
+        card.appendChild(select);
+        recommendationsResults.appendChild(card);
+    }
+}
+
+recommendationsButton.addEventListener('click', async () => {
+    const inputs = recommendationInputs();
+
+    if(!inputs){
+        invalidateRecommendations();
+        return;
+    }
+
+    const sequence = ++recommendationSequence;
+    const signature = recommendationKey(inputs);
+
+    recommendationSignature = '';
+    recommendationsResults.replaceChildren();
+    recommendationsButton.disabled = true;
+    recommendationsStatus.textContent = 'Loading recommendations...';
+
+    const query = new URLSearchParams({
+        location_id: inputs.location_id,
+        starts_at: inputs.starts_at,
+        ends_at: inputs.ends_at
+    });
+
+    if(inputs.service_id){
+        query.set('service_id', inputs.service_id);
+    }
+
+    if(inputs.exclude_appointment_id){
+        query.set(
+            'exclude_appointment_id',
+            inputs.exclude_appointment_id
+        );
+    }
+
+    try{
+        const data = await api(
+            '/api/contractor_recommendations.php?' + query.toString()
+        );
+
+        if(sequence !== recommendationSequence ||
+           recommendationKey(recommendationInputs()) !== signature){
+            return;
+        }
+
+        recommendationSignature = signature;
+        renderRecommendations(data.contractors || []);
+
+    }catch(error){
+        if(sequence === recommendationSequence){
+            recommendationSignature = '';
+            recommendationsResults.replaceChildren();
+            recommendationsStatus.textContent =
+                'Unable to load recommendations: ' + error.message;
+        }
+    }finally{
+        if(sequence === recommendationSequence){
+            recommendationsButton.disabled = !recommendationInputs();
+        }
+    }
+});
+
+for(const element of [
+    clientLocationId,
+    startsAt,
+    endsAt,
+    serviceId,
+    appointmentId
+]){
+    element.addEventListener('change', invalidateRecommendations);
+    element.addEventListener('input', invalidateRecommendations);
+}
+
 async function loadClientLocations(selectedId='', usePrimary=true){
     const sequence = ++locationLoadSequence;
     const selectedClient = clientId.value;
 
     clientLocationId.innerHTML =
         '<option value="">Manual / Other Location</option>';
+    invalidateRecommendations();
 
     if(!selectedClient) return;
 
@@ -182,9 +495,12 @@ async function loadClientLocations(selectedId='', usePrimary=true){
         const primary = data.locations.find(l => Number(l.is_primary) === 1);
         if(primary) clientLocationId.value = String(primary.id);
     }
+
+    invalidateRecommendations();
 }
 
 clientId.onchange = async () => {
+    invalidateRecommendations();
     clientLocationId.innerHTML =
         '<option value="">Manual / Other Location</option>';
     appointmentLocation.value = '';
@@ -272,6 +588,7 @@ function resetForm(){
     saveButton.textContent='Create Appointment';
     deleteButton.style.display='none';
     appointmentError.textContent='';
+    invalidateRecommendations();
 }
 
 serviceId.onchange=()=>{
@@ -415,6 +732,7 @@ async function editAppointment(event){
             : 'none';
 
 
+    invalidateRecommendations();
     window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -582,6 +900,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                     end.setHours(end.getHours()+1);
 
                     endsAt.value=localDateTime(end);
+                    invalidateRecommendations();
                 },
 
                 eventClick:async info=>{
