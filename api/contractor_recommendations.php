@@ -70,6 +70,16 @@ $locationId = recommendation_id($_GET['location_id'] ?? null);
 $startsAt = recommendation_datetime($_GET['starts_at'] ?? null);
 $endsAt = recommendation_datetime($_GET['ends_at'] ?? null);
 
+$serviceId = null;
+
+if (array_key_exists('service_id', $_GET)) {
+    $serviceId = recommendation_id($_GET['service_id']);
+
+    if ($serviceId === null) {
+        json_response(['error' => 'Invalid service ID'], 422);
+    }
+}
+
 $excludeAppointmentId = null;
 
 if (array_key_exists('exclude_appointment_id', $_GET)) {
@@ -131,10 +141,12 @@ try {
         $locationId,
         $startsAt,
         $endsAt,
-        $excludeAppointmentId
+        $excludeAppointmentId,
+        $serviceId
     );
 
     $reviewCount = 0;
+    $verifiedCount = 0;
 
     foreach ($contractors as &$contractor) {
         $reasons = [];
@@ -151,12 +163,24 @@ try {
             $reasons[] = 'Conflicting appointment exists';
         }
 
-        $reasons[] = 'Service qualifications not yet verified';
+        if ($serviceId === null) {
+            $reasons[] = 'No service selected; qualifications not evaluated';
+        } elseif ($contractor['qualification_status'] === 'verified') {
+            $reasons[] = 'Service qualification verified';
+        } elseif ($contractor['qualification_status'] === 'rejected') {
+            $reasons[] = 'Service qualification rejected';
+        } else {
+            $reasons[] = 'Service qualification unverified or missing';
+        }
 
         $contractor['reasons'] = $reasons;
 
         if ($contractor['eligible_for_review']) {
             ++$reviewCount;
+        }
+
+        if ($contractor['service_qualified']) {
+            ++$verifiedCount;
         }
     }
     unset($contractor);
@@ -164,13 +188,18 @@ try {
     json_response([
         'ok' => true,
         'location_id' => $locationId,
+        'service_id' => $serviceId,
         'starts_at' => $startsAt,
         'ends_at' => $endsAt,
         'exclude_appointment_id' => $excludeAppointmentId,
         'contractors' => $contractors,
         'count' => count($contractors),
         'eligible_for_review_count' => $reviewCount,
-        'qualifications_verified' => false,
+        'service_qualified_count' => $verifiedCount,
+        'qualifications_verified' => (
+            $serviceId !== null &&
+            $verifiedCount > 0
+        ),
         'automatic_assignment' => false,
         'note' => 'Recommendations require manual review and fresh validation before assignment.'
     ]);

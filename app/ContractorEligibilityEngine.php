@@ -7,7 +7,7 @@ require_once __DIR__ . '/ServiceAreaMatcher.php';
  * Read-only contractor eligibility evaluation.
  *
  * This class never assigns contractors or changes database records.
- * Service qualifications are not yet verified by a structured mapping.
+ * Service qualifications are checked against tenant-scoped records.
  */
 final class ContractorEligibilityEngine
 {
@@ -17,7 +17,8 @@ final class ContractorEligibilityEngine
         int $locationId,
         string $startsAt,
         string $endsAt,
-        ?int $excludeAppointmentId = null
+        ?int $excludeAppointmentId = null,
+        ?int $serviceId = null
     ): array {
         if ($tenantId < 1 || $locationId < 1) {
             throw new InvalidArgumentException('Invalid tenant or location');
@@ -63,6 +64,34 @@ final class ContractorEligibilityEngine
             }
         }
 
+        if ($serviceId !== null) {
+            if ($serviceId < 1) {
+                throw new InvalidArgumentException('Invalid service ID');
+            }
+
+            $serviceQuery = $pdo->prepare(
+                'SELECT id FROM services
+                 WHERE id=? AND tenant_id=? AND active=1
+                 LIMIT 1'
+            );
+            $serviceQuery->execute([$serviceId, $tenantId]);
+
+            if (!$serviceQuery->fetchColumn()) {
+                throw new InvalidArgumentException('Service not found or inactive');
+            }
+        }
+
+        $qualificationQuery = null;
+
+        if ($serviceId !== null) {
+            $qualificationQuery = $pdo->prepare(
+                'SELECT verification_status
+                 FROM contractor_service_qualifications
+                 WHERE tenant_id=? AND contractor_id=? AND service_id=?
+                 LIMIT 1'
+            );
+        }
+
         $matches = ServiceAreaMatcher::matchLocation(
             $pdo,
             $tenantId,
@@ -91,6 +120,27 @@ final class ContractorEligibilityEngine
                 $excludeAppointmentId
             );
 
+            $qualificationStatus = 'unverified';
+
+            if ($qualificationQuery !== null) {
+                $qualificationQuery->execute([
+                    $tenantId,
+                    $contractorId,
+                    $serviceId
+                ]);
+
+                $storedStatus = $qualificationQuery->fetchColumn();
+
+                if ($storedStatus !== false) {
+                    $qualificationStatus = (string)$storedStatus;
+                }
+            }
+
+            $serviceQualified = (
+                $serviceId !== null &&
+                $qualificationStatus === 'verified'
+            );
+
             $results[] = [
                 'contractor_id' => $contractorId,
                 'first_name' => $match['first_name'],
@@ -100,8 +150,13 @@ final class ContractorEligibilityEngine
                 'availability_ok' => $available,
                 'conflict_free' => !$conflict,
                 'geographic_match' => true,
-                'qualification_status' => 'unverified',
-                'eligible_for_review' => $available && !$conflict,
+                'qualification_status' => $qualificationStatus,
+                'service_qualified' => $serviceQualified,
+                'eligible_for_review' => (
+                    $available &&
+                    !$conflict &&
+                    $qualificationStatus !== 'rejected'
+                ),
                 'assignment_approved' => false
             ];
         }
