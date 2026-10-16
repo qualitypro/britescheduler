@@ -42,7 +42,7 @@ require __DIR__.'/partials/app_header.php';
 <input type="hidden" name="id" id="locationId">
 <div class="row"><input name="label" placeholder="Location name (Home, Office...)" maxlength="120" required><input name="address1" placeholder="Street address" maxlength="190" required></div>
 <div class="row"><input name="address2" placeholder="Suite / unit" maxlength="190"><input name="city" placeholder="City" maxlength="100" required></div>
-<div class="row"><input name="state" placeholder="State" maxlength="100" required><input name="postal_code" placeholder="ZIP / postal code" maxlength="30" required></div>
+<div class="row"><input name="state" placeholder="State" maxlength="100" required><input name="postal_code" placeholder="ZIP code (12345 or 12345-6789)" maxlength="10" inputmode="numeric" pattern="[0-9]{5}(-[0-9]{4})?" title="Enter a five-digit US ZIP code or ZIP+4" autocomplete="postal-code" required></div>
 <div class="row"><textarea name="service_instructions" placeholder="Service instructions (optional)" maxlength="5000"></textarea></div>
 <label><input type="checkbox" name="is_primary" value="1"> Primary location</label>
 <div style="margin-top:14px"><button type="submit">Save Location</button> <button type="button" id="resetForm">Clear</button></div>
@@ -93,9 +93,24 @@ function refreshMap(){
 
     const count=locationMarkers.getLayers().length;
 
-    mapMessage.textContent=count
-        ? count+' mapped service location(s).'
-        : 'No coordinates available for this client yet.';
+    const total=locations.length;
+    const unmapped=total-count;
+
+    if(total===0){
+        mapMessage.textContent=
+            'Add a service location to display it on the map.';
+    }else if(count===0){
+        mapMessage.textContent=
+            'No verified locations to map. Review the saved addresses '+
+            'and geocoding status below.';
+    }else if(unmapped>0){
+        mapMessage.textContent=
+            count+' mapped service location(s); '+
+            unmapped+' awaiting address verification.';
+    }else{
+        mapMessage.textContent=
+            count+' mapped service location(s).';
+    }
 
     if(count){
         locationMap.fitBounds(
@@ -178,7 +193,21 @@ list.addEventListener('click',async e=>{
  if(edit){const x=locations.find(x=>String(x.id)===edit.dataset.edit);if(!x)return;clearForm();for(const [k,v] of Object.entries(x)){const el=form.elements.namedItem(k);if(el&&k!=='is_primary')el.value=v??'';}form.elements.namedItem('is_primary').checked=Number(x.is_primary)===1;document.getElementById('formTitle').textContent='Edit Location';form.scrollIntoView({behavior:'smooth'});}
  if(del&&confirm('Delete this service location?')){try{await api('/api/client_locations.php',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(del.dataset.delete),client_id:Number(clientSelect.value)})});say('Location deleted');clearForm();await refresh();}catch(err){say(err.message);}}
 });
-form.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(form).entries());d.client_id=Number(clientSelect.value);d.is_primary=form.elements.namedItem('is_primary').checked?1:0;const method=d.id?'PUT':'POST';if(!d.id)delete d.id;try{await api('/api/client_locations.php',{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});say('Location saved');clearForm();await refresh();}catch(err){say(err.message);}};
+form.onsubmit=async e=>{
+ e.preventDefault();
+
+ const postalInput=form.elements.namedItem('postal_code');
+ const zip=String(postalInput.value||'').trim();
+
+ if(!/^[0-9]{5}(?:-[0-9]{4})?$/.test(zip) || zip.slice(0,5)==='00000'){
+    say('Enter a valid US ZIP code (12345 or 12345-6789). ZIP 00000 is not allowed.');
+    postalInput.focus();
+    return;
+ }
+
+ const d=Object.fromEntries(new FormData(form).entries());
+ d.postal_code=zip;
+ d.client_id=Number(clientSelect.value);d.is_primary=form.elements.namedItem('is_primary').checked?1:0;const method=d.id?'PUT':'POST';if(!d.id)delete d.id;try{await api('/api/client_locations.php',{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});say('Location saved');clearForm();await refresh();}catch(err){say(err.message);}};
 refresh();
 </script>
 <?php require __DIR__.'/partials/app_footer.php'; ?>
