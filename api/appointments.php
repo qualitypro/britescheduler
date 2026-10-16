@@ -1,6 +1,7 @@
 <?php
 
 require_once dirname(__DIR__).'/app/bootstrap.php';
+require_once dirname(__DIR__).'/app/ContractorAssignmentValidator.php';
 
 $u      = Auth::requireUser();
 $tenant = Auth::tenant();
@@ -147,6 +148,60 @@ function validate_contractors(
     }
 
     return array_values($result);
+}
+
+/**
+ * Validate eligibility for newly added contractor assignments.
+ *
+ * Existing assignments may be excluded by passing their IDs.
+ * Availability and scheduling conflicts remain separately enforced.
+ *
+ * Returns advisory warnings keyed by contractor ID.
+ */
+function validate_assignment_eligibility(
+    PDO $pdo,
+    int $tenantId,
+    array $contractorIds,
+    ?int $serviceId,
+    ?int $locationId,
+    array $existingContractorIds = []
+): array {
+    $existing = array_fill_keys(
+        array_map('intval', $existingContractorIds),
+        true
+    );
+
+    $warnings = [];
+
+    foreach ($contractorIds as $contractorId) {
+        $contractorId = (int)$contractorId;
+
+        if (isset($existing[$contractorId])) {
+            continue;
+        }
+
+        $result = ContractorAssignmentValidator::evaluate(
+            $pdo,
+            $tenantId,
+            $contractorId,
+            $serviceId,
+            $locationId
+        );
+
+        if (!$result['allowed']) {
+            throw new RuntimeException(
+                'Contractor ' . $contractorId .
+                ' is not eligible: ' .
+                implode('; ', $result['errors'])
+            );
+        }
+
+        if ($result['warnings']) {
+            $warnings[$contractorId] = $result['warnings'];
+        }
+    }
+
+    return $warnings;
 }
 
 function check_contractor_conflicts(
@@ -647,6 +702,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $d['status'] ?? 'scheduled'
         );
 
+        $eligibilityWarnings = validate_assignment_eligibility(
+            $pdo,
+            $tid,
+            $contractorIds,
+            $serviceId,
+            $clientLocationId
+        );
+
         check_contractor_availability(
             $pdo,
             $tid,
@@ -720,7 +783,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         json_response([
             'ok' => true,
-            'id' => $id
+            'id' => $id,
+            'eligibility_warnings' => $eligibilityWarnings
         ], 201);
 
     } catch (Throwable $e) {
@@ -804,6 +868,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 
         $status = validate_appointment_status(
             $d['status'] ?? 'scheduled'
+        );
+
+        $existingAssignmentQuery = $pdo->prepare("
+            SELECT ac.contractor_id
+            FROM appointment_contractors ac
+            INNER JOIN appointments a
+                ON a.id = ac.appointment_id
+            WHERE a.id=?
+              AND a.tenant_id=?
+        ");
+
+        $existingAssignmentQuery->execute([$id, $tid]);
+
+        $existingAssignmentIds = array_map(
+            'intval',
+            $existingAssignmentQuery->fetchAll(PDO::FETCH_COLUMN)
+        );
+
+        $eligibilityWarnings = validate_assignment_eligibility(
+            $pdo,
+            $tid,
+            $contractorIds,
+            $serviceId,
+            $clientLocationId,
+            $existingAssignmentIds
         );
 
         check_contractor_availability(
@@ -917,7 +1006,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 
         $pdo->commit();
 
-        json_response(['ok' => true]);
+        json_response([
+            'ok' => true,
+            'eligibility_warnings' => $eligibilityWarnings
+        ]);
 
     } catch (Throwable $e) {
 
