@@ -856,22 +856,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
             $tid
         ]);
 
-        $pdo->prepare("
+        /*
+         * Preserve existing contractor assignment lifecycle data.
+         *
+         * Unchanged rows retain status and pay_amount.
+         * Removed contractors are deleted individually.
+         * Newly selected contractors receive the default
+         * assignment status.
+         */
+        $existingQuery = $pdo->prepare("
+            SELECT contractor_id
+            FROM appointment_contractors
+            WHERE appointment_id=?
+        ");
+
+        $existingQuery->execute([$id]);
+
+        $existingIds = array_map(
+            'intval',
+            $existingQuery->fetchAll(PDO::FETCH_COLUMN)
+        );
+
+        $removedIds = array_diff(
+            $existingIds,
+            $contractorIds
+        );
+
+        $addedIds = array_diff(
+            $contractorIds,
+            $existingIds
+        );
+
+        $removeQuery = $pdo->prepare("
             DELETE FROM appointment_contractors
             WHERE appointment_id=?
-        ")->execute([$id]);
+              AND contractor_id=?
+        ");
 
-        foreach ($contractorIds as $contractorId) {
+        foreach ($removedIds as $contractorId) {
+            $removeQuery->execute([
+                $id,
+                $contractorId
+            ]);
+        }
 
-            $x = $pdo->prepare("
-                INSERT INTO appointment_contractors(
-                    appointment_id,
-                    contractor_id
-                )
-                VALUES(?,?)
-            ");
+        $insertQuery = $pdo->prepare("
+            INSERT INTO appointment_contractors(
+                appointment_id,
+                contractor_id
+            )
+            VALUES(?,?)
+        ");
 
-            $x->execute([
+        foreach ($addedIds as $contractorId) {
+            $insertQuery->execute([
                 $id,
                 $contractorId
             ]);
