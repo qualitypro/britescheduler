@@ -85,6 +85,19 @@ if ($method !== 'DELETE') {
         if (in_array($key,['label','address1','city','state','postal_code'],true) && $v==='') json_response(['error'=>"$key is required"],422);
         $fields[$key]=$v === '' ? null : $v;
     }
+
+    // Require a usable US ZIP code before saving a service location.
+    $postalCode = (string)$fields['postal_code'];
+
+    if (
+        !preg_match('/^[0-9]{5}(?:-[0-9]{4})?$/D', $postalCode)
+        || substr($postalCode, 0, 5) === '00000'
+    ) {
+        json_response([
+            'error' => 'Enter a valid US ZIP code (12345 or 12345-6789).'
+        ], 422);
+    }
+
     $primary=!empty($d['is_primary']) ? 1 : 0;
 }
 try {
