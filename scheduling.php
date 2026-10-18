@@ -150,6 +150,69 @@ require __DIR__.'/partials/app_header.php';
     display: none;
 }
 
+/* Searchable contractor selection and removable chips. */
+.contractor-native-select {
+    display: none !important;
+}
+.contractor-selection-count {
+    margin: 10px 0;
+    font-size: 13px;
+    font-weight: 600;
+}
+.contractor-checkbox-list {
+    display: grid;
+    gap: 7px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 9px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+}
+.contractor-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 11px;
+    border: 1px solid #e2e8f0;
+    border-radius: 7px;
+    cursor: pointer;
+}
+.contractor-checkbox-row.is-selected {
+    border-color: #2563eb;
+    background: #eff6ff;
+}
+.scheduler-form .contractor-checkbox-row input {
+    width: auto;
+    margin: 0;
+}
+.contractor-checkbox-row span {
+    overflow-wrap: anywhere;
+}
+.selected-contractor-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 12px;
+}
+.selected-contractor-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 9px;
+    border: 1px solid #93c5fd;
+    border-radius: 999px;
+    background: #eff6ff;
+    font-size: 12px;
+}
+.selected-contractor-chip button {
+    cursor: pointer;
+}
+.contractor-empty-message {
+    margin: 8px;
+    font-size: 13px;
+    color: #64748b;
+}
+
 /* Contractor recommendation card UX. */
 .recommendation-card {
     display: grid;
@@ -545,16 +608,37 @@ require __DIR__.'/partials/app_header.php';
         </section>
 
         <section class="wizard-step" data-wizard-step="5" aria-label="Contractor">
-        <label for="contractorId">Contractors</label>
+        <label for="contractorSearch">Find Contractors</label>
+        <input id="contractorSearch"
+               type="search"
+               placeholder="Search contractors by name"
+               autocomplete="off"
+               aria-controls="contractorCheckboxList">
+
         <p id="contractorSelectionHelp" class="recommendations-help">
-            Select one or more contractors. Use Ctrl (or Command on Mac)
-            to select multiple contractors, or toggle them using recommendations.
+            Select any number of contractors using the checkboxes.
+            Assignments are not saved until you save the appointment.
         </p>
+
+        <div id="contractorSelectionCount"
+             class="contractor-selection-count"
+             role="status"
+             aria-live="polite">0 contractors selected</div>
+
+        <div id="contractorCheckboxList"
+             class="contractor-checkbox-list"
+             role="group"
+             aria-label="Available contractor choices"></div>
+
+        <div id="selectedContractorChips"
+             class="selected-contractor-chips"
+             aria-label="Selected contractors"></div>
+
         <select id="contractorId"
                 multiple
-                size="5"
-                aria-describedby="contractorSelectionHelp"
-                style="min-height:120px"></select>
+                aria-hidden="true"
+                tabindex="-1"
+                class="contractor-native-select"></select>
 
         <p id="contractorConflictStatus"
            data-state="unassigned"
@@ -1204,17 +1288,116 @@ function syncRecommendedContractorSelection(){
         const button = card.querySelector('.recommendation-select');
 
         if(button){
+            const eligible = card.dataset.eligible === 'true';
+            button.disabled = !eligible && !selected;
             button.textContent = selected
                 ? 'Remove Contractor'
                 : 'Select Contractor';
             button.setAttribute('aria-pressed', String(selected));
+            button.title = !eligible && !selected
+                ? 'Contractor is not eligible for review'
+                : '';
         }
     });
 }
 
+const contractorSearch =
+    document.getElementById('contractorSearch');
+const contractorCheckboxList =
+    document.getElementById('contractorCheckboxList');
+const selectedContractorChips =
+    document.getElementById('selectedContractorChips');
+const contractorSelectionCount =
+    document.getElementById('contractorSelectionCount');
+
+function renderContractorSelection() {
+    const query = contractorSearch.value.trim().toLowerCase();
+    const options = Array.from(contractorId.options);
+    const selected = options.filter(option => option.selected);
+
+    contractorSelectionCount.textContent =
+        selected.length + ' contractor(s) selected';
+
+    contractorCheckboxList.replaceChildren();
+    selectedContractorChips.replaceChildren();
+
+    let visible = 0;
+
+    for (const option of options) {
+        const name = option.textContent.trim();
+
+        if (!name.toLowerCase().includes(query)) continue;
+        visible++;
+
+        const row = document.createElement('label');
+        row.className = 'contractor-checkbox-row';
+        row.classList.toggle('is-selected', option.selected);
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = option.selected;
+        checkbox.value = option.value;
+
+        const label = document.createElement('span');
+        label.textContent = name;
+
+        checkbox.addEventListener('change', () => {
+            option.selected = checkbox.checked;
+            contractorId.dispatchEvent(
+                new Event('change', { bubbles: true })
+            );
+        });
+
+        row.append(checkbox, label);
+        contractorCheckboxList.appendChild(row);
+    }
+
+    if (!visible) {
+        const empty = document.createElement('p');
+        empty.className = 'contractor-empty-message';
+        empty.textContent = options.length
+            ? 'No contractors match your search.'
+            : 'No contractors are available in the selection list.';
+        contractorCheckboxList.appendChild(empty);
+    }
+
+    for (const option of selected) {
+        const chip = document.createElement('span');
+        chip.className = 'selected-contractor-chip';
+
+        const name = document.createElement('span');
+        name.textContent = option.textContent.trim();
+
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.textContent = 'Remove';
+        remove.setAttribute(
+            'aria-label',
+            'Remove ' + option.textContent.trim()
+        );
+
+        remove.addEventListener('click', () => {
+            option.selected = false;
+            contractorId.dispatchEvent(
+                new Event('change', { bubbles: true })
+            );
+        });
+
+        chip.append(name, remove);
+        selectedContractorChips.appendChild(chip);
+    }
+
+    syncRecommendedContractorSelection();
+}
+
+contractorSearch.addEventListener(
+    'input',
+    renderContractorSelection
+);
+
 contractorId.addEventListener(
     'change',
-    syncRecommendedContractorSelection
+    renderContractorSelection
 );
 
 function renderRecommendations(contractors){
@@ -1262,6 +1445,8 @@ function renderRecommendations(contractors){
         const card = document.createElement('article');
         card.className = 'recommendation-card';
         card.dataset.contractorId = id;
+        card.dataset.eligible =
+            String(Boolean(contractor.eligible_for_review));
 
         const header = document.createElement('div');
         header.className = 'recommendation-card-header';
@@ -1338,7 +1523,9 @@ function renderRecommendations(contractors){
         select.className = 'recommendation-select';
 
         const eligible = Boolean(contractor.eligible_for_review);
-        select.disabled = !eligible;
+        select.disabled = !eligible &&
+            !Array.from(contractorId.selectedOptions)
+                .some(option => option.value === id);
 
         if(!eligible){
             select.title = 'Contractor is not eligible for review';
@@ -1562,6 +1749,7 @@ async function loadLookups(){
         contractorsData.contractors.map(c =>
             `<option value="${c.id}">${esc(c.first_name)} ${esc(c.last_name)}</option>`
         ).join('');
+    renderContractorSelection();
 
     services=servicesData.services.filter(s=>Number(s.active));
 
@@ -1577,6 +1765,8 @@ function resetForm(){
 
 
     appointmentForm.reset();
+    contractorSearch.value = '';
+    renderContractorSelection();
     ++locationLoadSequence;
     clientLocationId.innerHTML =
         '<option value="">Manual / Other Location</option>';
@@ -1719,7 +1909,8 @@ async function editAppointment(event){
     Array.from(contractorId.options).forEach(option => {
         option.selected = assignedContractors.has(option.value);
     });
-    syncRecommendedContractorSelection();
+    contractorSearch.value = '';
+    renderContractorSelection();
 
     appointmentTitle.value=a.title || 'Appointment';
     startsAt.value=localDateTime(a.starts_at);
