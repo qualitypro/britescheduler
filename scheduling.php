@@ -11,7 +11,7 @@ require __DIR__.'/partials/app_header.php';
 <style>
 .scheduler-layout{
     display:grid;
-    grid-template-columns:320px minmax(0,1fr);
+    grid-template-columns:minmax(0,1fr);
     gap:18px;
 }
 .scheduler-form label{
@@ -81,34 +81,202 @@ require __DIR__.'/partials/app_header.php';
     font-size:12px;
     line-height:1.6;
 }
+.schedule-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.schedule-toolbar h1 {
+    margin: 0;
+}
+
+/* Appointment wizard modal foundation. */
+.appointment-dialog {
+    width: min(760px, calc(100vw - 32px));
+    max-height: calc(100vh - 48px);
+    box-sizing: border-box;
+    padding: 24px;
+    border: 0;
+    border-radius: 12px;
+    overflow-y: auto;
+    background: var(--card-bg, #fff);
+    color: inherit;
+    box-shadow: 0 20px 70px rgba(0,0,0,.25);
+}
+
+.appointment-dialog::backdrop {
+    background: rgba(15,23,42,.65);
+}
+
+.appointment-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.appointment-dialog-header h2 {
+    margin: 0;
+}
+
+.appointment-dialog-close {
+    flex-shrink: 0;
+}
+
 @media(max-width:900px){
     .scheduler-layout{
         grid-template-columns:1fr;
     }
 }
+
+/* Wizard navigation and visibility. */
+.wizard-step[hidden],
+.appointment-wizard-navigation [hidden],
+#saveButton[hidden],
+#newButton[hidden],
+#deleteButton[hidden],
+#invoiceButton[hidden] {
+    display: none !important;
+}
+
+.appointment-wizard-progress {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 12px 0 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #ddd;
+}
+
+.appointment-wizard-navigation {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+#wizardReviewSummary dl {
+    display: grid;
+    grid-template-columns: minmax(100px, 1fr) 2fr;
+    gap: 8px 16px;
+}
+
+#wizardReviewSummary dt {
+    font-weight: 600;
+}
+
+#wizardReviewSummary dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
 </style>
 
-<h1>Schedule</h1>
+<div class="schedule-toolbar">
+    <h1>Schedule</h1>
+    <button type="button" id="openAppointmentWizardButton">
+        + New Appointment
+    </button>
+</div>
 
-<div class="scheduler-layout">
+<!-- Modal foundation; existing appointment form remains unchanged. -->
+<dialog id="appointmentDialog"
+        class="appointment-dialog"
+        aria-labelledby="appointmentDialogTitle">
+    <div class="appointment-dialog-header">
+        <h2 id="appointmentDialogTitle">Appointment Wizard</h2>
+        <button type="button"
+                id="closeAppointmentDialog"
+                class="appointment-dialog-close"
+                aria-label="Close appointment wizard">
+            Close
+        </button>
+    </div>
+    <div id="appointmentWizardContent">
+        <h3 id="formTitle">New Appointment</h3>
 
-<div class="card">
-    <h2 id="formTitle">New Appointment</h2>
+        <nav class="appointment-wizard-progress"
+             aria-label="Appointment wizard progress">
+            <span id="wizardStepIndicator">Step 1 of 6</span>
+            <strong id="wizardStepTitle">Client</strong>
+        </nav>
 
-    <form id="appointmentForm" class="scheduler-form">
+        <form id="appointmentForm" class="scheduler-form">
 
         <input type="hidden" name="id" id="appointmentId">
 
+        <section class="wizard-step" data-wizard-step="1" aria-label="Client">
         <label>Client</label>
         <select name="client_id" id="clientId">
             <option value="">No client</option>
         </select>
 
+        </section>
+
+        <section class="wizard-step" data-wizard-step="2" aria-label="Location">
+        <label>Saved Client Location</label>
+        <select name="client_location_id" id="clientLocationId">
+            <option value="">Manual / Other Location</option>
+        </select>
+
+        <label>Location</label>
+        <input name="location"
+               id="appointmentLocation"
+               placeholder="Location">
+
+        </section>
+
+        <section class="wizard-step" data-wizard-step="3" aria-label="Service">
         <label>Service</label>
         <select name="service_id" id="serviceId">
             <option value="">No service</option>
         </select>
 
+        <label>Title</label>
+        <input name="title"
+               id="appointmentTitle"
+               required
+               placeholder="Appointment">
+
+        <label>Description</label>
+        <textarea name="description"
+                  id="appointmentDescription"
+                  placeholder="Notes"></textarea>
+
+        </section>
+
+        <section class="wizard-step" data-wizard-step="4" aria-label="Date & Time">
+        <label>Start</label>
+        <input name="starts_at"
+               id="startsAt"
+               type="datetime-local"
+               required>
+
+        <label>End</label>
+        <input name="ends_at"
+               id="endsAt"
+               type="datetime-local"
+               required>
+
+        <label>Status</label>
+        <select name="status" id="appointmentStatus">
+            <option value="tentative">Tentative</option>
+            <option value="scheduled" selected>Scheduled</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="no_show">No Show</option>
+        </select>
+
+        </section>
+
+        <section class="wizard-step" data-wizard-step="5" aria-label="Contractor">
         <label>Contractor</label>
         <select id="contractorId">
             <option value="">Unassigned</option>
@@ -151,49 +319,14 @@ require __DIR__.'/partials/app_header.php';
             </p>
         </section>
 
-        <label>Title</label>
-        <input name="title"
-               id="appointmentTitle"
-               required
-               placeholder="Appointment">
+        </section>
 
-        <label>Start</label>
-        <input name="starts_at"
-               id="startsAt"
-               type="datetime-local"
-               required>
-
-        <label>End</label>
-        <input name="ends_at"
-               id="endsAt"
-               type="datetime-local"
-               required>
-
-        <label>Status</label>
-        <select name="status" id="appointmentStatus">
-            <option value="tentative">Tentative</option>
-            <option value="scheduled" selected>Scheduled</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="no_show">No Show</option>
-        </select>
-
-        <label>Saved Client Location</label>
-        <select name="client_location_id" id="clientLocationId">
-            <option value="">Manual / Other Location</option>
-        </select>
-
-        <label>Location</label>
-        <input name="location"
-               id="appointmentLocation"
-               placeholder="Location">
-
-        <label>Description</label>
-        <textarea name="description"
-                  id="appointmentDescription"
-                  placeholder="Notes"></textarea>
+        <section class="wizard-step"
+                 data-wizard-step="6"
+                 aria-label="Review">
+            <div id="wizardReviewSummary"
+                 aria-live="polite"></div>
+        </section>
 
         <div style="margin-top:15px">
             <button type="submit" id="saveButton">Create Appointment</button>
@@ -208,18 +341,229 @@ require __DIR__.'/partials/app_header.php';
         </div>
 
         <p id="appointmentError" class="danger"></p>
+
+        <div class="appointment-wizard-navigation">
+            <button type="button"
+                    id="wizardBackButton"
+                    disabled>
+                Back
+            </button>
+            <button type="button"
+                    id="wizardNextButton">
+                Next
+            </button>
+        </div>
     </form>
-</div>
+    </div>
+</dialog>
 
-<div class="card">
-    <div id="calendar"></div>
-</div>
-
+<div class="scheduler-layout">
+    <div class="card">
+        <div id="calendar"></div>
+    </div>
 </div>
 
 <script>
 let calendar;
 let services=[];
+
+// Six-step appointment wizard navigation.
+const wizardStepNames = [
+    'Client',
+    'Location',
+    'Service',
+    'Date & Time',
+    'Contractor',
+    'Review'
+];
+
+let wizardCurrentStep = 1;
+
+function wizardFieldValue(id) {
+    const field = document.getElementById(id);
+    if (!field) return '';
+
+    if (field.tagName === 'SELECT') {
+        return field.selectedOptions[0]?.textContent?.trim() || '';
+    }
+
+    return field.value?.trim() || '';
+}
+
+function wizardReview() {
+    const summary = document.getElementById('wizardReviewSummary');
+    if (!summary) return;
+
+    const fields = [
+        ['Client', 'clientId'],
+        ['Saved Location', 'clientLocationId'],
+        ['Location', 'appointmentLocation'],
+        ['Service', 'serviceId'],
+        ['Title', 'appointmentTitle'],
+        ['Description', 'appointmentDescription'],
+        ['Start', 'startsAt'],
+        ['End', 'endsAt'],
+        ['Status', 'appointmentStatus'],
+        ['Contractor', 'contractorId']
+    ];
+
+    summary.replaceChildren();
+
+    const list = document.createElement('dl');
+
+    fields.forEach(([label, id]) => {
+        const term = document.createElement('dt');
+        term.textContent = label;
+
+        const value = document.createElement('dd');
+        value.textContent = wizardFieldValue(id) || 'Not specified';
+
+        list.append(term, value);
+    });
+
+    summary.appendChild(list);
+}
+
+function wizardValidateCurrentStep() {
+    const step = document.querySelector(
+        '.wizard-step[data-wizard-step="' +
+        wizardCurrentStep + '"]'
+    );
+
+    if (!step) return false;
+
+    if (wizardCurrentStep === 4) {
+        const start = document.getElementById('startsAt');
+        const end = document.getElementById('endsAt');
+
+        // Clear any error left by an earlier validation attempt.
+        end.setCustomValidity('');
+
+        if (start.value && end.value &&
+            new Date(end.value) <= new Date(start.value)) {
+            end.setCustomValidity(
+                'End time must be after start time.'
+            );
+        }
+    }
+
+    for (const field of step.querySelectorAll(
+        'input, select, textarea'
+    )) {
+        if (field.willValidate && !field.checkValidity()) {
+            field.reportValidity();
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function wizardShowStep(number) {
+    wizardCurrentStep = Math.max(
+        1,
+        Math.min(wizardStepNames.length, number)
+    );
+
+    document.querySelectorAll('.wizard-step').forEach(step => {
+        step.hidden = Number(step.dataset.wizardStep) !==
+            wizardCurrentStep;
+    });
+
+    document.getElementById('wizardStepIndicator').textContent =
+        'Step ' + wizardCurrentStep + ' of 6';
+
+    document.getElementById('wizardStepTitle').textContent =
+        wizardStepNames[wizardCurrentStep - 1];
+
+    document.getElementById('wizardBackButton').disabled =
+        wizardCurrentStep === 1;
+
+    document.getElementById('wizardNextButton').hidden =
+        wizardCurrentStep === 6;
+
+    const review = wizardCurrentStep === 6;
+
+    const save = document.getElementById('saveButton');
+    const clear = document.getElementById('newButton');
+    const remove = document.getElementById('deleteButton');
+    const invoice = document.getElementById('invoiceButton');
+
+    save.hidden = !review;
+    clear.hidden = !review;
+
+    const editing = Boolean(
+        document.getElementById('appointmentId').value
+    );
+
+    const completed =
+        document.getElementById('appointmentStatus').value ===
+        'completed';
+
+    // Remove legacy inline display rules before applying wizard visibility.
+    remove.style.removeProperty('display');
+    invoice.style.removeProperty('display');
+
+    remove.hidden = !review || !editing;
+    invoice.hidden = !review || !editing || !completed;
+
+    if (review) wizardReview();
+}
+
+document.getElementById('wizardBackButton')
+    .addEventListener('click', () => {
+        wizardShowStep(wizardCurrentStep - 1);
+    });
+
+document.getElementById('wizardNextButton')
+    .addEventListener('click', () => {
+        if (wizardValidateCurrentStep()) {
+            wizardShowStep(wizardCurrentStep + 1);
+        }
+    });
+
+document.getElementById('startsAt')
+    .addEventListener('input', () => {
+        document.getElementById('endsAt').setCustomValidity('');
+    });
+
+document.getElementById('endsAt')
+    .addEventListener('input', event => {
+        event.target.setCustomValidity('');
+    });
+
+// Appointment wizard modal foundation.
+const appointmentDialog =
+    document.getElementById('appointmentDialog');
+const closeAppointmentDialog =
+    document.getElementById('closeAppointmentDialog');
+const appointmentWizardContent =
+    document.getElementById('appointmentWizardContent');
+
+function openAppointmentWizard(){
+    if(!appointmentDialog || appointmentDialog.open) return;
+
+    wizardShowStep(1);
+    appointmentDialog.showModal();
+}
+
+function closeAppointmentWizard(){
+    if(appointmentDialog?.open){
+        appointmentDialog.close();
+    }
+}
+
+closeAppointmentDialog.addEventListener(
+    'click',
+    closeAppointmentWizard
+);
+
+document.getElementById('openAppointmentWizardButton')
+    .addEventListener('click', () => {
+        resetForm();
+        openAppointmentWizard();
+    });
+
 
 const appointmentForm = document.getElementById('appointmentForm');
 const appointmentId = document.getElementById('appointmentId');
@@ -573,7 +917,7 @@ async function loadLookups(){
 }
 
 function resetForm(){
-    invoiceButton.style.display = 'none';
+    invoiceButton.hidden = true;
 
 
     appointmentForm.reset();
@@ -586,7 +930,7 @@ function resetForm(){
 
     formTitle.textContent='New Appointment';
     saveButton.textContent='Create Appointment';
-    deleteButton.style.display='none';
+    deleteButton.hidden = true;
     appointmentError.textContent='';
     invalidateRecommendations();
 }
@@ -624,7 +968,7 @@ async function loadEvents(info,success,failure){
                 (a.client_first
                     ? `${a.client_first} ${a.client_last} — `
                     : '') +
-                (a.service_name || a.title),
+                (a.title || a.service_name || 'Appointment'),
 
             start:a.starts_at,
             end:a.ends_at,
@@ -725,21 +1069,36 @@ async function editAppointment(event){
 
     formTitle.textContent='Edit Appointment';
     saveButton.textContent='Save Changes';
-    deleteButton.style.display='inline-block';
-    invoiceButton.style.display =
-        a.status === 'completed'
-            ? 'inline-block'
-            : 'none';
+    // Action visibility is managed by wizardShowStep().
 
 
     invalidateRecommendations();
-    window.scrollTo({top:0,behavior:'smooth'});
+    openAppointmentWizard();
 }
 
 appointmentForm.onsubmit=async e=>{
 
     e.preventDefault();
     appointmentError.textContent='';
+
+    if (!appointmentDialog.open || wizardCurrentStep !== 6) {
+        appointmentError.textContent =
+            'Complete the appointment wizard before saving.';
+        return;
+    }
+
+    for (let step = 1; step <= 5; step++) {
+        wizardShowStep(step);
+
+        if (!wizardValidateCurrentStep()) {
+            appointmentError.textContent =
+                'Please correct the information in step ' +
+                step + '.';
+            return;
+        }
+    }
+
+    wizardShowStep(6);
 
     try {
 
@@ -775,6 +1134,7 @@ appointmentForm.onsubmit=async e=>{
         });
 
         resetForm();
+        closeAppointmentWizard();
         calendar.refetchEvents();
 
     } catch(e){
@@ -782,7 +1142,10 @@ appointmentForm.onsubmit=async e=>{
     }
 };
 
-newButton.onclick=resetForm;
+newButton.onclick=()=>{
+    resetForm();
+    wizardShowStep(1);
+};
 
 deleteButton.onclick=async ()=>{
 
@@ -801,6 +1164,7 @@ deleteButton.onclick=async ()=>{
         });
 
         resetForm();
+        closeAppointmentWizard();
         calendar.refetchEvents();
 
     } catch(e){
@@ -901,6 +1265,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
 
                     endsAt.value=localDateTime(end);
                     invalidateRecommendations();
+                    openAppointmentWizard();
                 },
 
                 eventClick:async info=>{
