@@ -145,12 +145,84 @@ require __DIR__.'/partials/app_header.php';
 }
 
 .appointment-wizard-progress {
+    margin: 12px 0 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #ddd;
+}
+
+.appointment-wizard-progress-heading {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     gap: 12px;
-    margin: 12px 0 20px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #ddd;
+    margin-bottom: 16px;
+}
+
+.appointment-wizard-steps {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.appointment-wizard-steps li {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+    min-width: 0;
+    color: #64748b;
+}
+
+.wizard-progress-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: #334155;
+    font-weight: 700;
+}
+
+.appointment-wizard-steps li.is-current .wizard-progress-number {
+    background: #2563eb;
+    color: #fff;
+}
+
+.appointment-wizard-steps li.is-complete .wizard-progress-number {
+    background: #167347;
+    color: #fff;
+}
+
+.appointment-wizard-steps li.is-current {
+    color: #2563eb;
+    font-weight: 700;
+}
+
+.wizard-progress-label {
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+    .appointment-wizard-steps {
+        gap: 3px;
+    }
+
+    .wizard-progress-number {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+
+    .wizard-progress-label {
+        font-size: 10px;
+    }
 }
 
 .appointment-wizard-navigation {
@@ -202,8 +274,37 @@ require __DIR__.'/partials/app_header.php';
 
         <nav class="appointment-wizard-progress"
              aria-label="Appointment wizard progress">
-            <span id="wizardStepIndicator">Step 1 of 6</span>
-            <strong id="wizardStepTitle">Client</strong>
+            <div class="appointment-wizard-progress-heading">
+                <span id="wizardStepIndicator">Step 1 of 6</span>
+                <strong id="wizardStepTitle">Client</strong>
+            </div>
+            <ol class="appointment-wizard-steps"
+                id="wizardProgressSteps">
+                <li class="is-current" aria-current="step">
+                    <span class="wizard-progress-number">1</span>
+                    <span class="wizard-progress-label">Client</span>
+                </li>
+                <li>
+                    <span class="wizard-progress-number">2</span>
+                    <span class="wizard-progress-label">Location</span>
+                </li>
+                <li>
+                    <span class="wizard-progress-number">3</span>
+                    <span class="wizard-progress-label">Service</span>
+                </li>
+                <li>
+                    <span class="wizard-progress-number">4</span>
+                    <span class="wizard-progress-label">Date &amp; Time</span>
+                </li>
+                <li>
+                    <span class="wizard-progress-number">5</span>
+                    <span class="wizard-progress-label">Contractor</span>
+                </li>
+                <li>
+                    <span class="wizard-progress-number">6</span>
+                    <span class="wizard-progress-label">Review</span>
+                </li>
+            </ol>
         </nav>
 
         <form id="appointmentForm" class="scheduler-form">
@@ -475,6 +576,25 @@ function wizardShowStep(number) {
 
     document.getElementById('wizardStepTitle').textContent =
         wizardStepNames[wizardCurrentStep - 1];
+
+    document.querySelectorAll('#wizardProgressSteps li')
+        .forEach((item, index) => {
+            const stepNumber = index + 1;
+            const current = stepNumber === wizardCurrentStep;
+            const complete = stepNumber < wizardCurrentStep;
+
+            item.classList.toggle('is-current', current);
+            item.classList.toggle('is-complete', complete);
+
+            if (current) {
+                item.setAttribute('aria-current', 'step');
+            } else {
+                item.removeAttribute('aria-current');
+            }
+
+            item.querySelector('.wizard-progress-number')
+                .textContent = complete ? '✓' : stepNumber;
+        });
 
     document.getElementById('wizardBackButton').disabled =
         wizardCurrentStep === 1;
