@@ -116,6 +116,105 @@ require __DIR__.'/partials/app_header.php';
     font-size:12px;
     line-height:1.6;
 }
+
+/* Contractor recommendation card UX. */
+.recommendation-card {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.recommendation-card.is-selected {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37,99,235,.15);
+}
+
+.recommendation-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.recommendation-card-name {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.recommendation-card .recommendation-score {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1d4ed8;
+}
+
+.recommendation-card-details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.recommendation-detail {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.recommendation-detail-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.recommendation-detail-value {
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+.recommendation-status {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.recommendation-status[data-state="positive"] {
+    background: #f0fdf4;
+    color: #166534;
+}
+
+.recommendation-status[data-state="negative"] {
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.recommendation-status[data-state="neutral"] {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.recommendation-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.recommendation-card.is-selected .recommendation-select {
+    background: #167347;
+    color: #fff;
+}
+
+@media (max-width: 600px) {
+    .recommendation-card-details {
+        grid-template-columns: 1fr;
+    }
+}
 .schedule-toolbar {
     display: flex;
     align-items: center;
@@ -934,6 +1033,31 @@ function recommendationText(parent, className, content){
     return element;
 }
 
+function syncRecommendedContractorSelection(){
+    recommendationsResults.querySelectorAll(
+        '.recommendation-card'
+    ).forEach(card => {
+        const selected =
+            card.dataset.contractorId === contractorId.value;
+
+        card.classList.toggle('is-selected', selected);
+
+        const button = card.querySelector('.recommendation-select');
+
+        if(button){
+            button.textContent = selected
+                ? 'Selected Contractor'
+                : 'Select Contractor';
+            button.setAttribute('aria-pressed', String(selected));
+        }
+    });
+}
+
+contractorId.addEventListener(
+    'change',
+    syncRecommendedContractorSelection
+);
+
 function renderRecommendations(contractors){
     recommendationsResults.replaceChildren();
 
@@ -947,45 +1071,97 @@ function renderRecommendations(contractors){
     recommendationsStatus.textContent =
         contractors.length + ' contractor recommendation(s) found.';
 
+    function addDetail(parent, label, value, state = ''){
+        const detail = document.createElement('div');
+        detail.className = 'recommendation-detail';
+
+        recommendationText(
+            detail,
+            'recommendation-detail-label',
+            label
+        );
+
+        const valueElement = recommendationText(
+            detail,
+            'recommendation-detail-value',
+            value
+        );
+
+        if(state){
+            valueElement.classList.add('recommendation-status');
+            valueElement.dataset.state = state;
+        }
+
+        parent.appendChild(detail);
+    }
+
     for(const contractor of contractors){
         const ranking = contractor.ranking || {};
         const workload = ranking.workload || {};
+        const id = String(contractor.contractor_id);
+
         const card = document.createElement('article');
         card.className = 'recommendation-card';
+        card.dataset.contractorId = id;
+
+        const header = document.createElement('div');
+        header.className = 'recommendation-card-header';
 
         recommendationText(
-            card,
-            '',
+            header,
+            'recommendation-card-name',
             [
                 contractor.first_name,
                 contractor.last_name
-            ].filter(Boolean).join(' ')
+            ].filter(Boolean).join(' ') || 'Unnamed Contractor'
         );
 
         recommendationText(
-            card,
+            header,
             'recommendation-score',
             Number(ranking.score || 0).toFixed(2) + ' / 100'
         );
 
-        const details = [
-            'Qualification: ' +
-                (contractor.qualification_status || 'unverified'),
-            'Availability: ' +
-                (contractor.availability_ok && contractor.conflict_free
-                    ? 'Available'
-                    : 'Restricted'),
-            'Geographic coverage: ' +
-                (contractor.geographic_match ? 'Matched' : 'Not matched'),
-            'Workload: ' + Number(workload.hours || 0) +
-                ' hours / ' + Number(workload.jobs || 0) + ' jobs'
-        ];
+        card.appendChild(header);
 
-        recommendationText(
-            card,
-            'recommendation-details',
-            details.join(' | ')
+        const details = document.createElement('div');
+        details.className = 'recommendation-card-details';
+
+        addDetail(
+            details,
+            'Qualifications',
+            contractor.qualification_status || 'Unverified',
+            'neutral'
         );
+
+        const available = Boolean(
+            contractor.availability_ok && contractor.conflict_free
+        );
+
+        addDetail(
+            details,
+            'Availability',
+            available ? 'Available' : 'Restricted',
+            available ? 'positive' : 'negative'
+        );
+
+        const geographicMatch = Boolean(contractor.geographic_match);
+
+        addDetail(
+            details,
+            'Geographic coverage',
+            geographicMatch ? 'Matched' : 'Not matched',
+            geographicMatch ? 'positive' : 'negative'
+        );
+
+        addDetail(
+            details,
+            'Workload',
+            Number(workload.hours || 0) + ' hours / ' +
+            Number(workload.jobs || 0) + ' jobs'
+        );
+
+        card.appendChild(details);
 
         for(const explanation of ranking.explanations || []){
             recommendationText(
@@ -995,9 +1171,12 @@ function renderRecommendations(contractors){
             );
         }
 
+        const actions = document.createElement('div');
+        actions.className = 'recommendation-card-actions';
+
         const select = document.createElement('button');
         select.type = 'button';
-        select.textContent = 'Select Contractor';
+        select.className = 'recommendation-select';
 
         const eligible = Boolean(contractor.eligible_for_review);
         select.disabled = !eligible;
@@ -1015,8 +1194,6 @@ function renderRecommendations(contractors){
                 return;
             }
 
-            const id = String(contractor.contractor_id);
-
             if(!Array.from(contractorId.options)
                 .some(option => option.value === id)){
                 recommendationsStatus.textContent =
@@ -1029,14 +1206,19 @@ function renderRecommendations(contractors){
                 new Event('change', { bubbles: true })
             );
 
+            syncRecommendedContractorSelection();
+
             recommendationsStatus.textContent =
                 'Contractor selected. Save the appointment ' +
                 'to submit the assignment.';
         });
 
-        card.appendChild(select);
+        actions.appendChild(select);
+        card.appendChild(actions);
         recommendationsResults.appendChild(card);
     }
+
+    syncRecommendedContractorSelection();
 }
 
 recommendationsButton.addEventListener('click', async () => {
