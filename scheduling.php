@@ -117,6 +117,39 @@ require __DIR__.'/partials/app_header.php';
     line-height:1.6;
 }
 
+/* Appointment wizard field-level validation. */
+.wizard-step .wizard-field-invalid {
+    border-color: #b91c1c;
+    outline-color: #b91c1c;
+}
+
+.wizard-step .wizard-field-invalid:focus {
+    outline: 2px solid #b91c1c;
+    outline-offset: 1px;
+}
+
+.wizard-field-error {
+    margin: 4px 0 12px;
+    color: #b91c1c;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.wizard-field-error[hidden] {
+    display: none;
+}
+
+.wizard-validation-summary {
+    margin: 10px 0;
+    color: #991b1b;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.wizard-validation-summary[hidden] {
+    display: none;
+}
+
 /* Contractor recommendation card UX. */
 .recommendation-card {
     display: grid;
@@ -447,7 +480,7 @@ require __DIR__.'/partials/app_header.php';
 
         <section class="wizard-step" data-wizard-step="1" aria-label="Client">
         <label>Client</label>
-        <select name="client_id" id="clientId">
+        <select name="client_id" id="clientId" required>
             <option value="">No client</option>
         </select>
 
@@ -468,7 +501,7 @@ require __DIR__.'/partials/app_header.php';
 
         <section class="wizard-step" data-wizard-step="3" aria-label="Service">
         <label>Service</label>
-        <select name="service_id" id="serviceId">
+        <select name="service_id" id="serviceId" required>
             <option value="">No service</option>
         </select>
 
@@ -666,6 +699,47 @@ function wizardReview() {
     summary.appendChild(list);
 }
 
+function wizardClearFieldError(field) {
+    field.classList.remove('wizard-field-invalid');
+    field.removeAttribute('aria-invalid');
+
+    const errorId = field.id + '-wizard-error';
+    const error = document.getElementById(errorId);
+
+    if (error) error.remove();
+
+    const describedBy = (field.getAttribute('aria-describedby') || '')
+        .split(/\\s+/)
+        .filter(value => value && value !== errorId);
+
+    if (describedBy.length) {
+        field.setAttribute('aria-describedby', describedBy.join(' '));
+    } else {
+        field.removeAttribute('aria-describedby');
+    }
+}
+
+function wizardShowFieldError(field) {
+    wizardClearFieldError(field);
+
+    const error = document.createElement('p');
+    error.id = field.id + '-wizard-error';
+    error.className = 'wizard-field-error';
+    error.textContent = field.validationMessage ||
+        'Please check this field.';
+
+    field.insertAdjacentElement('afterend', error);
+    field.classList.add('wizard-field-invalid');
+    field.setAttribute('aria-invalid', 'true');
+
+    const describedBy = (field.getAttribute('aria-describedby') || '')
+        .split(/\\s+/)
+        .filter(Boolean);
+
+    describedBy.push(error.id);
+    field.setAttribute('aria-describedby', describedBy.join(' '));
+}
+
 function wizardValidateCurrentStep() {
     const step = document.querySelector(
         '.wizard-step[data-wizard-step="' +
@@ -678,7 +752,6 @@ function wizardValidateCurrentStep() {
         const start = document.getElementById('startsAt');
         const end = document.getElementById('endsAt');
 
-        // Clear any error left by an earlier validation attempt.
         end.setCustomValidity('');
 
         if (start.value && end.value &&
@@ -689,17 +762,54 @@ function wizardValidateCurrentStep() {
         }
     }
 
+    let firstInvalid = null;
+
     for (const field of step.querySelectorAll(
         'input, select, textarea'
     )) {
-        if (field.willValidate && !field.checkValidity()) {
-            field.reportValidity();
-            return false;
+        if (!field.willValidate) continue;
+
+        if (!field.checkValidity()) {
+            wizardShowFieldError(field);
+            if (!firstInvalid) firstInvalid = field;
+        } else {
+            wizardClearFieldError(field);
         }
+    }
+
+    if (firstInvalid) {
+        firstInvalid.focus();
+        return false;
     }
 
     return true;
 }
+
+document.getElementById('appointmentForm')
+    .addEventListener('input', event => {
+        const field = event.target;
+
+        if (!field.matches('input, select, textarea')) return;
+
+        if (field.id === 'startsAt' || field.id === 'endsAt') {
+            document.getElementById('endsAt').setCustomValidity('');
+        }
+
+        if (field.checkValidity()) {
+            wizardClearFieldError(field);
+        }
+    });
+
+document.getElementById('appointmentForm')
+    .addEventListener('change', event => {
+        const field = event.target;
+
+        if (!field.matches('input, select, textarea')) return;
+
+        if (field.checkValidity()) {
+            wizardClearFieldError(field);
+        }
+    });
 
 function wizardShowStep(number) {
     wizardCurrentStep = Math.max(
