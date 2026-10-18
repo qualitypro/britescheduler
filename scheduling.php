@@ -436,6 +436,155 @@ require __DIR__.'/partials/app_header.php';
     }
 }
 
+/* Fixed-height appointment wizard with a persistent action footer. */
+#appointmentDialog {
+    height: min(760px, calc(100dvh - 32px));
+    max-height: calc(100dvh - 32px);
+    overflow: hidden;
+    flex-direction: column;
+}
+
+#appointmentDialog[open] {
+    display: flex;
+}
+
+#appointmentDialog > .appointment-dialog-header {
+    flex: 0 0 auto;
+}
+
+#appointmentWizardContent {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+#appointmentWizardContent > #formTitle,
+#appointmentWizardContent > .appointment-wizard-progress {
+    flex: 0 0 auto;
+}
+
+#appointmentForm {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+#appointmentForm > .wizard-step:not([hidden]) {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 2px 6px 12px 2px;
+}
+
+#appointmentForm > .appointment-wizard-footer {
+    flex: 0 0 auto;
+    border-top: 1px solid #dbe2ea;
+    padding-top: 12px;
+    background: var(--card-bg, #fff);
+}
+
+#appointmentForm .appointment-wizard-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+    overflow-x: auto;
+}
+
+#appointmentForm .appointment-wizard-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin: 0;
+}
+
+#appointmentForm .appointment-wizard-navigation {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 0 auto;
+}
+
+#appointmentForm .appointment-wizard-footer button {
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: max-content;
+}
+
+#appointmentForm .appointment-wizard-navigation {
+    min-width: max-content;
+}
+
+#appointmentForm .appointment-wizard-footer {
+    scrollbar-width: thin;
+    scroll-padding-inline: 16px;
+    padding-left: 2px;
+    padding-right: 8px;
+}
+
+#appointmentForm .appointment-wizard-footer
+.appointment-wizard-navigation {
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+@media (max-width: 650px) {
+    #appointmentForm .appointment-wizard-footer {
+        gap: 6px;
+    }
+
+    #appointmentForm .appointment-wizard-actions,
+    #appointmentForm .appointment-wizard-navigation {
+        gap: 4px;
+    }
+
+    #appointmentForm .appointment-wizard-footer button {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+}
+
+#appointmentForm .appointment-wizard-footer
+.appointment-wizard-actions,
+#appointmentForm .appointment-wizard-footer
+.appointment-wizard-navigation {
+    align-self: center;
+}
+
+
+
+
+
+#appointmentForm #appointmentError {
+    margin: 4px 0 8px;
+    max-height: 64px;
+    overflow-y: auto;
+}
+
+@media (max-height: 650px) {
+    #appointmentDialog {
+        padding: 12px;
+    }
+
+    #appointmentDialog .appointment-dialog-header {
+        margin-bottom: 8px;
+    }
+
+    #appointmentDialog .appointment-wizard-progress {
+        margin: 6px 0 10px;
+        padding-bottom: 8px;
+    }
+}
+
 /* Wizard navigation and visibility. */
 .wizard-step[hidden],
 .appointment-wizard-navigation [hidden],
@@ -805,7 +954,8 @@ require __DIR__.'/partials/app_header.php';
                  aria-live="polite"></div>
         </section>
 
-        <div style="margin-top:15px">
+        <div class="appointment-wizard-footer">
+        <div class="appointment-wizard-actions">
             <button type="submit" id="saveButton">Create Appointment</button>
             <button type="button" id="newButton">Clear</button>
             <button type="button" id="deleteButton"
@@ -829,6 +979,7 @@ require __DIR__.'/partials/app_header.php';
                     id="wizardNextButton">
                 Next
             </button>
+        </div>
         </div>
     </form>
     </div>
