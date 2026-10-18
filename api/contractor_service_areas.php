@@ -205,7 +205,7 @@ if (!in_array($method, ['POST', 'PUT', 'DELETE'], true)) {
 
 verify_csrf();
 
-if (!$isManager) {
+if (!$isManager && $role !== 'contractor') {
     json_response(['error' => 'Forbidden'], 403);
 }
 
@@ -262,12 +262,19 @@ try {
         throw new InvalidArgumentException('Valid service-area ID required');
     }
 
+    $contractorId = csa_contractor(
+        $pdo, $tid, $user, $role, $isManager,
+        (int)($d['contractor_id'] ?? 0)
+    );
+
     $q = $pdo->prepare("
         SELECT id
         FROM contractor_service_areas
-        WHERE id = ? AND tenant_id = ?
+        WHERE id = ?
+          AND tenant_id = ?
+          AND contractor_id = ?
     ");
-    $q->execute([$id, $tid]);
+    $q->execute([$id, $tid, $contractorId]);
 
     if (!$q->fetchColumn()) {
         json_response(['error' => 'Service area not found'], 404);
@@ -276,9 +283,11 @@ try {
     if ($method === 'DELETE') {
         $q = $pdo->prepare("
             DELETE FROM contractor_service_areas
-            WHERE id = ? AND tenant_id = ?
+            WHERE id = ?
+              AND tenant_id = ?
+              AND contractor_id = ?
         ");
-        $q->execute([$id, $tid]);
+        $q->execute([$id, $tid, $contractorId]);
 
         json_response(['ok' => true]);
     }
@@ -296,7 +305,9 @@ try {
             center_longitude = ?,
             radius_miles = ?,
             active = ?
-        WHERE id = ? AND tenant_id = ?
+        WHERE id = ?
+          AND tenant_id = ?
+          AND contractor_id = ?
     ");
 
     $q->execute([
@@ -304,7 +315,7 @@ try {
         $p['state_code'], $p['postal_code'],
         $p['center_latitude'], $p['center_longitude'],
         $p['radius_miles'], $p['active'],
-        $id, $tid
+        $id, $tid, $contractorId
     ]);
 
     json_response(['ok' => true]);

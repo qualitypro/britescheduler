@@ -3,9 +3,16 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/app/bootstrap.php';
 
-Auth::requireRole('owner', 'admin', 'scheduler');
+Auth::requireRole('owner', 'admin', 'scheduler', 'contractor');
 
-$pageTitle = 'Contractor Service Areas';
+$serviceAreaTenant = Auth::tenant();
+$isContractorSelfService = (
+    ($serviceAreaTenant['role'] ?? '') === 'contractor'
+);
+
+$pageTitle = $isContractorSelfService
+    ? 'My Service Areas'
+    : 'Contractor Service Areas';
 
 require __DIR__ . '/partials/app_header.php';
 ?>
@@ -13,6 +20,10 @@ require __DIR__ . '/partials/app_header.php';
 <link rel="stylesheet" href="/dashboard/assets/vendor/leaflet/leaflet.css">
 
 <style>
+[hidden] {
+    display: none !important;
+}
+
 #sa-radius-map {
     width: 100%;
     height: 340px;
@@ -92,15 +103,20 @@ require __DIR__ . '/partials/app_header.php';
 }
 </style>
 
-<h1>Contractor Service Areas</h1>
+<h1><?= htmlspecialchars($pageTitle) ?></h1>
 
 <p class="muted">
+<?php if ($isContractorSelfService): ?>
+    Manage the ZIP codes and geographic radius where you provide services.
+    Your coverage areas are associated with your contractor profile.
+<?php else: ?>
     Manage geographic coverage for contractors in your organization.
     ZIP-code coverage and radius-based coverage are supported.
+<?php endif; ?>
 </p>
 
 <div class="card">
-    <label class="sa-field" for="sa-contractor">
+    <label class="sa-field" for="sa-contractor"<?= $isContractorSelfService ? ' hidden' : '' ?>>
         <strong>Select contractor</strong>
         <select id="sa-contractor">
             <option value="">Loading contractors...</option>
@@ -169,7 +185,9 @@ require __DIR__ . '/partials/app_header.php';
         <h2>Configured Coverage Areas</h2>
 
         <div id="sa-status" class="sa-status muted" role="status" aria-live="polite">
-            Select a contractor to view coverage.
+            <?= $isContractorSelfService
+                ? 'Loading your coverage areas...'
+                : 'Select a contractor to view coverage.' ?>
         </div>
 
         <div class="sa-table-wrap">
@@ -285,6 +303,7 @@ require __DIR__ . '/partials/app_header.php';
 </section>
 
 
+<?php if (!$isContractorSelfService): ?>
 <section class="card" style="margin-top:18px">
     <h2>Find Matching Contractors</h2>
     <p class="muted">
@@ -345,6 +364,7 @@ require __DIR__ . '/partials/app_header.php';
         </table>
     </div>
 </section>
+<?php endif; ?>
 
 <script src="/dashboard/assets/vendor/leaflet/leaflet.js"></script>
 <script>
@@ -778,6 +798,7 @@ require __DIR__ . '/partials/app_header.php';
 
                 const payload = {
                     id: Number(area.id),
+                    contractor_id: contractorId(),
                     area_type: area.area_type,
                     label: area.label,
                     active: active ? 0 : 1
@@ -960,6 +981,7 @@ require __DIR__ . '/partials/app_header.php';
 
     loadContractors();
 
+    <?php if (!$isContractorSelfService): ?>
     // Contractor matching is read-only and tenant-scoped by the APIs.
     const matchClient = document.getElementById('sa-match-client');
     const matchLocation = document.getElementById('sa-match-location');
@@ -1253,6 +1275,7 @@ require __DIR__ . '/partials/app_header.php';
     });
 
     loadMatchClients();
+    <?php endif; ?>
 
 })();
 </script>

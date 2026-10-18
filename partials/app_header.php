@@ -114,6 +114,10 @@ Settings
 My Dashboard
 </a>
 
+<a href="<?=htmlspecialchars(app_url('/contractor-service-areas.php'))?>">
+My Service Areas
+</a>
+
 <a href="<?=htmlspecialchars(app_url('/my-availability.php'))?>">
 My Availability
 </a>
