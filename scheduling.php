@@ -52,6 +52,41 @@ require __DIR__.'/partials/app_header.php';
     opacity:.8;
 }
 
+/* Contractor availability feedback in wizard step 5. */
+#contractorConflictStatus {
+    margin: 12px 0;
+    padding: 11px 13px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+#contractorConflictStatus[data-state="available"] {
+    border-color: #86efac;
+    background: #f0fdf4;
+    color: #166534;
+}
+
+#contractorConflictStatus[data-state="conflict"] {
+    border-color: #fca5a5;
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+#contractorConflictStatus[data-state="checking"] {
+    border-color: #93c5fd;
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+#contractorConflictStatus[data-state="unassigned"] {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    color: #475569;
+}
+
 #loadRecommendations{
     margin-top:10px;
 }
@@ -384,6 +419,7 @@ require __DIR__.'/partials/app_header.php';
         </select>
 
         <p id="contractorConflictStatus"
+           data-state="unassigned"
            role="status"
            aria-live="polite">
             Leave unassigned or select a contractor to check availability.
@@ -732,9 +768,11 @@ function invalidateContractorConflict() {
     ++contractorConflictSequence;
 
     if (!contractorId.value) {
+        contractorConflictStatus.dataset.state = 'unassigned';
         contractorConflictStatus.textContent =
             'No contractor assigned. You may continue.';
     } else {
+        contractorConflictStatus.dataset.state = 'checking';
         contractorConflictStatus.textContent =
             'Checking contractor availability...';
     }
@@ -745,12 +783,14 @@ async function checkContractorConflict() {
     const inputs = contractorConflictInputs();
 
     if (inputs === null) {
+        contractorConflictStatus.dataset.state = 'unassigned';
         contractorConflictStatus.textContent =
             'No contractor assigned. You may continue.';
         return true;
     }
 
     if (inputs === false) {
+        contractorConflictStatus.dataset.state = 'conflict';
         contractorConflictStatus.textContent =
             'Enter a valid appointment start and end time.';
         return false;
@@ -758,6 +798,7 @@ async function checkContractorConflict() {
 
     const signature = JSON.stringify(inputs);
 
+    contractorConflictStatus.dataset.state = 'checking';
     contractorConflictStatus.textContent =
         'Checking contractor availability...';
 
@@ -783,18 +824,21 @@ async function checkContractorConflict() {
         }
 
         if (!data.available) {
+            contractorConflictStatus.dataset.state = 'conflict';
             contractorConflictStatus.textContent =
                 'Scheduling conflict: ' +
                 (data.reason || 'Contractor is unavailable.');
             return false;
         }
 
+        contractorConflictStatus.dataset.state = 'available';
         contractorConflictStatus.textContent =
             'Contractor is available for the selected time.';
         return true;
 
     } catch (error) {
         if (sequence === contractorConflictSequence) {
+            contractorConflictStatus.dataset.state = 'conflict';
             contractorConflictStatus.textContent =
                 'Unable to verify contractor availability: ' +
                 error.message;
