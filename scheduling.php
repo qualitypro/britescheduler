@@ -383,6 +383,12 @@ require __DIR__.'/partials/app_header.php';
             <option value="">Unassigned</option>
         </select>
 
+        <p id="contractorConflictStatus"
+           role="status"
+           aria-live="polite">
+            Leave unassigned or select a contractor to check availability.
+        </p>
+
         <!-- Advisory contractor recommendations; no automatic assignment. -->
         <section id="contractorRecommendations"
                  class="contractor-recommendations"
@@ -628,6 +634,10 @@ function wizardShowStep(number) {
     invoice.hidden = !review || !editing || !completed;
 
     if (review) wizardReview();
+
+    if (wizardCurrentStep === 5) {
+        void checkContractorConflict();
+    }
 }
 
 document.getElementById('wizardBackButton')
@@ -636,10 +646,16 @@ document.getElementById('wizardBackButton')
     });
 
 document.getElementById('wizardNextButton')
-    .addEventListener('click', () => {
-        if (wizardValidateCurrentStep()) {
-            wizardShowStep(wizardCurrentStep + 1);
+    .addEventListener('click', async () => {
+        if (!wizardValidateCurrentStep()) return;
+
+        if (wizardCurrentStep === 5) {
+            const allowed = await checkContractorConflict();
+
+            if (!allowed || wizardCurrentStep !== 5) return;
         }
+
+        wizardShowStep(wizardCurrentStep + 1);
     });
 
 document.getElementById('startsAt')
@@ -691,12 +707,133 @@ const invoiceButton = document.getElementById('invoiceButton');
 const clientId = document.getElementById('clientId');
 const serviceId = document.getElementById('serviceId');
 const contractorId = document.getElementById('contractorId');
+const contractorConflictStatus =
+    document.getElementById('contractorConflictStatus');
+
+let contractorConflictSequence = 0;
+
+function contractorConflictInputs() {
+    if (!contractorId.value) return null;
+
+    const start = sqlDateTime(startsAt.value);
+    const end = sqlDateTime(endsAt.value);
+
+    if (!start || !end || end <= start) return false;
+
+    return {
+        contractor_id: contractorId.value,
+        starts_at: start,
+        ends_at: end,
+        exclude_appointment_id: appointmentId.value
+    };
+}
+
+function invalidateContractorConflict() {
+    ++contractorConflictSequence;
+
+    if (!contractorId.value) {
+        contractorConflictStatus.textContent =
+            'No contractor assigned. You may continue.';
+    } else {
+        contractorConflictStatus.textContent =
+            'Checking contractor availability...';
+    }
+}
+
+async function checkContractorConflict() {
+    const sequence = ++contractorConflictSequence;
+    const inputs = contractorConflictInputs();
+
+    if (inputs === null) {
+        contractorConflictStatus.textContent =
+            'No contractor assigned. You may continue.';
+        return true;
+    }
+
+    if (inputs === false) {
+        contractorConflictStatus.textContent =
+            'Enter a valid appointment start and end time.';
+        return false;
+    }
+
+    const signature = JSON.stringify(inputs);
+
+    contractorConflictStatus.textContent =
+        'Checking contractor availability...';
+
+    const params = new URLSearchParams(inputs);
+
+    if (!inputs.exclude_appointment_id) {
+        params.delete('exclude_appointment_id');
+    }
+
+    try {
+        const data = await api(
+            '/api/contractor_conflict_check.php?' + params.toString()
+        );
+
+        if (sequence !== contractorConflictSequence ||
+            JSON.stringify(contractorConflictInputs()) !== signature) {
+            return false;
+        }
+
+        if (data.ok !== true ||
+            typeof data.available !== 'boolean') {
+            throw new Error('Unexpected availability response');
+        }
+
+        if (!data.available) {
+            contractorConflictStatus.textContent =
+                'Scheduling conflict: ' +
+                (data.reason || 'Contractor is unavailable.');
+            return false;
+        }
+
+        contractorConflictStatus.textContent =
+            'Contractor is available for the selected time.';
+        return true;
+
+    } catch (error) {
+        if (sequence === contractorConflictSequence) {
+            contractorConflictStatus.textContent =
+                'Unable to verify contractor availability: ' +
+                error.message;
+        }
+
+        return false;
+    }
+}
+
 const appointmentTitle = document.getElementById('appointmentTitle');
 const startsAt = document.getElementById('startsAt');
 const endsAt = document.getElementById('endsAt');
 const appointmentStatus = document.getElementById('appointmentStatus');
 const appointmentLocation = document.getElementById('appointmentLocation');
 const clientLocationId = document.getElementById('clientLocationId');
+
+for (const element of [
+    contractorId,
+    startsAt,
+    endsAt,
+    appointmentId
+]) {
+    element.addEventListener('change', () => {
+        invalidateContractorConflict();
+
+        if (wizardCurrentStep === 5) {
+            void checkContractorConflict();
+        }
+    });
+
+    element.addEventListener('input', () => {
+        invalidateContractorConflict();
+
+        if (wizardCurrentStep === 5) {
+            void checkContractorConflict();
+        }
+    });
+}
+
 let locationLoadSequence = 0;
 
 // Advisory recommendations never save or assign contractors.
@@ -844,6 +981,9 @@ function renderRecommendations(contractors){
             }
 
             contractorId.value = id;
+            contractorId.dispatchEvent(
+                new Event('change', { bubbles: true })
+            );
 
             recommendationsStatus.textContent =
                 'Contractor selected. Save the appointment ' +
@@ -1053,6 +1193,7 @@ function resetForm(){
     deleteButton.hidden = true;
     appointmentError.textContent='';
     invalidateRecommendations();
+    invalidateContractorConflict();
 }
 
 serviceId.onchange=()=>{
@@ -1193,12 +1334,31 @@ async function editAppointment(event){
 
 
     invalidateRecommendations();
+    invalidateContractorConflict();
     openAppointmentWizard();
 }
+
+let appointmentSavePending = false;
 
 appointmentForm.onsubmit=async e=>{
 
     e.preventDefault();
+
+    if (appointmentSavePending) return;
+
+    appointmentSavePending = true;
+    const saveButton = document.getElementById('saveButton');
+    saveButton.disabled = true;
+
+    try {
+        await saveAppointmentFromWizard();
+    } finally {
+        appointmentSavePending = false;
+        saveButton.disabled = false;
+    }
+};
+
+async function saveAppointmentFromWizard() {
     appointmentError.textContent='';
 
     if (!appointmentDialog.open || wizardCurrentStep !== 6) {
@@ -1216,6 +1376,14 @@ appointmentForm.onsubmit=async e=>{
                 step + '.';
             return;
         }
+    }
+
+    wizardShowStep(5);
+
+    if (!(await checkContractorConflict())) {
+        appointmentError.textContent =
+            'Resolve the contractor scheduling conflict before saving.';
+        return;
     }
 
     wizardShowStep(6);
@@ -1260,7 +1428,7 @@ appointmentForm.onsubmit=async e=>{
     } catch(e){
         appointmentError.textContent=e.message;
     }
-};
+}
 
 newButton.onclick=()=>{
     resetForm();
