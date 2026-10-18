@@ -27,6 +27,7 @@ require __DIR__.'/partials/app_header.php';
 </select>
 <p id="message" role="status"></p>
 <div id="locations"></div>
+<div id="locationPagination"></div>
 <div style="margin-top:20px">
 <h2>Service Location Map</h2>
 <div id="clientLocationMap"
@@ -50,6 +51,7 @@ require __DIR__.'/partials/app_header.php';
 </div>
 <link rel="stylesheet" href="/dashboard/assets/vendor/leaflet/leaflet.css">
 <script src="/dashboard/assets/vendor/leaflet/leaflet.js"></script>
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-pagination.js'))?>"></script>
 <script>
 const clientSelect=document.getElementById('client'), list=document.getElementById('locations'), form=document.getElementById('locationForm'), msg=document.getElementById('message');
 let locations=[];
@@ -124,15 +126,11 @@ function refreshMap(){
 
 function say(s){msg.textContent=s;}
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-async function refresh(){
- if(!clientSelect.value){
-    locations=[];
-    refreshMap();
-    list.textContent='No client profile available.';
-    return;
-}
- try {const j=await api('/api/client_locations.php?client_id='+encodeURIComponent(clientSelect.value));locations=j.locations;refreshMap();
- list.innerHTML=locations.length?locations.map(x=>{
+const locationPager = new BritePagination({
+    container: document.getElementById('locationPagination'),
+    render(pageLocations) {
+        list.innerHTML = pageLocations.length
+            ? pageLocations.map(x => {
     const diagnostics=x.geocoding_diagnostics||{};
     const statusLabel=String(diagnostics.label||'Unknown geocoding status');
     const statusMessage=String(diagnostics.message||'');
@@ -149,12 +147,44 @@ async function refresh(){
         <button type="button" data-delete="${x.id}">Delete</button>
         ${retryable?`<button type="button" data-geocode-retry="${x.id}">Retry Geocoding</button>`:''}
     </div>`;
- }).join(''):'No locations saved.';
- }catch(e){say(e.message);}
+ }).join('')
+            : 'No locations saved.';
+    }
+});
+
+let locationRequestSequence = 0;
+
+async function refresh(resetPage = false){
+    const requestId = ++locationRequestSequence;
+    const selectedClient = clientSelect.value;
+
+    if(!selectedClient){
+        locations = [];
+        refreshMap();
+        locationPager.setRecords([], true);
+        list.textContent = 'No client profile available.';
+        return;
+    }
+
+    try {
+        const j = await api(
+            '/api/client_locations.php?client_id=' +
+            encodeURIComponent(selectedClient)
+        );
+
+        if(requestId !== locationRequestSequence ||
+           selectedClient !== clientSelect.value) return;
+
+        locations = j.locations;
+        refreshMap();
+        locationPager.setRecords(locations, resetPage);
+    } catch(e) {
+        if(requestId === locationRequestSequence) say(e.message);
+    }
 }
 function clearForm(){form.reset();document.getElementById('locationId').value='';document.getElementById('formTitle').textContent='Add Location';}
 document.getElementById('resetForm').onclick=clearForm;
-clientSelect.onchange=()=>{say('');clearForm();refresh();};
+clientSelect.onchange=()=>{say('');clearForm();refresh(true);};
 list.addEventListener('click',async e=>{
  const edit=e.target.closest('[data-edit]'),
        del=e.target.closest('[data-delete]'),

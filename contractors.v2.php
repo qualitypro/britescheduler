@@ -4,7 +4,7 @@ Auth::requireRole('owner','admin','scheduler');
 $qualificationCanEdit = in_array((string)Auth::tenant()['role'], ['owner','admin'], true);
  $pageTitle='Contractors';require __DIR__.'/partials/app_header.php';?>
 <h1>Contractors</h1><div class="card"><form id="f"><div class="row"><input name="first_name" placeholder="First name" required><input name="last_name" placeholder="Last name" required><input name="business_name" placeholder="Business"><input name="email" type="email" placeholder="Email"><input name="phone" placeholder="Phone"><input name="hourly_rate" type="number" step=".01" placeholder="Hourly rate"><button>Add contractor</button></div></form></div>
-<div class="card" style="margin-top:18px"><table><thead><tr><th>Name</th><th>Business</th><th>Email</th><th>Phone</th><th>Rate</th><th>Qualifications</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="card" style="margin-top:18px"><table><thead><tr><th>Name</th><th>Business</th><th>Email</th><th>Phone</th><th>Rate</th><th>Qualifications</th></tr></thead><tbody id="rows"></tbody></table><div id="contractorPagination"></div></div>
 
 <div class="card" id="qualificationPanel"
      style="margin-top:18px;display:none">
@@ -24,17 +24,21 @@ $qualificationCanEdit = in_array((string)Auth::tenant()['role'], ['owner','admin
       </thead>
       <tbody id="qualificationRows"></tbody>
     </table>
+    <div id="qualificationPagination"></div>
   </div>
 </div>
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-pagination.js'))?>"></script>
 <script>
 window.BRITE_QUALIFICATION_CAN_EDIT =
     <?=json_encode($qualificationCanEdit)?>;
 function esc(s){return String(s??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[x]))}
 
-async function load(){
-    const d = await api('/api/contractors.php');
-    document.getElementById('rows').innerHTML =
-        d.contractors.map(c => `
+const contractorPager = new BritePagination({
+    container: document.getElementById('contractorPagination'),
+    render(contractors) {
+        document.getElementById('rows').innerHTML =
+            contractors.length
+                ? contractors.map(c => `
             <tr>
                 <td>${esc(c.first_name)} ${esc(c.last_name)}</td>
                 <td>${esc(c.business_name)}</td>
@@ -50,7 +54,14 @@ async function load(){
                     </button>
                 </td>
             </tr>
-        `).join('');
+        `).join('')
+                : '<tr><td colspan="6">No contractors found.</td></tr>';
+    }
+});
+
+async function load(){
+    const d = await api('/api/contractors.php');
+    contractorPager.setRecords(d.contractors);
 }
 
 let activeQualificationContractor = null;
@@ -76,25 +87,25 @@ document.getElementById('rows').addEventListener('click', async e => {
     document.getElementById('qualificationContractor')
         .textContent = name;
 
+    qualificationPager.setRecords([], true);
     await loadQualifications(contractorId);
 });
 
-async function loadQualifications(contractorId){
+const qualificationPager = new BritePagination({
+    container: document.getElementById('qualificationPagination'),
+    render: renderQualificationRows
+});
+
+function renderQualificationRows(qualifications){
     const tbody = document.getElementById('qualificationRows');
-    const message = document.getElementById('qualificationMessage');
 
-    message.textContent = 'Loading qualifications...';
-    tbody.replaceChildren();
+    if (!qualifications.length) {
+        tbody.innerHTML =
+            '<tr><td colspan="5" class="muted">No service qualifications found.</td></tr>';
+        return;
+    }
 
-    try {
-        const d = await api(
-            '/api/contractor_service_qualifications.php' +
-            '?contractor_id=' + encodeURIComponent(contractorId)
-        );
-
-        if (activeQualificationContractor !== contractorId) return;
-
-        tbody.innerHTML = d.qualifications.map(q => {
+        tbody.innerHTML = qualifications.map(q => {
             const status = q.verification_status;
             const editable = window.BRITE_QUALIFICATION_CAN_EDIT;
 
@@ -124,11 +135,40 @@ async function loadQualifications(contractorId){
                 </tr>
             `;
         }).join('');
+}
 
+let qualificationRequestSequence = 0;
+
+async function loadQualifications(contractorId){
+    const tbody = document.getElementById('qualificationRows');
+    const message = document.getElementById('qualificationMessage');
+    const request = ++qualificationRequestSequence;
+
+    message.textContent = 'Loading qualifications...';
+    tbody.replaceChildren();
+
+    try {
+        const d = await api(
+            '/api/contractor_service_qualifications.php' +
+            '?contractor_id=' + encodeURIComponent(contractorId)
+        );
+
+        if (
+            request !== qualificationRequestSequence ||
+            activeQualificationContractor !== contractorId
+        ) return;
+
+        const qualifications = Array.isArray(d.qualifications)
+            ? d.qualifications : [];
+
+        qualificationPager.setRecords(qualifications);
         message.textContent =
-            d.qualifications.length + ' service qualifications loaded.';
+            qualifications.length + ' service qualifications loaded.';
     } catch (err) {
-        if (activeQualificationContractor === contractorId) {
+        if (
+            request === qualificationRequestSequence &&
+            activeQualificationContractor === contractorId
+        ) {
             message.textContent = 'Unable to load: ' + err.message;
         }
     }

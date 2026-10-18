@@ -145,11 +145,13 @@ require __DIR__.'/partials/app_header.php';
         <tbody id="availabilityRows">
         </tbody>
     </table>
+    <div id="availabilityPagination"></div>
 
 </div>
 
 </div>
 
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-pagination.js'))?>"></script>
 <script>
 
 const contractorId =
@@ -242,62 +244,42 @@ async function loadContractors(){
         ).join('');
 }
 
-async function loadAvailability(){
+const availabilityPager = new BritePagination({
+    container: document.getElementById('availabilityPagination'),
+    render(rules) {
+        if (!rules.length) {
+            availabilityRows.innerHTML = `
+                <tr>
+                    <td colspan="4" class="muted">
+                        No availability rules configured.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
 
-    availabilityRows.innerHTML='';
-
-    if(!contractorId.value){
-        return;
-    }
-
-    const d=await api(
-        '/api/contractor_availability.php?contractor_id='+
-        encodeURIComponent(contractorId.value)
-    );
-
-    if(!d.availability.length){
-
-        availabilityRows.innerHTML=`
-            <tr>
-                <td colspan="4"
-                    class="muted">
-                    No availability rules configured.
-                </td>
-            </tr>
-        `;
-
-        return;
-    }
-
-    availabilityRows.innerHTML=
-        d.availability.map(r=>{
-
-            const when=r.available_date
+        availabilityRows.innerHTML = rules.map(r => {
+            const when = r.available_date
                 ? esc(r.available_date)
                 : weekdays[Number(r.weekday)];
 
-            const status=Number(r.is_available)
+            const status = Number(r.is_available)
                 ? 'Available'
                 : 'Unavailable';
 
-            const css=Number(r.is_available)
+            const css = Number(r.is_available)
                 ? 'rule-available'
                 : 'rule-unavailable';
 
             return `
                 <tr>
                     <td>${when}</td>
-
                     <td>
                         ${shortTime(r.starts_at)}
                         –
                         ${shortTime(r.ends_at)}
                     </td>
-
-                    <td class="${css}">
-                        ${status}
-                    </td>
-
+                    <td class="${css}">${status}</td>
                     <td>
                         <button
                             type="button"
@@ -308,6 +290,36 @@ async function loadAvailability(){
                 </tr>
             `;
         }).join('');
+    }
+});
+
+let availabilityRequestSequence = 0;
+
+async function loadAvailability(resetPage = false) {
+    const requestId = ++availabilityRequestSequence;
+    const selectedContractor = contractorId.value;
+
+    if (!selectedContractor) {
+        availabilityPager.setRecords([], true);
+        availabilityRows.innerHTML = '';
+        return;
+    }
+
+    try {
+        const d = await api(
+            '/api/contractor_availability.php?contractor_id=' +
+            encodeURIComponent(selectedContractor)
+        );
+
+        if (requestId !== availabilityRequestSequence ||
+            selectedContractor !== contractorId.value) return;
+
+        availabilityPager.setRecords(d.availability, resetPage);
+    } catch (e) {
+        if (requestId === availabilityRequestSequence) {
+            availabilityError.textContent = e.message;
+        }
+    }
 }
 
 ruleType.onchange=()=>{
@@ -331,7 +343,7 @@ ruleType.onchange=()=>{
     }
 };
 
-contractorId.onchange=loadAvailability;
+contractorId.onchange=()=>loadAvailability(true);
 
 availabilityForm.onsubmit=async e=>{
 

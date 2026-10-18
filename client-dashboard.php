@@ -28,11 +28,55 @@ if(!$client){
     exit('Client profile not found.');
 }
 
-$pageTitle='My Dashboard';
+$pageSize = 15;
 
-require __DIR__.'/partials/app_header.php';
+$appointmentCountQuery = $pdo->prepare(
+    "SELECT COUNT(*)
+       FROM appointments
+      WHERE tenant_id=?
+        AND client_id=?"
+);
+$appointmentCountQuery->execute([$tid, (int)$client['id']]);
+$appointmentCount = (int)$appointmentCountQuery->fetchColumn();
 
-$q=$pdo->prepare(
+$invoiceSummaryQuery = $pdo->prepare(
+    "SELECT COUNT(*) AS invoice_count,
+            COALESCE(SUM(balance_due), 0) AS outstanding_balance
+       FROM invoices
+      WHERE tenant_id=?
+        AND client_id=?"
+);
+$invoiceSummaryQuery->execute([$tid, (int)$client['id']]);
+$invoiceSummary = $invoiceSummaryQuery->fetch();
+
+$invoiceCount = (int)$invoiceSummary['invoice_count'];
+$outstandingBalance = (float)$invoiceSummary['outstanding_balance'];
+
+$appointmentPages = max(1, (int)ceil($appointmentCount / $pageSize));
+$invoicePages = max(1, (int)ceil($invoiceCount / $pageSize));
+
+function clientDashboardRequestedPage(string $key, int $totalPages): int {
+    $value = $_GET[$key] ?? '1';
+    $page = is_string($value)
+        && ctype_digit($value)
+        && strlen($value) <= 9
+        ? (int)$value
+        : 1;
+
+    return min(max(1, $page), $totalPages);
+}
+
+$appointmentPage = clientDashboardRequestedPage(
+    'appointments_page', $appointmentPages
+);
+$invoicePage = clientDashboardRequestedPage(
+    'invoices_page', $invoicePages
+);
+
+$appointmentOffset = ($appointmentPage - 1) * $pageSize;
+$invoiceOffset = ($invoicePage - 1) * $pageSize;
+
+$q = $pdo->prepare(
     "SELECT
         a.id,
         a.title,
@@ -46,15 +90,17 @@ $q=$pdo->prepare(
       AND s.tenant_id=a.tenant_id
      WHERE a.tenant_id=?
        AND a.client_id=?
-     ORDER BY a.starts_at DESC
-     LIMIT 20"
+     ORDER BY a.starts_at DESC, a.id DESC
+     LIMIT ? OFFSET ?"
 );
+$q->bindValue(1, $tid, PDO::PARAM_INT);
+$q->bindValue(2, (int)$client['id'], PDO::PARAM_INT);
+$q->bindValue(3, $pageSize, PDO::PARAM_INT);
+$q->bindValue(4, $appointmentOffset, PDO::PARAM_INT);
+$q->execute();
+$appointments = $q->fetchAll();
 
-$q->execute([$tid,(int)$client['id']]);
-
-$appointments=$q->fetchAll();
-
-$q=$pdo->prepare(
+$q = $pdo->prepare(
     "SELECT
         id,
         invoice_number,
@@ -65,13 +111,29 @@ $q=$pdo->prepare(
      FROM invoices
      WHERE tenant_id=?
        AND client_id=?
-     ORDER BY created_at DESC
-     LIMIT 20"
+     ORDER BY created_at DESC, id DESC
+     LIMIT ? OFFSET ?"
 );
+$q->bindValue(1, $tid, PDO::PARAM_INT);
+$q->bindValue(2, (int)$client['id'], PDO::PARAM_INT);
+$q->bindValue(3, $pageSize, PDO::PARAM_INT);
+$q->bindValue(4, $invoiceOffset, PDO::PARAM_INT);
+$q->execute();
+$invoices = $q->fetchAll();
 
-$q->execute([$tid,(int)$client['id']]);
+function clientDashboardPageUrl(
+    int $appointmentPage,
+    int $invoicePage
+): string {
+    return '?' . http_build_query([
+        'appointments_page' => $appointmentPage,
+        'invoices_page' => $invoicePage
+    ]);
+}
 
-$invoices=$q->fetchAll();
+$pageTitle='My Dashboard';
+
+require __DIR__.'/partials/app_header.php';
 
 ?>
 
@@ -86,21 +148,18 @@ Welcome,
 
 <div class="card">
 <div class="muted">Appointments</div>
-<div class="metric"><?=count($appointments)?></div>
+<div class="metric"><?=$appointmentCount?></div>
 </div>
 
 <div class="card">
 <div class="muted">Invoices</div>
-<div class="metric"><?=count($invoices)?></div>
+<div class="metric"><?=$invoiceCount?></div>
 </div>
 
 <div class="card">
 <div class="muted">Outstanding Balance</div>
 <div class="metric">
-$<?=number_format(array_sum(array_map(
-    fn($x)=>(float)$x['balance_due'],
-    $invoices
-)),2)?>
+$<?=number_format($outstandingBalance,2)?>
 </div>
 </div>
 
@@ -148,6 +207,35 @@ $<?=number_format(array_sum(array_map(
 
 <?php endif; ?>
 
+<nav class="brite-pagination"
+     aria-label="Appointment pagination"
+     style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:14px">
+    <span>
+        Showing <?=$appointmentCount > 0 ? ($appointmentPage-1)*$pageSize+1 : 0?>–<?=min($appointmentPage*$pageSize,$appointmentCount)?>
+        of <?=$appointmentCount?>
+    </span>
+    <div style="display:flex;align-items:center;gap:6px">
+        <?php foreach([
+            ['«',1,'First page'],
+            ['‹',$appointmentPage-1,'Previous page'],
+            ['›',$appointmentPage+1,'Next page'],
+            ['»',$appointmentPages,'Last page']
+        ] as [$symbol,$target,$buttonLabel]): ?>
+            <?php $disabled = $appointmentCount === 0 || $target < 1 || $target > $appointmentPages || $target === $appointmentPage; ?>
+            <?php if($disabled): ?>
+                <button type="button" disabled aria-label="<?=htmlspecialchars($buttonLabel)?>"><?=$symbol?></button>
+            <?php else: ?>
+                <a href="<?=htmlspecialchars(clientDashboardPageUrl($target,$invoicePage))?>"
+                   aria-label="<?=htmlspecialchars($buttonLabel)?>"
+                   style="display:inline-block;padding:8px 12px;border:1px solid currentColor;border-radius:6px;text-decoration:none"><?=$symbol?></a>
+            <?php endif; ?>
+        <?php endforeach; ?>
+        <span>Page <?=$appointmentPage?> of <?=$appointmentPages?></span>
+    </div>
+</nav>
+
+
+
 </div>
 
 
@@ -194,6 +282,35 @@ $<?=number_format(array_sum(array_map(
 </div>
 
 <?php endif; ?>
+
+<nav class="brite-pagination"
+     aria-label="Invoice pagination"
+     style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:14px">
+    <span>
+        Showing <?=$invoiceCount > 0 ? ($invoicePage-1)*$pageSize+1 : 0?>–<?=min($invoicePage*$pageSize,$invoiceCount)?>
+        of <?=$invoiceCount?>
+    </span>
+    <div style="display:flex;align-items:center;gap:6px">
+        <?php foreach([
+            ['«',1,'First page'],
+            ['‹',$invoicePage-1,'Previous page'],
+            ['›',$invoicePage+1,'Next page'],
+            ['»',$invoicePages,'Last page']
+        ] as [$symbol,$target,$buttonLabel]): ?>
+            <?php $disabled = $invoiceCount === 0 || $target < 1 || $target > $invoicePages || $target === $invoicePage; ?>
+            <?php if($disabled): ?>
+                <button type="button" disabled aria-label="<?=htmlspecialchars($buttonLabel)?>"><?=$symbol?></button>
+            <?php else: ?>
+                <a href="<?=htmlspecialchars(clientDashboardPageUrl($appointmentPage,$target))?>"
+                   aria-label="<?=htmlspecialchars($buttonLabel)?>"
+                   style="display:inline-block;padding:8px 12px;border:1px solid currentColor;border-radius:6px;text-decoration:none"><?=$symbol?></a>
+            <?php endif; ?>
+        <?php endforeach; ?>
+        <span>Page <?=$invoicePage?> of <?=$invoicePages?></span>
+    </div>
+</nav>
+
+
 
 </div>
 

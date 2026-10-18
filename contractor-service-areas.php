@@ -203,6 +203,7 @@ require __DIR__ . '/partials/app_header.php';
                 </thead>
                 <tbody id="sa-rows"></tbody>
             </table>
+            <div id="sa-areas-pagination"></div>
         </div>
     </section>
 
@@ -362,11 +363,13 @@ require __DIR__ . '/partials/app_header.php';
                 </tr>
             </tbody>
         </table>
+        <div id="sa-match-pagination"></div>
     </div>
 </section>
 <?php endif; ?>
 
 <script src="/dashboard/assets/vendor/leaflet/leaflet.js"></script>
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-pagination.js'))?>"></script>
 <script>
 (() => {
     'use strict';
@@ -727,6 +730,11 @@ require __DIR__ . '/partials/app_header.php';
         return td;
     }
 
+    const areaPager = new BritePagination({
+        container: document.getElementById('sa-areas-pagination'),
+        render: renderAreas
+    });
+
     function renderAreas(areas) {
         rows.replaceChildren();
 
@@ -845,6 +853,10 @@ require __DIR__ . '/partials/app_header.php';
         resetRadiusEditor();
         rows.replaceChildren();
 
+        if (id === null) {
+            areaPager.setRecords([], true);
+        }
+
         if (savedRadiusLayer) {
             savedRadiusLayer.clearLayers();
         }
@@ -868,7 +880,7 @@ require __DIR__ . '/partials/app_header.php';
                 ? response.service_areas
                 : [];
 
-            renderAreas(areas);
+            areaPager.setRecords(areas);
             renderSavedRadiusAreas(areas);
             setStatus(`${areas.length} service area(s) configured.`);
 
@@ -925,7 +937,10 @@ require __DIR__ . '/partials/app_header.php';
         }
     }
 
-    contractorSelect.addEventListener('change', loadAreas);
+    contractorSelect.addEventListener('change', () => {
+        areaPager.setRecords([], true);
+        loadAreas();
+    });
 
     form.addEventListener('submit', async event => {
         event.preventDefault();
@@ -1001,7 +1016,65 @@ require __DIR__ . '/partials/app_header.php';
         return td;
     }
 
+    const matchPager = new BritePagination({
+        container: document.getElementById('sa-match-pagination'),
+        render: renderMatches
+    });
+
+    function renderMatches(contractors) {
+        matchResults.replaceChildren();
+
+        if (!contractors.length) {
+            const row = document.createElement('tr');
+            matchCell(row, 'No eligible contractors matched this location.')
+                .colSpan = 3;
+            matchResults.appendChild(row);
+            return;
+        }
+
+        for (const contractor of contractors) {
+            const row = document.createElement('tr');
+
+            const name = [
+                contractor.first_name,
+                contractor.last_name
+            ].filter(Boolean).join(' ');
+
+            matchCell(
+                row,
+                contractor.business_name
+                    ? `${name} — ${contractor.business_name}`
+                    : name
+            );
+
+            const areas = Array.isArray(
+                contractor.matching_areas
+            ) ? contractor.matching_areas : [];
+
+            matchCell(
+                row,
+                areas.map(area =>
+                    `${area.label} (${String(area.area_type).toUpperCase()})`
+                ).join('; ')
+            );
+
+            matchCell(
+                row,
+                areas.map(area =>
+                    area.area_type === 'radius' &&
+                    area.distance_miles !== null &&
+                    Number.isFinite(Number(area.distance_miles))
+                        ? `${Number(area.distance_miles).toFixed(2)} miles from radius center`
+                        : 'ZIP coverage match'
+                ).join('; ')
+            );
+
+            matchResults.appendChild(row);
+        }
+    }
+
     function clearMatchResults(message) {
+        matchPager.setRecords([], true);
         matchResults.replaceChildren();
         const row = document.createElement('tr');
         const cell = document.createElement('td');
@@ -1207,53 +1280,7 @@ require __DIR__ . '/partials/app_header.php';
                 ? response.contractors
                 : [];
 
-            matchResults.replaceChildren();
-
-            if (!contractors.length) {
-                clearMatchResults(
-                    'No eligible contractors matched this location.'
-                );
-            }
-
-            for (const contractor of contractors) {
-                const row = document.createElement('tr');
-
-                const name = [
-                    contractor.first_name,
-                    contractor.last_name
-                ].filter(Boolean).join(' ');
-
-                matchCell(
-                    row,
-                    contractor.business_name
-                        ? `${name} — ${contractor.business_name}`
-                        : name
-                );
-
-                const areas = Array.isArray(
-                    contractor.matching_areas
-                ) ? contractor.matching_areas : [];
-
-                matchCell(
-                    row,
-                    areas.map(area =>
-                        `${area.label} (${String(area.area_type).toUpperCase()})`
-                    ).join('; ')
-                );
-
-                matchCell(
-                    row,
-                    areas.map(area =>
-                        area.area_type === 'radius' &&
-                        area.distance_miles !== null &&
-                        Number.isFinite(Number(area.distance_miles))
-                            ? `${Number(area.distance_miles).toFixed(2)} miles from radius center`
-                            : 'ZIP coverage match'
-                    ).join('; ')
-                );
-
-                matchResults.appendChild(row);
-            }
+            matchPager.setRecords(contractors, true);
 
             describeMatchLocation();
 

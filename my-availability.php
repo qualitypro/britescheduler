@@ -183,11 +183,14 @@ recurring schedule for that date.
 
 </table>
 
-</div>
+<div id="availabilityPagination"></div>
 
 </div>
 
+</div>
 
+
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-pagination.js'))?>"></script>
 <script>
 
 const availabilityForm =
@@ -277,22 +280,14 @@ function shortTime(value){
 }
 
 
-async function loadAvailability(){
+const availabilityPager = new BritePagination({
+    container: document.getElementById('availabilityPagination'),
+    render: renderAvailabilityRules
+});
 
-    availabilityRows.innerHTML='';
+function renderAvailabilityRules(rules){
 
-    /*
-     * No contractor_id is sent.
-     *
-     * The server derives the contractor from
-     * the authenticated user's account.
-     */
-
-    const d=await api(
-        '/api/contractor_availability.php'
-    );
-
-    if(!d.availability.length){
+    if(!rules.length){
 
         availabilityRows.innerHTML=`
             <tr>
@@ -307,7 +302,7 @@ async function loadAvailability(){
     }
 
     availabilityRows.innerHTML=
-        d.availability.map(r=>{
+        rules.map(r=>{
 
             const when=r.available_date
                 ? esc(r.available_date)
@@ -357,6 +352,19 @@ async function loadAvailability(){
         }).join('');
 }
 
+
+async function loadAvailability(){
+
+    /*
+     * The server identifies the authenticated contractor.
+     * No contractor_id is sent.
+     */
+    const d = await api('/api/contractor_availability.php');
+
+    availabilityPager.setRecords(
+        Array.isArray(d.availability) ? d.availability : []
+    );
+}
 
 ruleType.onchange=()=>{
 

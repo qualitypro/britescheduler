@@ -75,6 +75,7 @@ require __DIR__.'/partials/app_header.php';
             <tbody id="invoiceRows"></tbody>
 
         </table>
+        <div id="invoicePagination"></div>
 
     </div>
 
@@ -191,11 +192,13 @@ require __DIR__.'/partials/app_header.php';
             <tbody id="paymentRows"></tbody>
 
         </table>
+        <div id="paymentPagination"></div>
 
     </div>
 
 </div>
 
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-pagination.js'))?>"></script>
 <script>
 
 const billingError =
@@ -299,9 +302,14 @@ window.viewInvoice=function(id){
         encodeURIComponent(id);
 };
 
-function renderInvoices(){
+const invoicePager = new BritePagination({
+    container: document.getElementById('invoicePagination'),
+    render: renderInvoices
+});
 
-    if(!invoices.length){
+function renderInvoices(pageInvoices){
+
+    if(!pageInvoices.length){
 
         invoiceRows.innerHTML=
             '<tr><td colspan="9" class="muted">No invoices yet.</td></tr>';
@@ -310,7 +318,7 @@ function renderInvoices(){
     }
 
     invoiceRows.innerHTML =
-        invoices.map(x=>{
+        pageInvoices.map(x=>{
 
             const balance =
                 Number(x.balance_due || 0);
@@ -362,9 +370,14 @@ function renderInvoices(){
         }).join('');
 }
 
-function renderPayments(){
+const paymentPager = new BritePagination({
+    container: document.getElementById('paymentPagination'),
+    render: renderPayments
+});
 
-    if(!payments.length){
+function renderPayments(pagePayments){
+
+    if(!pagePayments.length){
 
         paymentRows.innerHTML=
             '<tr><td colspan="7" class="muted">No payments yet.</td></tr>';
@@ -373,7 +386,7 @@ function renderPayments(){
     }
 
     paymentRows.innerHTML =
-        payments.map(x=>`
+        pagePayments.map(x=>`
             <tr>
                 <td>${escapeHtml(x.invoice_number || '')}</td>
                 <td>${escapeHtml(x.client_name)}</td>
@@ -443,8 +456,8 @@ async function loadBilling(){
         payments =
             paymentData.payments || [];
 
-        renderInvoices();
-        renderPayments();
+        invoicePager.setRecords(invoices);
+        paymentPager.setRecords(payments);
         renderMetrics();
 
     }catch(e){

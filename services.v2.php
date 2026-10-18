@@ -59,8 +59,10 @@ require __DIR__.'/partials/app_header.php';
         </thead>
         <tbody id="serviceRows"></tbody>
     </table>
+    <div id="servicePagination"></div>
 </div>
 
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-pagination.js'))?>"></script>
 <script>
 function esc(s){
     return String(s ?? '').replace(/[&<>"']/g,x=>({
@@ -72,23 +74,31 @@ function esc(s){
     }[x]));
 }
 
+const servicePager = new BritePagination({
+    container: document.getElementById('servicePagination'),
+    render(services) {
+        serviceRows.innerHTML = services.length
+            ? services.map(s => `
+                <tr>
+                    <td>
+                        <strong>${esc(s.name)}</strong>
+                        <div class="muted">${esc(s.description)}</div>
+                    </td>
+                    <td>${Number(s.duration_minutes)} min</td>
+                    <td>$${Number(s.price).toFixed(2)}</td>
+                    <td>${Number(s.active) ? 'Active' : 'Inactive'}</td>
+                </tr>
+            `).join('')
+            : '<tr><td colspan="4">No services found.</td></tr>';
+    }
+});
+
 async function loadServices(){
     try {
-        const d=await api('/api/services.php');
-
-        serviceRows.innerHTML=d.services.map(s=>`
-            <tr>
-                <td>
-                    <strong>${esc(s.name)}</strong>
-                    <div class="muted">${esc(s.description)}</div>
-                </td>
-                <td>${Number(s.duration_minutes)} min</td>
-                <td>$${Number(s.price).toFixed(2)}</td>
-                <td>${Number(s.active) ? 'Active' : 'Inactive'}</td>
-            </tr>
-        `).join('');
+        const d = await api('/api/services.php');
+        servicePager.setRecords(d.services);
     } catch(e){
-        serviceError.textContent=e.message;
+        serviceError.textContent = e.message;
     }
 }
 

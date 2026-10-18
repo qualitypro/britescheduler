@@ -28,11 +28,37 @@ if(!$contractor){
     exit('Contractor profile not found.');
 }
 
-$pageTitle='Contractor Dashboard';
+$pageSize = 15;
 
-require __DIR__.'/partials/app_header.php';
+$countQuery = $pdo->prepare(
+    "SELECT COUNT(*)
+       FROM appointment_contractors ac
+       JOIN appointments a
+         ON a.id=ac.appointment_id
+        AND a.tenant_id=?
+      WHERE ac.contractor_id=?"
+);
 
-$q=$pdo->prepare(
+$countQuery->execute([
+    $tid,
+    (int)$contractor['id']
+]);
+
+$appointmentCount = (int)$countQuery->fetchColumn();
+$totalPages = max(1, (int)ceil($appointmentCount / $pageSize));
+
+$requestedPage = $_GET['schedule_page'] ?? '1';
+
+$schedulePage = is_string($requestedPage)
+    && ctype_digit($requestedPage)
+    && strlen($requestedPage) <= 9
+    ? (int)$requestedPage
+    : 1;
+
+$schedulePage = min(max(1, $schedulePage), $totalPages);
+$offset = ($schedulePage - 1) * $pageSize;
+
+$q = $pdo->prepare(
     "SELECT
         a.id,
         a.title,
@@ -54,16 +80,21 @@ $q=$pdo->prepare(
        ON s.id=a.service_id
       AND s.tenant_id=a.tenant_id
      WHERE ac.contractor_id=?
-     ORDER BY a.starts_at DESC
-     LIMIT 30"
+     ORDER BY a.starts_at DESC, a.id DESC
+     LIMIT ? OFFSET ?"
 );
 
-$q->execute([
-    $tid,
-    (int)$contractor['id']
-]);
+$q->bindValue(1, $tid, PDO::PARAM_INT);
+$q->bindValue(2, (int)$contractor['id'], PDO::PARAM_INT);
+$q->bindValue(3, $pageSize, PDO::PARAM_INT);
+$q->bindValue(4, $offset, PDO::PARAM_INT);
+$q->execute();
 
-$appointments=$q->fetchAll();
+$appointments = $q->fetchAll();
+
+$pageTitle='Contractor Dashboard';
+
+require __DIR__.'/partials/app_header.php';
 
 ?>
 
@@ -78,7 +109,7 @@ Welcome,
 
 <div class="card">
 <div class="muted">Assigned Appointments</div>
-<div class="metric"><?=count($appointments)?></div>
+<div class="metric"><?=$appointmentCount?></div>
 </div>
 
 <div class="card">
@@ -163,6 +194,45 @@ Welcome,
 </div>
 
 <?php endif; ?>
+
+<nav class="brite-pagination"
+     aria-label="Schedule pagination"
+     style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:14px">
+    <span>
+        Showing <?=$appointmentCount > 0 ? ($schedulePage-1)*$pageSize+1 : 0?>–<?=min($schedulePage*$pageSize,$appointmentCount)?>
+        of <?=$appointmentCount?>
+    </span>
+    <div style="display:flex;align-items:center;gap:6px">
+        <?php foreach([
+            ['«',1,'First page'],
+            ['‹',$schedulePage-1,'Previous page'],
+            ['›',$schedulePage+1,'Next page'],
+            ['»',$totalPages,'Last page']
+        ] as [$symbol,$target,$label]): ?>
+            <?php
+                $disabled = $appointmentCount === 0 || $target < 1
+                    || $target > $totalPages
+                    || $target === $schedulePage;
+            ?>
+            <?php if($disabled): ?>
+                <button type="button"
+                        disabled
+                        aria-label="<?=htmlspecialchars($label)?>">
+                    <?=$symbol?>
+                </button>
+            <?php else: ?>
+                <a href="?schedule_page=<?=$target?>"
+                   aria-label="<?=htmlspecialchars($label)?>"
+                   style="display:inline-block;padding:8px 12px;border:1px solid currentColor;border-radius:6px;text-decoration:none">
+                    <?=$symbol?>
+                </a>
+            <?php endif; ?>
+        <?php endforeach; ?>
+        <span>Page <?=$schedulePage?> of <?=$totalPages?></span>
+    </div>
+</nav>
+
+
 
 </div>
 
