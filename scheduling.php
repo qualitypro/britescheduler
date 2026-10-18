@@ -545,10 +545,16 @@ require __DIR__.'/partials/app_header.php';
         </section>
 
         <section class="wizard-step" data-wizard-step="5" aria-label="Contractor">
-        <label>Contractor</label>
-        <select id="contractorId">
-            <option value="">Unassigned</option>
-        </select>
+        <label for="contractorId">Contractors</label>
+        <p id="contractorSelectionHelp" class="recommendations-help">
+            Select one or more contractors. Use Ctrl (or Command on Mac)
+            to select multiple contractors, or toggle them using recommendations.
+        </p>
+        <select id="contractorId"
+                multiple
+                size="5"
+                aria-describedby="contractorSelectionHelp"
+                style="min-height:120px"></select>
 
         <p id="contractorConflictStatus"
            data-state="unassigned"
@@ -659,6 +665,13 @@ function wizardFieldValue(id) {
     if (!field) return '';
 
     if (field.tagName === 'SELECT') {
+        if (field.multiple) {
+            return Array.from(field.selectedOptions)
+                .map(option => option.textContent.trim())
+                .filter(Boolean)
+                .join(', ');
+        }
+
         return field.selectedOptions[0]?.textContent?.trim() || '';
     }
 
@@ -679,7 +692,7 @@ function wizardReview() {
         ['Start', 'startsAt'],
         ['End', 'endsAt'],
         ['Status', 'appointmentStatus'],
-        ['Contractor', 'contractorId']
+        ['Contractors', 'contractorId']
     ];
 
     summary.replaceChildren();
@@ -958,7 +971,11 @@ const contractorConflictStatus =
 let contractorConflictSequence = 0;
 
 function contractorConflictInputs() {
-    if (!contractorId.value) return null;
+    const contractor_ids = Array.from(contractorId.selectedOptions)
+        .map(option => option.value)
+        .filter(Boolean);
+
+    if (!contractor_ids.length) return null;
 
     const start = sqlDateTime(startsAt.value);
     const end = sqlDateTime(endsAt.value);
@@ -966,7 +983,7 @@ function contractorConflictInputs() {
     if (!start || !end || end <= start) return false;
 
     return {
-        contractor_id: contractorId.value,
+        contractor_ids,
         starts_at: start,
         ends_at: end,
         exclude_appointment_id: appointmentId.value
@@ -975,15 +992,16 @@ function contractorConflictInputs() {
 
 function invalidateContractorConflict() {
     ++contractorConflictSequence;
+    const inputs = contractorConflictInputs();
 
-    if (!contractorId.value) {
+    if (inputs === null) {
         contractorConflictStatus.dataset.state = 'unassigned';
         contractorConflictStatus.textContent =
-            'No contractor assigned. You may continue.';
+            'No contractors assigned. You may continue.';
     } else {
         contractorConflictStatus.dataset.state = 'checking';
         contractorConflictStatus.textContent =
-            'Checking contractor availability...';
+            'Contractor availability needs to be checked.';
     }
 }
 
@@ -994,7 +1012,7 @@ async function checkContractorConflict() {
     if (inputs === null) {
         contractorConflictStatus.dataset.state = 'unassigned';
         contractorConflictStatus.textContent =
-            'No contractor assigned. You may continue.';
+            'No contractors assigned. You may continue.';
         return true;
     }
 
@@ -1006,20 +1024,48 @@ async function checkContractorConflict() {
     }
 
     const signature = JSON.stringify(inputs);
-
     contractorConflictStatus.dataset.state = 'checking';
     contractorConflictStatus.textContent =
-        'Checking contractor availability...';
-
-    const params = new URLSearchParams(inputs);
-
-    if (!inputs.exclude_appointment_id) {
-        params.delete('exclude_appointment_id');
-    }
+        'Checking availability for ' +
+        inputs.contractor_ids.length + ' contractor(s)...';
 
     try {
-        const data = await api(
-            '/api/contractor_conflict_check.php?' + params.toString()
+        const results = await Promise.all(
+            inputs.contractor_ids.map(async id => {
+                const params = new URLSearchParams({
+                    contractor_id: id,
+                    starts_at: inputs.starts_at,
+                    ends_at: inputs.ends_at
+                });
+
+                if (inputs.exclude_appointment_id) {
+                    params.set(
+                        'exclude_appointment_id',
+                        inputs.exclude_appointment_id
+                    );
+                }
+
+                const data = await api(
+                    '/api/contractor_conflict_check.php?' +
+                    params.toString()
+                );
+
+                if (data.ok !== true ||
+                    typeof data.available !== 'boolean') {
+                    throw new Error('Unexpected availability response');
+                }
+
+                const option = Array.from(contractorId.options)
+                    .find(item => item.value === id);
+
+                return {
+                    id,
+                    name: option?.textContent.trim() ||
+                        ('Contractor ' + id),
+                    available: data.available,
+                    reason: data.reason
+                };
+            })
         );
 
         if (sequence !== contractorConflictSequence ||
@@ -1027,22 +1073,23 @@ async function checkContractorConflict() {
             return false;
         }
 
-        if (data.ok !== true ||
-            typeof data.available !== 'boolean') {
-            throw new Error('Unexpected availability response');
-        }
+        const conflicts = results.filter(item => !item.available);
 
-        if (!data.available) {
+        if (conflicts.length) {
             contractorConflictStatus.dataset.state = 'conflict';
             contractorConflictStatus.textContent =
                 'Scheduling conflict: ' +
-                (data.reason || 'Contractor is unavailable.');
+                conflicts.map(item =>
+                    item.name + ': ' +
+                    (item.reason || 'Unavailable')
+                ).join(' | ');
             return false;
         }
 
         contractorConflictStatus.dataset.state = 'available';
         contractorConflictStatus.textContent =
-            'Contractor is available for the selected time.';
+            'All ' + results.length +
+            ' selected contractor(s) are available.';
         return true;
 
     } catch (error) {
@@ -1052,7 +1099,6 @@ async function checkContractorConflict() {
                 'Unable to verify contractor availability: ' +
                 error.message;
         }
-
         return false;
     }
 }
@@ -1144,19 +1190,22 @@ function recommendationText(parent, className, content){
 }
 
 function syncRecommendedContractorSelection(){
+    const selectedIds = new Set(
+        Array.from(contractorId.selectedOptions)
+            .map(option => option.value)
+    );
+
     recommendationsResults.querySelectorAll(
         '.recommendation-card'
     ).forEach(card => {
-        const selected =
-            card.dataset.contractorId === contractorId.value;
-
+        const selected = selectedIds.has(card.dataset.contractorId);
         card.classList.toggle('is-selected', selected);
 
         const button = card.querySelector('.recommendation-select');
 
         if(button){
             button.textContent = selected
-                ? 'Selected Contractor'
+                ? 'Remove Contractor'
                 : 'Select Contractor';
             button.setAttribute('aria-pressed', String(selected));
         }
@@ -1295,6 +1344,8 @@ function renderRecommendations(contractors){
             select.title = 'Contractor is not eligible for review';
         }
 
+        select.setAttribute('aria-pressed', 'false');
+
         select.addEventListener('click', () => {
             const inputs = recommendationInputs();
 
@@ -1304,23 +1355,33 @@ function renderRecommendations(contractors){
                 return;
             }
 
-            if(!Array.from(contractorId.options)
-                .some(option => option.value === id)){
+            const option = Array.from(contractorId.options)
+                .find(item => item.value === id);
+
+            if(!option){
                 recommendationsStatus.textContent =
                     'Contractor is no longer in the selection list.';
                 return;
             }
 
-            contractorId.value = id;
+            if(!eligible && !option.selected){
+                recommendationsStatus.textContent =
+                    'This contractor is not eligible for selection.';
+                return;
+            }
+
+            option.selected = !option.selected;
+
             contractorId.dispatchEvent(
                 new Event('change', { bubbles: true })
             );
 
             syncRecommendedContractorSelection();
+            invalidateContractorConflict();
 
-            recommendationsStatus.textContent =
-                'Contractor selected. Save the appointment ' +
-                'to submit the assignment.';
+            recommendationsStatus.textContent = option.selected
+                ? 'Contractor added. Save the appointment to submit assignments.'
+                : 'Contractor removed from the selection.';
         });
 
         actions.appendChild(select);
@@ -1497,9 +1558,8 @@ async function loadLookups(){
             `<option value="${c.id}">${esc(c.first_name)} ${esc(c.last_name)}</option>`
         ).join('');
 
-    contractorId.innerHTML=
-        '<option value="">Unassigned</option>'+
-        contractorsData.contractors.map(c=>
+    contractorId.innerHTML =
+        contractorsData.contractors.map(c =>
             `<option value="${c.id}">${esc(c.first_name)} ${esc(c.last_name)}</option>`
         ).join('');
 
@@ -1655,7 +1715,11 @@ async function editAppointment(event){
         .split(',')
         .filter(Boolean);
 
-    contractorId.value=contractors[0] || '';
+    const assignedContractors = new Set(contractors);
+    Array.from(contractorId.options).forEach(option => {
+        option.selected = assignedContractors.has(option.value);
+    });
+    syncRecommendedContractorSelection();
 
     appointmentTitle.value=a.title || 'Appointment';
     startsAt.value=localDateTime(a.starts_at);
@@ -1735,10 +1799,9 @@ async function saveAppointmentFromWizard() {
         d.client_location_id = clientLocationId.value || null;
         d.service_id = serviceId.value || null;
 
-        d.contractor_ids =
-            contractorId.value
-                ? [Number(contractorId.value)]
-                : [];
+        d.contractor_ids = Array.from(contractorId.selectedOptions)
+            .map(option => Number(option.value))
+            .filter(id => Number.isInteger(id) && id > 0);
 
         d.starts_at=sqlDateTime(d.starts_at);
         d.ends_at=sqlDateTime(d.ends_at);
