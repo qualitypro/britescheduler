@@ -34,6 +34,78 @@ require __DIR__.'/partials/app_header.php';
     min-height:700px;
 }
 
+/* Compact, status-colored calendar appointments. */
+#calendar .fc-event {
+    cursor: pointer;
+}
+
+#calendar .brite-calendar-event {
+    min-width: 0;
+    padding: 3px 5px;
+    line-height: 1.3;
+    overflow: hidden;
+}
+
+#calendar .brite-event-heading {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    min-width: 0;
+    font-weight: 700;
+}
+
+#calendar .brite-event-time {
+    flex-shrink: 0;
+    font-size: 11px;
+}
+
+#calendar .brite-event-title,
+#calendar .brite-event-client,
+#calendar .brite-event-contractors {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+#calendar .brite-event-title {
+    flex: 1;
+}
+
+#calendar .brite-event-client,
+#calendar .brite-event-contractors {
+    font-size: 11px;
+    opacity: .95;
+}
+
+#calendar .brite-event-status {
+    display: inline-block;
+    width: fit-content;
+    max-width: 100%;
+    padding: 1px 5px;
+    margin-top: 3px;
+    border-radius: 4px;
+    background: rgba(255,255,255,.22);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+#calendar .fc-daygrid-event .brite-calendar-event {
+    width: 100%;
+}
+
+#calendar .fc-timegrid-event .brite-calendar-event {
+    padding: 4px 6px;
+}
+
+@media (max-width: 600px) {
+    #calendar .brite-event-client,
+    #calendar .brite-event-contractors {
+        display: none;
+    }
+}
+
 .contractor-recommendations{
     margin-top:16px;
     padding:14px;
@@ -477,6 +549,46 @@ require __DIR__.'/partials/app_header.php';
     overflow-wrap: anywhere;
 }
 
+.appointment-details-dialog {
+    width: min(620px, calc(100vw - 32px));
+}
+
+.appointment-details-grid {
+    display: grid;
+    grid-template-columns: minmax(110px, 1fr) 2fr;
+    gap: 12px 18px;
+    margin: 0;
+}
+
+.appointment-details-grid dt {
+    font-weight: 600;
+    color: #64748b;
+}
+
+.appointment-details-grid dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.appointment-details-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+@media (max-width: 480px) {
+    .appointment-details-grid {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+
+    .appointment-details-grid dd {
+        margin-bottom: 12px;
+    }
+}
+
 </style>
 
 <div class="schedule-toolbar">
@@ -722,6 +834,27 @@ require __DIR__.'/partials/app_header.php';
     </div>
 </dialog>
 
+<!-- Read-only appointment details modal. -->
+<dialog id="appointmentDetailsDialog"
+        class="appointment-dialog appointment-details-dialog"
+        aria-labelledby="appointmentDetailsTitle">
+    <div class="appointment-dialog-header">
+        <h2 id="appointmentDetailsTitle">Appointment Details</h2>
+        <button type="button"
+                id="closeAppointmentDetails"
+                aria-label="Close appointment details">Close</button>
+    </div>
+    <div id="appointmentDetailsContent"></div>
+    <div class="appointment-details-actions">
+        <button type="button" id="editAppointmentDetails">
+            Edit Appointment
+        </button>
+        <button type="button" id="dismissAppointmentDetails">
+            Close
+        </button>
+    </div>
+</dialog>
+
 <div class="scheduler-layout">
     <div class="card">
         <div id="calendar"></div>
@@ -731,6 +864,96 @@ require __DIR__.'/partials/app_header.php';
 <script>
 let calendar;
 let services=[];
+let detailsEvent = null;
+
+const detailsDialog =
+    document.getElementById('appointmentDetailsDialog');
+const detailsContent =
+    document.getElementById('appointmentDetailsContent');
+
+function appointmentDetailsDate(value) {
+    if (!value) return 'Not specified';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+        ? String(value)
+        : date.toLocaleString([], {
+            dateStyle: 'medium',
+            timeStyle: 'short'
+        });
+}
+
+function showAppointmentDetails(event) {
+    if (!event || detailsDialog.open) return;
+
+    detailsEvent = event;
+    const appointment = event.extendedProps || {};
+    const contractorIds = String(appointment.contractor_ids || '')
+        .split(',')
+        .map(value => value.trim())
+        .filter(Boolean);
+
+    const contractorSelect =
+        document.getElementById('contractorId');
+
+    const contractorNames = contractorIds.map(id => {
+        const option = Array.from(
+            contractorSelect?.options || []
+        ).find(item => item.value === id);
+        return option
+            ? option.textContent.trim()
+            : 'Contractor #' + id;
+    });
+
+    const fields = [
+        ['Title', appointment.title || event.title || 'Appointment'],
+        ['Client', [
+            appointment.client_first,
+            appointment.client_last
+        ].filter(Boolean).join(' ') || 'Not specified'],
+        ['Service', appointment.service_name || 'Not specified'],
+        ['Start', appointmentDetailsDate(event.start)],
+        ['End', appointmentDetailsDate(event.end)],
+        ['Status', String(appointment.status || 'scheduled')
+            .replaceAll('_', ' ')],
+        ['Location', appointment.location || 'Not specified'],
+        ['Contractors', contractorNames.join(', ') || 'Unassigned']
+    ];
+
+    const list = document.createElement('dl');
+    list.className = 'appointment-details-grid';
+
+    for (const [label, value] of fields) {
+        const dt = document.createElement('dt');
+        const dd = document.createElement('dd');
+        dt.textContent = label;
+        dd.textContent = value;
+        list.append(dt, dd);
+    }
+
+    detailsContent.replaceChildren(list);
+    detailsDialog.showModal();
+}
+
+function closeAppointmentDetails() {
+    if (detailsDialog.open) detailsDialog.close();
+}
+
+document.getElementById('closeAppointmentDetails')
+    .addEventListener('click', closeAppointmentDetails);
+document.getElementById('dismissAppointmentDetails')
+    .addEventListener('click', closeAppointmentDetails);
+
+document.getElementById('editAppointmentDetails')
+    .addEventListener('click', async () => {
+        const event = detailsEvent;
+        if (!event) return;
+        closeAppointmentDetails();
+        await editAppointment(event);
+    });
+
+detailsDialog.addEventListener('close', () => {
+    detailsEvent = null;
+});
 
 // Six-step appointment wizard navigation.
 const wizardStepNames = [
@@ -1796,6 +2019,98 @@ serviceId.onchange=()=>{
     endsAt.value=localDateTime(start);
 };
 
+const appointmentStatusColors = Object.freeze({
+    tentative: '#64748b',
+    scheduled: '#2563eb',
+    confirmed: '#15803d',
+    in_progress: '#0891b2',
+    completed: '#475569',
+    cancelled: '#dc2626',
+    no_show: '#b45309'
+});
+
+function appointmentStatusLabel(status) {
+    return String(status || 'scheduled')
+        .replaceAll('_', ' ')
+        .replace(/\\b\\w/g, letter => letter.toUpperCase());
+}
+
+function appointmentContractorNames(appointment) {
+    const ids = String(appointment.contractor_ids || '')
+        .split(',')
+        .map(id => id.trim())
+        .filter(Boolean);
+
+    const options = Array.from(
+        document.getElementById('contractorId')?.options || []
+    );
+
+    return ids.map(id => {
+        const option = options.find(item => item.value === id);
+        return option
+            ? option.textContent.trim()
+            : 'Contractor #' + id;
+    });
+}
+
+function calendarEventContent(info) {
+    const event = info.event;
+    const appointment = event.extendedProps || {};
+
+    const root = document.createElement('div');
+    root.className = 'brite-calendar-event';
+
+    const heading = document.createElement('div');
+    heading.className = 'brite-event-heading';
+
+    if (info.timeText) {
+        const time = document.createElement('span');
+        time.className = 'brite-event-time';
+        time.textContent = info.timeText;
+        heading.appendChild(time);
+    }
+
+    const title = document.createElement('span');
+    title.className = 'brite-event-title';
+    title.textContent =
+        appointment.title ||
+        appointment.service_name ||
+        'Appointment';
+    heading.appendChild(title);
+    root.appendChild(heading);
+
+    const clientName = [
+        appointment.client_first,
+        appointment.client_last
+    ].filter(Boolean).join(' ');
+
+    if (clientName) {
+        const client = document.createElement('div');
+        client.className = 'brite-event-client';
+        client.textContent = clientName;
+        root.appendChild(client);
+    }
+
+    const contractors = appointmentContractorNames(appointment);
+
+    if (contractors.length) {
+        const contractorLine = document.createElement('div');
+        contractorLine.className = 'brite-event-contractors';
+        contractorLine.textContent = contractors.join(', ');
+        contractorLine.title = contractors.join(', ');
+        root.appendChild(contractorLine);
+    }
+
+    const status = document.createElement('span');
+    status.className = 'brite-event-status';
+    status.textContent = appointmentStatusLabel(
+        appointment.status
+    );
+    root.appendChild(status);
+
+    return { domNodes: [root] };
+}
+
 async function loadEvents(info,success,failure){
 
     try {
@@ -1821,14 +2136,14 @@ async function loadEvents(info,success,failure){
             end:a.ends_at,
 
             backgroundColor:
-                a.contractor_colors
-                    ? a.contractor_colors.split(',')[0]
-                    : undefined,
+                appointmentStatusColors[a.status] ||
+                appointmentStatusColors.scheduled,
 
             borderColor:
-                a.contractor_colors
-                    ? a.contractor_colors.split(',')[0]
-                    : undefined,
+                appointmentStatusColors[a.status] ||
+                appointmentStatusColors.scheduled,
+
+            textColor: '#ffffff',
 
             extendedProps:a
 
@@ -2124,6 +2439,9 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                 eventStartEditable:true,
 
                 events:loadEvents,
+                eventContent:calendarEventContent,
+                eventDisplay:'block',
+                displayEventEnd:false,
 
                 eventDrop:async info=>{
                     await persistCalendarMove(info);
@@ -2146,8 +2464,8 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                     openAppointmentWizard();
                 },
 
-                eventClick:async info=>{
-                    await editAppointment(info.event);
+                eventClick:info=>{
+                    showAppointmentDetails(info.event);
                 }
             }
         );
