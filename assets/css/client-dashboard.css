@@ -1,0 +1,285 @@
+/* Brite Scheduler client booking-first dashboard */
+
+.brite-client-dashboard {
+    display: grid;
+    gap: 22px;
+}
+
+.brite-client-hero {
+    background: linear-gradient(125deg, #f0fdf4, #ffffff 70%);
+    border: 1px solid #bbf7d0;
+    border-radius: 20px;
+    padding: clamp(24px, 5vw, 48px);
+}
+
+.brite-client-eyebrow {
+    color: #166534;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.brite-client-hero h1 {
+    max-width: 680px;
+    margin: 12px 0;
+    font-size: clamp(28px, 4vw, 44px);
+    line-height: 1.15;
+    letter-spacing: -0.035em;
+}
+
+.brite-client-hero p {
+    max-width: 580px;
+    color: #475569;
+    font-size: 17px;
+    line-height: 1.6;
+}
+
+.brite-client-hero .brite-client-book-button {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    margin-top: 14px;
+    padding: 14px 26px;
+    border: 1px solid #166534;
+    border-radius: 12px;
+    background: #166534;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.brite-client-hero .brite-client-book-button:hover,
+.brite-client-hero .brite-client-book-button:focus-visible {
+    background: #14532d;
+    color: #fff;
+}
+
+.brite-client-hero .brite-client-book-button:focus-visible {
+    outline: 3px solid #86efac;
+    outline-offset: 3px;
+}
+
+.brite-client-hero-note {
+    display: block;
+    margin-top: 12px;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.brite-client-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.brite-client-quick-action {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 94px;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #fff;
+    color: #1e293b;
+    text-decoration: none;
+}
+
+.brite-client-quick-action:hover,
+.brite-client-quick-action:focus-visible {
+    border-color: #86efac;
+    background: #f8fffa;
+}
+
+.brite-client-quick-icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    border-radius: 12px;
+    background: #dcfce7;
+    color: #166534;
+    font-size: 23px;
+}
+
+.brite-client-quick-action strong,
+.brite-client-quick-action small {
+    display: block;
+}
+
+.brite-client-quick-action small {
+    margin-top: 5px;
+    color: #64748b;
+}
+
+.brite-client-section {
+    scroll-margin-top: 24px;
+}
+
+@media (max-width: 640px) {
+    .brite-client-hero .brite-client-book-button {
+        display: flex;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .brite-client-quick-actions {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Upcoming client appointments */
+
+.brite-client-section-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.brite-client-section-heading h2 {
+    margin: 8px 0 0;
+}
+
+.brite-client-section-heading a {
+    color: #166534;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.brite-client-upcoming-list {
+    display: grid;
+    gap: 12px;
+}
+
+.brite-client-upcoming-item {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+}
+
+.brite-client-upcoming-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 64px;
+    min-height: 70px;
+    border-radius: 12px;
+    background: #f0fdf4;
+    color: #166534;
+}
+
+.brite-client-upcoming-date span {
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.brite-client-upcoming-date strong {
+    font-size: 28px;
+    line-height: 1.2;
+}
+
+.brite-client-upcoming-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.brite-client-upcoming-title {
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.brite-client-upcoming-meta {
+    margin-top: 6px;
+    color: #64748b;
+    font-size: 14px;
+}
+
+.brite-client-appointment-status {
+    display: inline-flex;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.brite-client-appointment-status-tentative {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.brite-client-appointment-status-confirmed {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.brite-client-appointment-status-in_progress {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.brite-client-upcoming-empty {
+    padding: 34px 24px;
+    text-align: center;
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 14px;
+}
+
+.brite-client-upcoming-empty-icon {
+    font-size: 32px;
+    color: #166534;
+}
+
+.brite-client-upcoming-empty h3 {
+    margin-bottom: 8px;
+}
+
+.brite-client-upcoming-empty p {
+    color: #64748b;
+}
+
+.brite-client-upcoming-empty .brite-client-book-button {
+    display: inline-flex;
+    margin-top: 12px;
+    padding: 12px 22px;
+    border: 0;
+    border-radius: 10px;
+    background: #166534;
+    color: #fff;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+@media (max-width: 640px) {
+    .brite-client-upcoming-item {
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .brite-client-upcoming-item .brite-client-appointment-status {
+        margin-left: 76px;
+    }
+
+    .brite-client-section-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

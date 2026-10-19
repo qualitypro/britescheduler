@@ -231,7 +231,7 @@
         updateStep();
     }
 
-    openButton.addEventListener('click', async () => {
+    async function openBookingWizard() {
         if (dialog.open) return;
 
         resetWizard();
@@ -246,7 +246,26 @@
         } finally {
             nextButton.disabled = false;
         }
-    });
+    }
+
+    openButton.addEventListener('click', openBookingWizard);
+
+    // Allow client navigation to open the wizard directly.
+    const bookingUrl = new URL(window.location.href);
+
+    if (bookingUrl.searchParams.get('book') === '1') {
+        bookingUrl.searchParams.delete('book');
+
+        window.history.replaceState(
+            window.history.state,
+            '',
+            bookingUrl.pathname +
+                bookingUrl.search +
+                bookingUrl.hash
+        );
+
+        openBookingWizard();
+    }
 
     closeButton.addEventListener('click', () => {
         if (!submitting) dialog.close();

@@ -131,18 +131,192 @@ function clientDashboardPageUrl(
     ]);
 }
 
+$upcomingQuery = $pdo->prepare(
+    "SELECT
+        a.id,
+        a.title,
+        a.starts_at,
+        a.ends_at,
+        a.status,
+        a.location,
+        s.name AS service_name,
+        cl.label AS location_label
+     FROM appointments a
+     LEFT JOIN services s
+       ON s.id = a.service_id
+      AND s.tenant_id = a.tenant_id
+     LEFT JOIN client_locations cl
+       ON cl.id = a.client_location_id
+      AND cl.tenant_id = a.tenant_id
+      AND cl.client_id = a.client_id
+     WHERE a.tenant_id = ?
+       AND a.client_id = ?
+       AND a.starts_at >= NOW()
+       AND a.status IN (
+           'tentative',
+           'scheduled',
+           'confirmed',
+           'in_progress'
+       )
+     ORDER BY a.starts_at ASC, a.id ASC
+     LIMIT 3"
+);
+
+$upcomingQuery->execute([$tid, (int)$client['id']]);
+$upcomingAppointments = $upcomingQuery->fetchAll();
+
 $pageTitle='My Dashboard';
 
 require __DIR__.'/partials/app_header.php';
 
 ?>
+<link rel="stylesheet"
+      href="<?=htmlspecialchars(app_url('/assets/css/client-dashboard.css'),ENT_QUOTES,'UTF-8')?>">
 
-<h1>Client Dashboard</h1>
+<div class="brite-client-dashboard">
 
-<p class="muted">
-Welcome,
-<?=htmlspecialchars($user['first_name'])?>.
-</p>
+<section class="brite-client-hero" aria-labelledby="briteClientWelcome">
+    <div class="brite-client-eyebrow">Simple service scheduling</div>
+    <h1 id="briteClientWelcome">
+        Ready to schedule your next service?
+    </h1>
+    <p>
+        Welcome, <?=htmlspecialchars($user['first_name'])?>.
+        Choose your service, select a location, and request
+        a convenient appointment time.
+    </p>
+    <button type="button"
+            class="brite-client-book-button"
+            id="briteClientHeroBooking">
+        <span aria-hidden="true">+</span>
+        Book a Service
+        <span aria-hidden="true">→</span>
+    </button>
+    <span class="brite-client-hero-note">
+        Quick scheduling. No phone call required.
+    </span>
+</section>
+
+<div class="brite-client-quick-actions">
+    <a class="brite-client-quick-action" href="#myAppointments">
+        <span class="brite-client-quick-icon" aria-hidden="true">▦</span>
+        <span>
+            <strong>My Appointments</strong>
+            <small>View your scheduled services</small>
+        </span>
+    </a>
+    <a class="brite-client-quick-action"
+       href="<?=htmlspecialchars(app_url('/client-locations.php'),ENT_QUOTES,'UTF-8')?>">
+        <span class="brite-client-quick-icon" aria-hidden="true">⌖</span>
+        <span>
+            <strong>My Locations</strong>
+            <small>Manage your service addresses</small>
+        </span>
+    </a>
+</div>
+
+<section class="brite-client-upcoming"
+         aria-labelledby="briteUpcomingHeading">
+
+    <div class="brite-client-section-heading">
+        <div>
+            <div class="brite-client-eyebrow">Your schedule</div>
+            <h2 id="briteUpcomingHeading">Upcoming Appointments</h2>
+        </div>
+        <a href="#myAppointments">View all appointments →</a>
+    </div>
+
+    <?php if (!$upcomingAppointments): ?>
+
+        <div class="brite-client-upcoming-empty">
+            <div class="brite-client-upcoming-empty-icon"
+                 aria-hidden="true">▦</div>
+            <h3>No upcoming appointments</h3>
+            <p>
+                When you request a service, your upcoming
+                appointments will appear here.
+            </p>
+            <button type="button"
+                    class="brite-client-book-button"
+                    onclick="document.getElementById('openClientBooking')?.click()">
+                + Book a Service
+            </button>
+        </div>
+
+    <?php else: ?>
+
+        <div class="brite-client-upcoming-list">
+
+            <?php foreach ($upcomingAppointments as $appointment): ?>
+
+                <?php
+                $status = (string)$appointment['status'];
+
+                $statusLabels = [
+                    'tentative' => 'Pending Confirmation',
+                    'scheduled' => 'Scheduled',
+                    'confirmed' => 'Confirmed',
+                    'in_progress' => 'In Progress'
+                ];
+
+                $statusLabel = $statusLabels[$status] ?? ucfirst($status);
+
+                $start = new DateTimeImmutable(
+                    (string)$appointment['starts_at']
+                );
+
+                $end = new DateTimeImmutable(
+                    (string)$appointment['ends_at']
+                );
+
+                $serviceName = $appointment['service_name']
+                    ?: $appointment['title'];
+
+                $locationName = $appointment['location_label']
+                    ?: $appointment['location'];
+                ?>
+
+                <article class="brite-client-upcoming-item">
+
+                    <div class="brite-client-upcoming-date">
+                        <span><?=htmlspecialchars($start->format('M'))?></span>
+                        <strong><?=htmlspecialchars($start->format('j'))?></strong>
+                    </div>
+
+                    <div class="brite-client-upcoming-details">
+                        <div class="brite-client-upcoming-title">
+                            <?=htmlspecialchars((string)$serviceName)?>
+                        </div>
+
+                        <div class="brite-client-upcoming-meta">
+                            <?=htmlspecialchars($start->format('l, F j, Y'))?>
+                            ·
+                            <?=htmlspecialchars($start->format('g:i A'))?>
+                            –
+                            <?=htmlspecialchars($end->format('g:i A'))?>
+                        </div>
+
+                        <?php if ($locationName): ?>
+                            <div class="brite-client-upcoming-meta">
+                                <?=htmlspecialchars((string)$locationName)?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <span class="brite-client-appointment-status
+                                 brite-client-appointment-status-<?=htmlspecialchars($status, ENT_QUOTES, 'UTF-8')?>">
+                        <?=htmlspecialchars($statusLabel)?>
+                    </span>
+
+                </article>
+
+            <?php endforeach; ?>
+
+        </div>
+
+    <?php endif; ?>
+
+</section>
 
 <div class="grid">
 
@@ -167,9 +341,9 @@ $<?=number_format($outstandingBalance,2)?>
 
 <div class="card" style="margin-top:18px">
 
-<?php require __DIR__.'/partials/client_booking_wizard.php'; ?>
 
-<h2>My Appointments</h2>
+
+<h2 id="myAppointments">My Appointments</h2>
 
 <?php if(!$appointments): ?>
 
@@ -316,6 +490,19 @@ $<?=number_format($outstandingBalance,2)?>
 
 </div>
 
+
+
+</div>
+
+<?php require __DIR__.'/partials/client_booking_wizard.php'; ?>
+
 <script src="<?=htmlspecialchars(app_url('/assets/js/client-booking-wizard.js'), ENT_QUOTES, 'UTF-8')?>"></script>
+
+<script>
+document.getElementById('briteClientHeroBooking')
+    ?.addEventListener('click', function () {
+        document.getElementById('openClientBooking')?.click();
+    });
+</script>
 
 <?php require __DIR__.'/partials/app_footer.php'; ?>
