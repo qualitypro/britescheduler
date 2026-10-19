@@ -11,6 +11,13 @@ $pageTitle = 'My Settings';
 require __DIR__ . '/partials/app_header.php';
 ?>
 
+<link rel="stylesheet"
+      href="<?=htmlspecialchars(
+          app_url('/assets/css/brite-workspace-tabs.css'),
+          ENT_QUOTES,
+          'UTF-8'
+      )?>">
+
 <style>
 .brite-my-settings {
     max-width: 1050px;
@@ -274,6 +281,62 @@ require __DIR__ . '/partials/app_header.php';
         </p>
     </div>
 
+    <div class="brite-tab-workspace"
+         id="mySettingsWorkspace"
+         data-viewport="true"
+         style="--brite-workspace-offset: 155px">
+
+        <div class="brite-tab-toolbar">
+            <div class="brite-tab-list"
+                 role="tablist"
+                 aria-label="Settings sections">
+
+                <button type="button"
+                        class="brite-tab-button"
+                        role="tab"
+                        id="appearanceTab"
+                        aria-controls="appearancePanel"
+                        aria-selected="true">
+                    Appearance
+                </button>
+
+                <button type="button"
+                        class="brite-tab-button"
+                        role="tab"
+                        id="calendarTab"
+                        aria-controls="calendarPanel"
+                        aria-selected="false">
+                    Calendar
+                </button>
+
+                <button type="button"
+                        class="brite-tab-button"
+                        role="tab"
+                        id="accessibilityTab"
+                        aria-controls="accessibilityPanel"
+                        aria-selected="false">
+                    Accessibility
+                </button>
+
+                <button type="button"
+                        class="brite-tab-button"
+                        role="tab"
+                        id="notificationsTab"
+                        aria-controls="notificationsPanel"
+                        aria-selected="false">
+                    Notifications
+                </button>
+
+            </div>
+        </div>
+
+        <div class="brite-tab-panels">
+            <div class="brite-tab-panel"
+                 id="appearancePanel"
+                 role="tabpanel"
+                 aria-labelledby="appearanceTab"
+                 tabindex="0">
+
     <section class="brite-settings-section"
              aria-labelledby="appearanceHeading">
         <h2 id="appearanceHeading">Appearance</h2>
@@ -319,6 +382,14 @@ foreach ($palettes as $value => $label):
         </div>
     </section>
 
+            </div>
+
+            <div class="brite-tab-panel"
+                 id="calendarPanel"
+                 role="tabpanel"
+                 aria-labelledby="calendarTab"
+                 tabindex="0">
+
     <section class="brite-settings-section"
              aria-labelledby="calendarHeading">
         <h2 id="calendarHeading">Calendar</h2>
@@ -352,6 +423,14 @@ foreach ($palettes as $value => $label):
         </div>
     </section>
 
+            </div>
+
+            <div class="brite-tab-panel"
+                 id="accessibilityPanel"
+                 role="tabpanel"
+                 aria-labelledby="accessibilityTab"
+                 tabindex="0">
+
     <section class="brite-settings-section"
              aria-labelledby="accessibilityHeading">
         <h2 id="accessibilityHeading">Accessibility</h2>
@@ -374,6 +453,14 @@ foreach ($palettes as $value => $label):
         </label>
     </section>
 
+            </div>
+
+            <div class="brite-tab-panel"
+                 id="notificationsPanel"
+                 role="tabpanel"
+                 aria-labelledby="notificationsTab"
+                 tabindex="0">
+
     <section class="brite-settings-section"
              aria-labelledby="notificationsHeading">
         <h2 id="notificationsHeading">Notifications</h2>
@@ -389,6 +476,10 @@ foreach ($palettes as $value => $label):
         </label>
     </section>
 
+            </div>
+        </div>
+    </div>
+
     <div class="brite-settings-status"
          id="settingsStatus"
          role="status"
@@ -396,6 +487,12 @@ foreach ($palettes as $value => $label):
         Loading your settings…
     </div>
 </div>
+
+<script src="<?=htmlspecialchars(
+    app_url('/assets/js/brite-workspace-tabs.js'),
+    ENT_QUOTES,
+    'UTF-8'
+)?>"></script>
 
 <script>
 (() => {

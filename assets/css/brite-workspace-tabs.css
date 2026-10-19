@@ -1,0 +1,148 @@
+/*
+ * Brite Scheduler — Reusable Tabbed Workspace
+ * Milestone 148D
+ */
+
+.brite-tab-workspace {
+    --brite-tab-gap: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--brite-tab-gap);
+    min-width: 0;
+}
+
+.brite-tab-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    background: var(--brite-surface, #fff);
+    border: 1px solid var(--brite-border, #e5e7eb);
+    border-radius: 12px;
+}
+
+.brite-tab-list {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.brite-tab-button {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 8px 14px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--brite-text-secondary, #475569);
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.brite-tab-button:hover {
+    background: var(--brite-surface-muted, #f1f5f9);
+    color: var(--brite-text, #0f172a);
+}
+
+.brite-tab-button[aria-selected="true"] {
+    background: var(--brite-indigo-soft, #e0e7ff);
+    color: var(--brite-indigo, #4338ca);
+    border-color: var(--brite-indigo, #4338ca);
+}
+
+.brite-tab-button:focus-visible {
+    outline: 3px solid var(--brite-indigo, #4338ca);
+    outline-offset: 2px;
+}
+
+.brite-tab-panel {
+    min-width: 0;
+}
+
+.brite-tab-panel[hidden] {
+    display: none !important;
+}
+
+.brite-tab-panel:focus {
+    outline: none;
+}
+
+.brite-tab-panel:focus-visible {
+    outline: 3px solid var(--brite-indigo, #4338ca);
+    outline-offset: 3px;
+}
+
+.brite-tab-workspace[data-viewport="true"] {
+    min-height: 0;
+}
+
+/*
+ * Desktop workspace: toolbar remains visible while the
+ * active panel uses the remaining available viewport height.
+ *
+ * --brite-workspace-top is measured by the shared script.
+ */
+@media (min-width: 900px) and (min-height: 500px) {
+    .brite-tab-workspace[data-viewport="true"] {
+        height: calc(
+            100dvh - var(--brite-workspace-top, 155px) - 16px
+        );
+        min-height: 240px;
+    }
+
+    .brite-tab-workspace[data-viewport="true"]
+    > .brite-tab-toolbar {
+        flex: 0 0 auto;
+    }
+
+    .brite-tab-workspace[data-viewport="true"]
+    > .brite-tab-panels {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .brite-tab-workspace[data-viewport="true"]
+    .brite-tab-panel:not([hidden]) {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+}
+
+@media (max-width: 680px) {
+    .brite-tab-toolbar {
+        padding: 8px;
+    }
+
+    .brite-tab-list {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .brite-tab-button {
+        width: 100%;
+        padding: 8px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .brite-tab-workspace *,
+    .brite-tab-workspace *::before,
+    .brite-tab-workspace *::after {
+        scroll-behavior: auto;
+    }
+}
