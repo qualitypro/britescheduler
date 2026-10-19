@@ -67,10 +67,16 @@ final class Geocoding
         }
 
         $lockName = 'brite_geocoding_nominatim';
-        $lock = $pdo->prepare('SELECT GET_LOCK(?, 10)');
-        $lock->execute([$lockName]);
 
-        if ((int)$lock->fetchColumn() !== 1) {
+        try {
+            $lock = $pdo->prepare('SELECT GET_LOCK(?, 10)');
+            $lock->execute([$lockName]);
+
+            if ((int)$lock->fetchColumn() !== 1) {
+                return ['status' => 'unavailable'];
+            }
+        } catch (Throwable $e) {
+            error_log('Geocoding lock acquisition failed: ' . get_class($e));
             return ['status' => 'unavailable'];
         }
 
@@ -117,7 +123,8 @@ final class Geocoding
                       longitude=VALUES(longitude),
                       precision_type=VALUES(precision_type),
                       display_name=VALUES(display_name),
-                      status=VALUES(status)'
+                      status=VALUES(status),
+                      updated_at=CURRENT_TIMESTAMP()'
                 );
 
                 $q->execute([
@@ -154,7 +161,7 @@ final class Geocoding
              WHERE provider=? AND address_hash=?
                AND (
                    status=\'resolved\'
-                   OR updated_at > UTC_TIMESTAMP() - INTERVAL 24 HOUR
+                   OR updated_at > NOW() - INTERVAL 24 HOUR
                )
              LIMIT 1'
         );
@@ -201,6 +208,25 @@ final class Geocoding
         ];
 
         $words = explode(' ', $street);
+
+        $directions = [
+            'n' => 'north',
+            's' => 'south',
+            'e' => 'east',
+            'w' => 'west',
+            'ne' => 'northeast',
+            'nw' => 'northwest',
+            'se' => 'southeast',
+            'sw' => 'southwest'
+        ];
+
+        foreach ($words as &$word) {
+            if (isset($directions[$word])) {
+                $word = $directions[$word];
+            }
+        }
+        unset($word);
+
         $last = count($words) - 1;
 
         if (isset($suffixes[$words[$last]])) {
