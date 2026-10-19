@@ -1,6 +1,12 @@
 <?php
 require_once dirname(__DIR__).'/app/bootstrap.php';
 $user=Auth::requireUser();$tenant=Auth::tenant();$csrf=csrf_token();
+
+$dashboardPath = match ($tenant['role']) {
+    'client' => '/client-dashboard.php',
+    'contractor' => '/contractor-dashboard.php',
+    default => '/dashboard.v2.php',
+};
 ?><!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?=htmlspecialchars($pageTitle??'BriteScheduler')?></title>
 <link rel="stylesheet"
@@ -72,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <aside class="brite-sidebar" id="briteSidebar" aria-label="Main navigation">
     <a class="brite-brand"
-       href="<?=htmlspecialchars(app_url('/dashboard.v2.php'))?>">
+       href="<?=htmlspecialchars(app_url($dashboardPath),ENT_QUOTES,'UTF-8')?>">
         <span class="brite-brand-mark" aria-hidden="true">B</span>
         <span>Brite Scheduler</span>
     </a>
