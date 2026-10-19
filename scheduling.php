@@ -996,6 +996,9 @@ require __DIR__.'/partials/app_header.php';
                 aria-label="Close appointment details">Close</button>
     </div>
     <div id="appointmentDetailsContent"></div>
+    <p id="appointmentDetailsEditStatus"
+       role="status"
+       aria-live="polite"></p>
     <div class="appointment-details-actions">
         <button type="button" id="editAppointmentDetails">
             Edit Appointment
@@ -1082,6 +1085,7 @@ function showAppointmentDetails(event) {
     }
 
     detailsContent.replaceChildren(list);
+    document.getElementById('appointmentDetailsEditStatus').textContent = '';
     detailsDialog.showModal();
 }
 
@@ -1098,8 +1102,32 @@ document.getElementById('editAppointmentDetails')
     .addEventListener('click', async () => {
         const event = detailsEvent;
         if (!event) return;
-        closeAppointmentDetails();
-        await editAppointment(event);
+
+        const button = document.getElementById('editAppointmentDetails');
+        const status = document.getElementById('appointmentDetailsEditStatus');
+
+        if (button.disabled) return;
+
+        button.disabled = true;
+        status.textContent = 'Loading appointment for editing...';
+
+        try {
+            const loaded = await editAppointment(event);
+
+            if (loaded) {
+                closeAppointmentDetails();
+                openAppointmentWizard();
+            } else {
+                status.textContent =
+                    appointmentError.textContent ||
+                    'Unable to prepare this appointment for editing.';
+            }
+        } catch (error) {
+            status.textContent =
+                'Unable to prepare appointment: ' + error.message;
+        } finally {
+            button.disabled = false;
+        }
     });
 
 detailsDialog.addEventListener('close', () => {
@@ -2364,7 +2392,9 @@ async function editAppointment(event){
     try {
         await loadClientLocations(a.client_location_id || '', false);
     } catch(e) {
-        appointmentError.textContent = e.message;
+        appointmentError.textContent =
+            'Unable to load appointment locations: ' + e.message;
+        return false;
     }
 
     const contractors=String(a.contractor_ids || '')
@@ -2392,7 +2422,7 @@ async function editAppointment(event){
 
     invalidateRecommendations();
     invalidateContractorConflict();
-    openAppointmentWizard();
+    return true;
 }
 
 let appointmentSavePending = false;
