@@ -294,13 +294,17 @@ final class Geocoding
             return ['status' => 'not_found'];
         }
 
+        $rejectionReasons = [];
+
         foreach ($items as $item) {
             if (!is_array($item)) {
+                $rejectionReasons[] = 'invalid_candidate';
                 continue;
             }
 
             $details = $item['address'] ?? [];
             if (!is_array($details)) {
+                $rejectionReasons[] = 'missing_address_details';
                 continue;
             }
 
@@ -319,12 +323,14 @@ final class Geocoding
             if ($requestedStreet === '' ||
                 $actualStreet === '' ||
                 $requestedStreet !== $actualStreet) {
+                $rejectionReasons[] = 'street_mismatch';
                 continue;
             }
 
             // Reject city centers, streets, and buildings without
             // an explicitly matching house number.
             if ($actualNumber !== $requestedNumber) {
+                $rejectionReasons[] = 'house_number_mismatch';
                 continue;
             }
 
@@ -344,10 +350,12 @@ final class Geocoding
                 strlen($requestedPostcode) < 5 ||
                 substr($actualPostcode, 0, 5) !== substr($requestedPostcode, 0, 5)
             ) {
+                $rejectionReasons[] = 'postcode_mismatch';
                 continue;
             }
 
             if (($details['country_code'] ?? '') !== 'us') {
+                $rejectionReasons[] = 'country_mismatch';
                 continue;
             }
 
@@ -359,6 +367,7 @@ final class Geocoding
                 $lat < -90 || $lat > 90 ||
                 $lon < -180 || $lon > 180
             ) {
+                $rejectionReasons[] = 'invalid_coordinates';
                 continue;
             }
 
@@ -371,6 +380,10 @@ final class Geocoding
             ];
         }
 
-        return ['status' => 'rejected'];
+        return [
+            'status' => 'rejected',
+            'rejection_reason' => $rejectionReasons[0]
+                ?? 'no_acceptable_candidate'
+        ];
     }
 }
