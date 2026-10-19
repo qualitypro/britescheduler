@@ -945,6 +945,8 @@ require __DIR__.'/partials/app_header.php';
         </section>
 
         <section class="wizard-step" data-wizard-step="5" aria-label="Contractor">
+<div class="brite-contractor-layout">
+<div class="brite-contractor-selection">
         <label for="contractorSearch">Find Contractors</label>
         <input id="contractorSearch"
                type="search"
@@ -984,7 +986,9 @@ require __DIR__.'/partials/app_header.php';
             Leave unassigned or select a contractor to check availability.
         </p>
 
-        <!-- Advisory contractor recommendations; no automatic assignment. -->
+
+</div>
+<div class="brite-contractor-recommendation-column"><!-- Advisory contractor recommendations; no automatic assignment. -->
         <section id="contractorRecommendations"
                  class="contractor-recommendations"
                  aria-labelledby="recommendationsTitle">
@@ -1021,7 +1025,10 @@ require __DIR__.'/partials/app_header.php';
             </p>
         </section>
 
-        </section>
+
+</div>
+</div>
+</section>
 
         <section class="wizard-step"
                  data-wizard-step="6"
@@ -1326,58 +1333,49 @@ function wizardReview() {
 
     summary.replaceChildren();
 
-    const card = document.createElement('div');
-    card.className = 'brite-review-card';
+    const grid = document.createElement('div');
+    grid.className = 'brite-review-six-grid';
 
-    const heading = document.createElement('h3');
-    heading.className = 'brite-review-heading';
-    heading.textContent = 'Review Appointment';
+    function reviewCard(title, icon, entries) {
+        const card = document.createElement('section');
+        card.className = 'brite-review-type-card';
+        card.tabIndex = 0;
+        card.setAttribute('aria-label', title + ' review details');
 
-    const subtitle = document.createElement('p');
-    subtitle.className = 'brite-review-subtitle';
-    subtitle.textContent =
-        'Please confirm the appointment details before saving.';
+        const heading = document.createElement('h3');
+        heading.className = 'brite-review-type-heading';
 
-    const headingRow = document.createElement('div');
-    headingRow.className = 'brite-review-heading-row';
+        const symbol = document.createElement('span');
+        symbol.className = 'brite-review-type-icon';
+        symbol.setAttribute('aria-hidden', 'true');
+        symbol.textContent = icon;
 
-    const headingTime = document.createElement('span');
-    headingTime.className = 'brite-review-heading-time';
+        heading.append(symbol, document.createTextNode(title));
+        card.appendChild(heading);
 
-    headingRow.append(heading, headingTime);
-    card.append(headingRow, subtitle);
+        const body = document.createElement('div');
+        body.className = 'brite-review-type-body';
 
-    function detail(label, value) {
-        const item = document.createElement('div');
-        item.className = 'brite-review-detail';
+        entries.forEach(([label, value]) => {
+            const row = document.createElement('div');
+            row.className = 'brite-review-type-row';
 
-        const name = document.createElement('span');
-        name.className = 'brite-review-label';
-        name.textContent = label;
+            const name = document.createElement('span');
+            name.className = 'brite-review-type-label';
+            name.textContent = label;
 
-        const content = document.createElement('span');
-        content.className = 'brite-review-value';
-        content.textContent = value || 'Not specified';
+            const content = document.createElement('span');
+            content.className = 'brite-review-type-value';
+            content.textContent = value || 'Not specified';
+            content.title = content.textContent;
 
-        item.append(name, content);
-        return item;
+            row.append(name, content);
+            body.appendChild(row);
+        });
+
+        card.appendChild(body);
+        return card;
     }
-
-    const information = document.createElement('div');
-    information.className = 'brite-review-information';
-
-    [
-        ['Client', 'clientId'],
-        ['Saved Location', 'clientLocationId'],
-        ['Location', 'appointmentLocation'],
-        ['Service', 'serviceId'],
-        ['Title', 'appointmentTitle'],
-        ['Description', 'appointmentDescription']
-    ].forEach(([label, id]) => {
-        information.appendChild(detail(label, wizardFieldValue(id)));
-    });
-
-    card.appendChild(information);
 
     const start = wizardReviewDate(
         document.getElementById('startsAt').value
@@ -1397,87 +1395,95 @@ function wizardReview() {
             : '';
     }
 
-    if (start && end) {
-        headingTime.textContent =
-            formatHeadingTime(start) + ' – ' + formatHeadingTime(end);
-    } else {
-        headingTime.hidden = true;
-    }
-
-    const datePanel = document.createElement('section');
-    datePanel.className = 'brite-review-datetime';
-
-    const dateLabel = document.createElement('div');
-    dateLabel.className = 'brite-review-label';
-    dateLabel.textContent = 'APPOINTMENT DATE';
-
-    const dateHeading = document.createElement('h4');
-    dateHeading.className = 'brite-review-date-heading';
-    dateHeading.textContent = start
+    const date = start
         ? start.toLocaleDateString('en-US', {
             timeZone: 'UTC',
-            weekday: 'long',
+            weekday: 'short',
             year: 'numeric',
-            month: 'long',
+            month: 'short',
             day: 'numeric'
         })
         : 'Not specified';
 
-    datePanel.append(dateLabel, dateHeading);
+    const time = start && end
+        ? formatHeadingTime(start) + ' – ' + formatHeadingTime(end)
+        : 'Not specified';
 
+    let duration = 'Not specified';
     if (start && end) {
-        const durationMinutes = Math.round(
+        const minutes = Math.round(
             (end.getTime() - start.getTime()) / 60000
         );
-
-        if (durationMinutes > 0) {
-            const duration = document.createElement('p');
-            duration.className = 'brite-review-duration';
-
-            const hours = Math.floor(durationMinutes / 60);
-            const minutes = durationMinutes % 60;
-
-            const parts = [];
-
-            if (hours) {
-                parts.push(hours + (hours === 1 ? ' hour' : ' hours'));
-            }
-            if (minutes) {
-                parts.push(minutes + ' minutes');
-            }
-
-            duration.textContent = 'Duration: ' + parts.join(' ');
-            datePanel.appendChild(duration);
-        }
-
-        if (start.toISOString().slice(0, 10) !== end.toISOString().slice(0, 10)) {
-            const endDate = document.createElement('p');
-            endDate.className = 'brite-review-end-date';
-            endDate.textContent = 'Ends ' +
-                end.toLocaleDateString('en-US', {
-                    timeZone: 'UTC',
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-
-            datePanel.appendChild(endDate);
+        if (minutes > 0) {
+            const hours = Math.floor(minutes / 60);
+            const remainder = minutes % 60;
+            duration = [
+                hours ? hours + 'h' : '',
+                remainder ? remainder + 'm' : ''
+            ].filter(Boolean).join(' ');
         }
     }
 
-    card.appendChild(datePanel);
+    const dateEntries = [
+        ['Date', date],
+        ['Time', time],
+        ['Duration', duration]
+    ];
 
-    const remaining = document.createElement('div');
-    remaining.className = 'brite-review-information';
+    if (start && end &&
+        start.toISOString().slice(0, 10) !==
+        end.toISOString().slice(0, 10)) {
+        dateEntries.push([
+            'Ends',
+            end.toLocaleDateString('en-US', {
+                timeZone: 'UTC',
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            })
+        ]);
+    }
 
-    remaining.append(
-        detail('Status', wizardFieldValue('appointmentStatus')),
-        detail('Contractors', wizardFieldValue('contractorId'))
-    );
+    [
+        reviewCard('Client', '◉', [
+            ['Client', wizardFieldValue('clientId')]
+        ]),
+        reviewCard('Location', '⌖', [
+            ['Saved Location', wizardFieldValue('clientLocationId')],
+            ['Address', wizardFieldValue('appointmentLocation')]
+        ]),
+        reviewCard('Service', '⚙', [
+            ['Service', wizardFieldValue('serviceId')]
+        ]),
+        reviewCard('Date & Time', '◷', dateEntries),
+        reviewCard('Contractors', '♧', [
+            ['Assigned', (() => {
+                const checked = [
+                    ...document.querySelectorAll(
+                        '#contractorCheckboxList input[type="checkbox"]:checked'
+                    )
+                ];
 
-    card.appendChild(remaining);
-    summary.appendChild(card);
+                const names = checked.map(input => {
+                    const label = input.closest('label');
+                    return label?.textContent?.trim() ||
+                        input.value;
+                });
+
+                return names.length
+                    ? names.join(', ')
+                    : wizardFieldValue('contractorId');
+            })()]
+        ]),
+        reviewCard('Details', '☷', [
+            ['Title', wizardFieldValue('appointmentTitle')],
+            ['Description', wizardFieldValue('appointmentDescription')],
+            ['Status', wizardFieldValue('appointmentStatus')]
+        ])
+    ].forEach(card => grid.appendChild(card));
+
+    summary.appendChild(grid);
 }
 
 function wizardClearFieldError(field) {
