@@ -1150,10 +1150,14 @@ function appointmentDetailsDate(value) {
         return String(value);
     }
 
+    const use24HourTime =
+        window.BRITE_CALENDAR_PREFERENCES?.time_format === '24h';
+
     return new Intl.DateTimeFormat('en-US', {
         timeZone: 'UTC',
         dateStyle: 'medium',
-        timeStyle: 'short'
+        timeStyle: 'short',
+        hour12: !use24HourTime
     }).format(date);
 }
 
@@ -1422,7 +1426,8 @@ function wizardReview() {
                 timeZone: 'UTC',
                 hour: 'numeric',
                 minute: '2-digit',
-                hour12: true
+                hour12:
+                    window.BRITE_CALENDAR_PREFERENCES?.time_format !== '24h'
             })
             : '';
     }
@@ -3070,10 +3075,61 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             await loadLookups();
         }
 
+        // Load saved preferences for the authenticated user.
+        // Keep safe defaults if preferences cannot be retrieved.
+        let calendarPreferences = {
+            calendar_view: 'month',
+            week_starts_on: 'sunday',
+            time_format: '12h'
+        };
+
+        try {
+            const response = await api('/api/user_preferences.php');
+            const saved = response.preferences || {};
+
+            if (['month', 'week', 'day'].includes(saved.calendar_view)) {
+                calendarPreferences.calendar_view = saved.calendar_view;
+            }
+
+            if (['sunday', 'monday'].includes(saved.week_starts_on)) {
+                calendarPreferences.week_starts_on = saved.week_starts_on;
+            }
+
+            if (['12h', '24h'].includes(saved.time_format)) {
+                calendarPreferences.time_format = saved.time_format;
+            }
+        } catch (preferencesError) {
+            console.warn(
+                'Calendar preferences unavailable; using defaults.',
+                preferencesError
+            );
+        }
+
+        window.BRITE_CALENDAR_PREFERENCES = calendarPreferences;
+
+        const preferredViews = {
+            month: 'dayGridMonth',
+            week: 'timeGridWeek',
+            day: 'timeGridDay'
+        };
+
+        const use24HourTime = calendarPreferences.time_format === '24h';
+
         calendar=new FullCalendar.Calendar(
             document.getElementById('calendar'),
             {
-                initialView:'dayGridMonth',
+                initialView: preferredViews[calendarPreferences.calendar_view],
+                firstDay: calendarPreferences.week_starts_on === 'monday' ? 1 : 0,
+                eventTimeFormat: {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: !use24HourTime
+                },
+                slotLabelFormat: {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: !use24HourTime
+                },
                 // UTC represents tenant-local wall-clock values here.
                 timeZone:'UTC',
 
