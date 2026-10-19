@@ -14,26 +14,230 @@ function appointment_datetime(string $value, string $field): string
 {
     $value = trim($value);
 
+    // Appointment DATETIME values are tenant-local wall times.
+    // Reject offset-bearing input rather than silently discarding
+    // its timezone offset.
     $formats = [
-        'Y-m-d H:i:s',
-        'Y-m-d\TH:i:s',
-        'Y-m-d\TH:i',
-        DateTimeInterface::ATOM
+        '!Y-m-d H:i:s',
+        '!Y-m-d\TH:i:s',
+        '!Y-m-d\TH:i'
     ];
 
     foreach ($formats as $format) {
-        $dt = DateTime::createFromFormat($format, $value);
+        // Parse wall-clock fields independently of the PHP host
+        // timezone; tenant-local DST validation happens later.
+        $dt = DateTimeImmutable::createFromFormat(
+            $format,
+            $value,
+            new DateTimeZone('UTC')
+        );
+        $errors = DateTimeImmutable::getLastErrors();
 
-        if ($dt && $dt->format($format) === $value) {
-            return $dt->format('Y-m-d H:i:s');
+        if (!$dt ||
+            ($errors !== false &&
+             ($errors['warning_count'] || $errors['error_count']))) {
+            continue;
         }
+
+        $comparisonFormat = ltrim($format, '!');
+
+        if ($dt->format($comparisonFormat) !== $value) {
+            continue;
+        }
+
+        $year = (int)$dt->format('Y');
+
+        if ($year < 2000 || $year > 9999) {
+            continue;
+        }
+
+        return $dt->format('Y-m-d H:i:s');
+    }
+
+    throw new RuntimeException("Invalid {$field}");
+}
+
+function validate_appointment_dst(
+    PDO $pdo,
+    int $tenantId,
+    string $startsAt,
+    string $endsAt,
+    ?string $existingStart = null,
+    ?string $existingEnd = null
+): void {
+    $q = $pdo->prepare(
+        'SELECT timezone FROM tenants WHERE id=?'
+    );
+    $q->execute([$tenantId]);
+
+    $timezoneName = $q->fetchColumn();
+
+    if (!$timezoneName) {
+        throw new RuntimeException('Tenant timezone not configured');
     }
 
     try {
-        $dt = new DateTime($value);
-        return $dt->format('Y-m-d H:i:s');
+        $timezone = new DateTimeZone((string)$timezoneName);
     } catch (Throwable $e) {
-        throw new RuntimeException("Invalid {$field}");
+        throw new RuntimeException('Invalid tenant timezone');
+    }
+
+    if (!(
+        $existingStart !== null &&
+        $existingEnd !== null &&
+        $startsAt === $existingStart &&
+        $endsAt === $existingEnd
+    )) {
+        $startDate = DateTimeImmutable::createFromFormat(
+            '!Y-m-d H:i:s',
+            $startsAt,
+            $timezone
+        );
+
+        $endDate = DateTimeImmutable::createFromFormat(
+            '!Y-m-d H:i:s',
+            $endsAt,
+            $timezone
+        );
+
+        if ($startDate && $endDate &&
+            $startDate->format('Y-m-d H:i:s') === $startsAt &&
+            $endDate->format('Y-m-d H:i:s') === $endsAt &&
+            $startDate->getOffset() !== $endDate->getOffset()) {
+            throw new RuntimeException(
+                'Appointments crossing a daylight-saving ' .
+                'transition are not supported'
+            );
+        }
+    }
+
+    foreach ([
+        ['start', $startsAt, $existingStart],
+        ['end', $endsAt, $existingEnd]
+    ] as [$field, $value, $existing]) {
+        // Preserve unchanged historical appointment timestamps.
+        if ($existing !== null && $value === $existing) {
+            continue;
+        }
+
+        $date = DateTimeImmutable::createFromFormat(
+            '!Y-m-d H:i:s',
+            $value,
+            $timezone
+        );
+
+        $errors = DateTimeImmutable::getLastErrors();
+
+        if (!$date ||
+            ($errors !== false &&
+             ($errors['warning_count'] || $errors['error_count'])) ||
+            $date->format('Y-m-d H:i:s') !== $value) {
+            throw new RuntimeException(
+                "Invalid appointment {$field} date or time"
+            );
+        }
+
+        // Interpret the local wall-clock fields as UTC solely to
+        // calculate their numeric position around DST transitions.
+        $wall = DateTimeImmutable::createFromFormat(
+            '!Y-m-d H:i:s',
+            $value,
+            new DateTimeZone('UTC')
+        );
+
+        $wallTimestamp = $wall->getTimestamp();
+
+        $transitions = $timezone->getTransitions(
+            $wallTimestamp - 3 * 86400,
+            $wallTimestamp + 3 * 86400
+        );
+
+        if (!is_array($transitions)) {
+            continue;
+        }
+
+        $previousOffset = null;
+
+        foreach ($transitions as $transition) {
+            $newOffset = (int)$transition['offset'];
+
+            if ($previousOffset !== null &&
+                $newOffset < $previousOffset) {
+                $repeatedStart =
+                    $transition['ts'] + $newOffset;
+                $repeatedEnd =
+                    $transition['ts'] + $previousOffset;
+
+                if ($wallTimestamp >= $repeatedStart &&
+                    $wallTimestamp < $repeatedEnd) {
+                    throw new RuntimeException(
+                        "Ambiguous appointment {$field} time " .
+                        'during daylight-saving transition'
+                    );
+                }
+            }
+
+            $previousOffset = $newOffset;
+        }
+    }
+}
+
+function validate_future_appointment_start(
+    PDO $pdo,
+    int $tenantId,
+    string $startsAt,
+    ?string $existingStart = null
+): void {
+    // Existing appointments may retain their original historical start.
+    if ($existingStart !== null && $startsAt === $existingStart) {
+        return;
+    }
+
+    $q = $pdo->prepare(
+        'SELECT timezone FROM tenants WHERE id=?'
+    );
+    $q->execute([$tenantId]);
+
+    $timezoneName = $q->fetchColumn();
+
+    if (!$timezoneName) {
+        throw new RuntimeException('Tenant timezone not configured');
+    }
+
+    try {
+        $timezone = new DateTimeZone((string)$timezoneName);
+
+        $start = DateTimeImmutable::createFromFormat(
+            '!Y-m-d H:i:s',
+            $startsAt,
+            $timezone
+        );
+
+        $errors = DateTimeImmutable::getLastErrors();
+
+        if (!$start ||
+            ($errors !== false &&
+             ($errors['warning_count'] || $errors['error_count'])) ||
+            $start->format('Y-m-d H:i:s') !== $startsAt ||
+            (int)$start->format('Y') < 2000) {
+            throw new RuntimeException(
+                'Invalid appointment start date or time'
+            );
+        }
+
+        $now = new DateTimeImmutable('now', $timezone);
+
+        if ($start <= $now) {
+            throw new RuntimeException(
+                'Appointment start time must be in the future'
+            );
+        }
+    } catch (RuntimeException $e) {
+        throw $e;
+    } catch (Throwable $e) {
+        throw new RuntimeException(
+            'Invalid appointment timezone or start time'
+        );
     }
 }
 
@@ -207,7 +411,11 @@ function validate_assignment_eligibility(
 
 function validate_times(string $startsAt, string $endsAt): void
 {
-    if (strtotime($endsAt) <= strtotime($startsAt)) {
+    // Both values have already been normalized by
+    // appointment_datetime() to YYYY-MM-DD HH:MM:SS.
+    // Lexical ordering preserves tenant-local wall-clock ordering
+    // without depending on the PHP server timezone.
+    if ($endsAt <= $startsAt) {
         throw new RuntimeException(
             'Appointment end time must be after start time'
         );
@@ -222,13 +430,61 @@ function validate_times(string $startsAt, string $endsAt): void
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
-    $start =
-        $_GET['start']
-        ?? date('Y-m-01 00:00:00');
+    // FullCalendar uses UTC as a representation of tenant-local
+    // wall-clock time. Do not convert these boundaries to the
+    // server's timezone before comparing with DATETIME columns.
+    $normalizeCalendarBoundary = static function (
+        string $value
+    ): string {
+        $value = trim($value);
 
-    $end =
-        $_GET['end']
-        ?? date('Y-m-t 23:59:59');
+        $formats = [
+            '!Y-m-d\TH:i:s\Z',
+            '!Y-m-d\TH:i:s',
+            '!Y-m-d H:i:s'
+        ];
+
+        foreach ($formats as $format) {
+            $date = DateTimeImmutable::createFromFormat(
+                $format,
+                $value,
+                new DateTimeZone('UTC')
+            );
+
+            $errors = DateTimeImmutable::getLastErrors();
+
+            if (!$date ||
+                ($errors !== false &&
+                 ($errors['warning_count'] || $errors['error_count']))) {
+                continue;
+            }
+
+            if ($date->format(ltrim($format, '!')) !== $value ||
+                (int)$date->format('Y') < 2000) {
+                continue;
+            }
+
+            return $date->format('Y-m-d H:i:s');
+        }
+
+        throw new RuntimeException(
+            'Invalid calendar date-range boundary'
+        );
+    };
+
+    $start = $normalizeCalendarBoundary(
+        (string)($_GET['start'] ?? date('Y-m-01 00:00:00'))
+    );
+
+    $end = $normalizeCalendarBoundary(
+        (string)($_GET['end'] ?? date('Y-m-t 23:59:59'))
+    );
+
+    if ($start >= $end) {
+        throw new RuntimeException(
+            'Calendar date-range start must precede end'
+        );
+    }
 
 
     /*
@@ -473,6 +729,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
 
         validate_times($startsAt, $endsAt);
+        validate_appointment_dst(
+            $pdo,
+            $tid,
+            $startsAt,
+            $endsAt
+        );
+        validate_future_appointment_start(
+            $pdo,
+            $tid,
+            $startsAt
+        );
 
         $status = validate_appointment_status(
             $d['status'] ?? 'scheduled'
@@ -588,14 +855,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     try {
 
         $owned = $pdo->prepare("
-            SELECT id
+            SELECT starts_at, ends_at
             FROM appointments
             WHERE id=? AND tenant_id=?
         ");
 
         $owned->execute([$id, $tid]);
 
-        if (!$owned->fetchColumn()) {
+        $existingAppointment = $owned->fetch(PDO::FETCH_ASSOC);
+
+        if (!$existingAppointment) {
             throw new RuntimeException(
                 'Appointment not found'
             );
@@ -641,6 +910,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         );
 
         validate_times($startsAt, $endsAt);
+        validate_appointment_dst(
+            $pdo,
+            $tid,
+            $startsAt,
+            $endsAt,
+            (string)$existingAppointment['starts_at'],
+            (string)$existingAppointment['ends_at']
+        );
+        validate_future_appointment_start(
+            $pdo,
+            $tid,
+            $startsAt,
+            (string)$existingAppointment['starts_at']
+        );
 
         $status = validate_appointment_status(
             $d['status'] ?? 'scheduled'

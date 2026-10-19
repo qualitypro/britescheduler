@@ -2,6 +2,22 @@
 require_once __DIR__.'/app/bootstrap.php';
 Auth::requireRole('owner','admin','scheduler');
 
+$timezoneStatement = Database::connection()->prepare(
+    'SELECT timezone FROM tenants WHERE id=? LIMIT 1'
+);
+$timezoneStatement->execute([Auth::tenantId()]);
+$tenantTimezone = $timezoneStatement->fetchColumn();
+
+if (!$tenantTimezone) {
+    throw new RuntimeException('Tenant timezone not configured');
+}
+
+try {
+    new DateTimeZone((string)$tenantTimezone);
+} catch (Throwable $e) {
+    throw new RuntimeException('Invalid tenant timezone');
+}
+
 $pageTitle='Schedule';
 require __DIR__.'/partials/app_header.php';
 ?>
@@ -846,6 +862,63 @@ require __DIR__.'/partials/app_header.php';
         </section>
 
         <section class="wizard-step" data-wizard-step="4" aria-label="Date & Time">
+
+        <!-- Milestone 146E: simplified appointment date/time picker -->
+        <div class="brite-datetime-picker" id="briteDateTimePicker">
+
+            <div class="brite-datetime-heading">
+                <h3>When should this appointment take place?</h3>
+                <p>Select a date, start time, and duration.</p>
+            </div>
+
+            <div class="brite-datetime-section">
+                <label for="briteAppointmentDate">Appointment Date</label>
+                <input type="date"
+                       id="briteAppointmentDate"
+                       autocomplete="off">
+            </div>
+
+            <div class="brite-datetime-section">
+                <span class="brite-datetime-label">Start Time</span>
+                <div id="briteTimeSlots"
+                     class="brite-time-slots"
+                     role="group"
+                     aria-label="Choose appointment start time">
+                </div>
+            </div>
+
+            <div class="brite-datetime-section">
+                <span class="brite-datetime-label">Duration</span>
+                <div id="briteDurationPresets"
+                     class="brite-duration-presets"
+                     role="group"
+                     aria-label="Choose appointment duration">
+
+                    <button type="button" data-duration="30">30 min</button>
+                    <button type="button" data-duration="60">1 hour</button>
+                    <button type="button" data-duration="90">1.5 hours</button>
+                    <button type="button" data-duration="120">2 hours</button>
+                    <button type="button" data-duration="custom">Custom</button>
+                </div>
+
+                <div id="briteCustomDurationContainer" hidden>
+                    <label for="briteCustomDuration">Duration in minutes</label>
+                    <input type="number"
+                           id="briteCustomDuration"
+                           min="1"
+                           max="1440"
+                           step="1">
+                </div>
+            </div>
+
+            <div class="brite-datetime-summary"
+                 id="briteDateTimeSummary"
+                 role="status"
+                 aria-live="polite">
+                Choose a date and start time to see your appointment summary.
+            </div>
+        </div>
+
         <label>Start</label>
         <input name="starts_at"
                id="startsAt"
@@ -1022,6 +1095,12 @@ require __DIR__.'/partials/app_header.php';
 </div>
 
 <script>
+window.briteTenantTimezone = <?=json_encode(
+    (string)$tenantTimezone,
+    JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS |
+    JSON_HEX_QUOT | JSON_THROW_ON_ERROR
+)?>;
+
 let calendar;
 let services=[];
 let detailsEvent = null;
@@ -1033,13 +1112,20 @@ const detailsContent =
 
 function appointmentDetailsDate(value) {
     if (!value) return 'Not specified';
-    const date = new Date(value);
-    return Number.isNaN(date.getTime())
-        ? String(value)
-        : date.toLocaleString([], {
-            dateStyle: 'medium',
-            timeStyle: 'short'
-        });
+
+    const date = value instanceof Date
+        ? new Date(value.getTime())
+        : new Date(calendarEventDateTime(value) + 'Z');
+
+    if (!Number.isFinite(date.getTime())) {
+        return String(value);
+    }
+
+    return new Intl.DateTimeFormat('en-US', {
+        timeZone: 'UTC',
+        dateStyle: 'medium',
+        timeStyle: 'short'
+    }).format(date);
 }
 
 function showAppointmentDetails(event) {
@@ -1211,38 +1297,187 @@ function wizardFieldValue(id) {
     return field.value?.trim() || '';
 }
 
+function wizardReviewDate(value) {
+    if (!value) return null;
+
+    // Represent tenant-local wall time in UTC to avoid browser
+    // timezone and daylight-saving adjustments.
+    const date = new Date(value + ':00Z');
+
+    if (!Number.isFinite(date.getTime())) return null;
+
+    const pad = number => String(number).padStart(2, '0');
+
+    const normalized =
+        String(date.getUTCFullYear()).padStart(4, '0') + '-' +
+        pad(date.getUTCMonth() + 1) + '-' +
+        pad(date.getUTCDate()) + 'T' +
+        pad(date.getUTCHours()) + ':' +
+        pad(date.getUTCMinutes());
+
+    if (normalized !== value.slice(0, 16)) return null;
+
+    return date;
+}
+
 function wizardReview() {
     const summary = document.getElementById('wizardReviewSummary');
     if (!summary) return;
 
-    const fields = [
+    summary.replaceChildren();
+
+    const card = document.createElement('div');
+    card.className = 'brite-review-card';
+
+    const heading = document.createElement('h3');
+    heading.className = 'brite-review-heading';
+    heading.textContent = 'Review Appointment';
+
+    const subtitle = document.createElement('p');
+    subtitle.className = 'brite-review-subtitle';
+    subtitle.textContent =
+        'Please confirm the appointment details before saving.';
+
+    const headingRow = document.createElement('div');
+    headingRow.className = 'brite-review-heading-row';
+
+    const headingTime = document.createElement('span');
+    headingTime.className = 'brite-review-heading-time';
+
+    headingRow.append(heading, headingTime);
+    card.append(headingRow, subtitle);
+
+    function detail(label, value) {
+        const item = document.createElement('div');
+        item.className = 'brite-review-detail';
+
+        const name = document.createElement('span');
+        name.className = 'brite-review-label';
+        name.textContent = label;
+
+        const content = document.createElement('span');
+        content.className = 'brite-review-value';
+        content.textContent = value || 'Not specified';
+
+        item.append(name, content);
+        return item;
+    }
+
+    const information = document.createElement('div');
+    information.className = 'brite-review-information';
+
+    [
         ['Client', 'clientId'],
         ['Saved Location', 'clientLocationId'],
         ['Location', 'appointmentLocation'],
         ['Service', 'serviceId'],
         ['Title', 'appointmentTitle'],
-        ['Description', 'appointmentDescription'],
-        ['Start', 'startsAt'],
-        ['End', 'endsAt'],
-        ['Status', 'appointmentStatus'],
-        ['Contractors', 'contractorId']
-    ];
-
-    summary.replaceChildren();
-
-    const list = document.createElement('dl');
-
-    fields.forEach(([label, id]) => {
-        const term = document.createElement('dt');
-        term.textContent = label;
-
-        const value = document.createElement('dd');
-        value.textContent = wizardFieldValue(id) || 'Not specified';
-
-        list.append(term, value);
+        ['Description', 'appointmentDescription']
+    ].forEach(([label, id]) => {
+        information.appendChild(detail(label, wizardFieldValue(id)));
     });
 
-    summary.appendChild(list);
+    card.appendChild(information);
+
+    const start = wizardReviewDate(
+        document.getElementById('startsAt').value
+    );
+    const end = wizardReviewDate(
+        document.getElementById('endsAt').value
+    );
+
+    function formatHeadingTime(date) {
+        return date
+            ? date.toLocaleTimeString('en-US', {
+                timeZone: 'UTC',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            })
+            : '';
+    }
+
+    if (start && end) {
+        headingTime.textContent =
+            formatHeadingTime(start) + ' – ' + formatHeadingTime(end);
+    } else {
+        headingTime.hidden = true;
+    }
+
+    const datePanel = document.createElement('section');
+    datePanel.className = 'brite-review-datetime';
+
+    const dateLabel = document.createElement('div');
+    dateLabel.className = 'brite-review-label';
+    dateLabel.textContent = 'APPOINTMENT DATE';
+
+    const dateHeading = document.createElement('h4');
+    dateHeading.className = 'brite-review-date-heading';
+    dateHeading.textContent = start
+        ? start.toLocaleDateString('en-US', {
+            timeZone: 'UTC',
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        })
+        : 'Not specified';
+
+    datePanel.append(dateLabel, dateHeading);
+
+    if (start && end) {
+        const durationMinutes = Math.round(
+            (end.getTime() - start.getTime()) / 60000
+        );
+
+        if (durationMinutes > 0) {
+            const duration = document.createElement('p');
+            duration.className = 'brite-review-duration';
+
+            const hours = Math.floor(durationMinutes / 60);
+            const minutes = durationMinutes % 60;
+
+            const parts = [];
+
+            if (hours) {
+                parts.push(hours + (hours === 1 ? ' hour' : ' hours'));
+            }
+            if (minutes) {
+                parts.push(minutes + ' minutes');
+            }
+
+            duration.textContent = 'Duration: ' + parts.join(' ');
+            datePanel.appendChild(duration);
+        }
+
+        if (start.toISOString().slice(0, 10) !== end.toISOString().slice(0, 10)) {
+            const endDate = document.createElement('p');
+            endDate.className = 'brite-review-end-date';
+            endDate.textContent = 'Ends ' +
+                end.toLocaleDateString('en-US', {
+                    timeZone: 'UTC',
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+
+            datePanel.appendChild(endDate);
+        }
+    }
+
+    card.appendChild(datePanel);
+
+    const remaining = document.createElement('div');
+    remaining.className = 'brite-review-information';
+
+    remaining.append(
+        detail('Status', wizardFieldValue('appointmentStatus')),
+        detail('Contractors', wizardFieldValue('contractorId'))
+    );
+
+    card.appendChild(remaining);
+    summary.appendChild(card);
 }
 
 function wizardClearFieldError(field) {
@@ -1298,10 +1533,18 @@ function wizardValidateCurrentStep() {
         const start = document.getElementById('startsAt');
         const end = document.getElementById('endsAt');
 
+        start.setCustomValidity('');
         end.setCustomValidity('');
 
+        if (window.briteValidateAppointmentStart) {
+            const startError = window.briteValidateAppointmentStart();
+            if (startError) start.setCustomValidity(startError);
+        }
+
+        // datetime-local values use normalized local wall-clock
+        // timestamps. Compare them without browser timezone parsing.
         if (start.value && end.value &&
-            new Date(end.value) <= new Date(start.value)) {
+            end.value <= start.value) {
             end.setCustomValidity(
                 'End time must be after start time.'
             );
@@ -1426,6 +1669,11 @@ function wizardShowStep(number) {
 
     if (review) wizardReview();
 
+    if (wizardCurrentStep === 4 &&
+        window.briteSyncDateTimePicker) {
+        window.briteSyncDateTimePicker();
+    }
+
     if (wizardCurrentStep === 5) {
         void checkContractorConflict();
     }
@@ -1471,6 +1719,11 @@ function openAppointmentWizard(){
     if(!appointmentDialog || appointmentDialog.open) return;
 
     wizardShowStep(1);
+
+    if (window.briteSyncDateTimePicker) {
+        window.briteSyncDateTimePicker();
+    }
+
     appointmentDialog.showModal();
 }
 
@@ -1479,6 +1732,12 @@ function closeAppointmentWizard(){
         appointmentDialog.close();
     }
 }
+
+// Reset abandoned wizard state, including native Escape dismissal.
+appointmentDialog.addEventListener('close', () => {
+    resetForm();
+    wizardShowStep(1);
+});
 
 closeAppointmentDialog.addEventListener(
     'click',
@@ -2168,11 +2427,71 @@ function esc(s){
 function localDateTime(value){
     if(!value) return '';
 
-    const d=new Date(value);
+    const d = value instanceof Date
+        ? new Date(value.getTime())
+        : new Date(value);
 
-    const pad=n=>String(n).padStart(2,'0');
+    if (!Number.isFinite(d.getTime())) return '';
 
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const year = d.getFullYear();
+
+    // Reject malformed historical years rather than allowing
+    // them to populate a datetime-local appointment field.
+    if (year < 2000 || year > 9999) return '';
+
+    const pad = number => String(number).padStart(2, '0');
+
+    return String(year).padStart(4, '0') + '-' +
+        pad(d.getMonth() + 1) + '-' +
+        pad(d.getDate()) + 'T' +
+        pad(d.getHours()) + ':' +
+        pad(d.getMinutes());
+}
+
+function calendarWallTime(value){
+    if (!value) return '';
+
+    const date = value instanceof Date
+        ? value
+        : new Date(value);
+
+    if (!Number.isFinite(date.getTime())) return '';
+
+    const pad = number => String(number).padStart(2, '0');
+
+    return String(date.getUTCFullYear()).padStart(4, '0') +
+        '-' + pad(date.getUTCMonth() + 1) +
+        '-' + pad(date.getUTCDate()) +
+        'T' + pad(date.getUTCHours()) +
+        ':' + pad(date.getUTCMinutes());
+}
+
+function calendarEventDateTime(value){
+    if (!value) return null;
+
+    const match = String(value).match(
+        /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})(?::(\d{2}))?$/
+    );
+
+    if (!match) return null;
+
+    const normalized =
+        match[1] + 'T' + match[2] + ':' + (match[3] || '00');
+
+    const parsed = new Date(normalized + 'Z');
+
+    if (!Number.isFinite(parsed.getTime()) ||
+        parsed.toISOString().slice(0, 19) !== normalized ||
+        Number(match[1].slice(0, 4)) < 2000) {
+        return null;
+    }
+
+    return normalized;
+}
+
+function appointmentFieldDateTime(value){
+    const normalized = calendarEventDateTime(value);
+    return normalized ? normalized.slice(0, 16) : '';
 }
 
 function sqlDateTime(value){
@@ -2213,7 +2532,25 @@ function resetForm(){
     invoiceButton.hidden = true;
 
 
+    // Clear browser custom validity and wizard error decorations.
+    appointmentForm.querySelectorAll(
+        'input, select, textarea'
+    ).forEach(field => {
+        field.setCustomValidity('');
+        wizardClearFieldError(field);
+    });
+
     appointmentForm.reset();
+    appointmentId.value = '';
+
+    if (window.briteSetOriginalAppointmentStart) {
+        window.briteSetOriginalAppointmentStart();
+    }
+
+    if (window.briteSyncDateTimePicker) {
+        window.briteSyncDateTimePicker();
+    }
+
     contractorSearch.value = '';
     renderContractorSelection();
     ++locationLoadSequence;
@@ -2239,10 +2576,25 @@ serviceId.onchange=()=>{
 
     if(!service || !startsAt.value) return;
 
-    const start=new Date(startsAt.value);
-    start.setMinutes(start.getMinutes()+Number(service.duration_minutes));
+    const startValue = startsAt.value;
+    const start = new Date(startValue + ':00Z');
+    const minutes = Number(service.duration_minutes);
 
-    endsAt.value=localDateTime(start);
+    if (!Number.isFinite(start.getTime()) ||
+        !Number.isInteger(minutes) ||
+        minutes < 1 || minutes > 1440 ||
+        calendarWallTime(start) !== startValue) {
+        appointmentError.textContent =
+            'Invalid appointment start time or service duration.';
+        return;
+    }
+
+    const end = new Date(start.getTime() + minutes * 60000);
+
+    endsAt.value = calendarWallTime(end);
+    endsAt.dispatchEvent(
+        new Event('change', { bubbles: true })
+    );
 };
 
 const appointmentStatusColors = Object.freeze({
@@ -2358,8 +2710,8 @@ async function loadEvents(info,success,failure){
                     : '') +
                 (a.title || a.service_name || 'Appointment'),
 
-            start:a.starts_at,
-            end:a.ends_at,
+            start:calendarEventDateTime(a.starts_at),
+            end:calendarEventDateTime(a.ends_at),
 
             backgroundColor:
                 appointmentStatusColors[a.status] ||
@@ -2405,10 +2757,10 @@ async function persistCalendarMove(info){
                 title:a.title || 'Appointment',
                 description:a.description || null,
                 starts_at:sqlDateTime(
-                    localDateTime(event.start)
+                    calendarWallTime(event.start)
                 ),
                 ends_at:sqlDateTime(
-                    localDateTime(event.end)
+                    calendarWallTime(event.end)
                 ),
                 status:a.status || 'scheduled',
                 location:a.location || null,
@@ -2456,8 +2808,17 @@ async function editAppointment(event){
     renderContractorSelection();
 
     appointmentTitle.value=a.title || 'Appointment';
-    startsAt.value=localDateTime(a.starts_at);
-    endsAt.value=localDateTime(a.ends_at);
+    startsAt.value=appointmentFieldDateTime(a.starts_at);
+    endsAt.value=appointmentFieldDateTime(a.ends_at);
+
+    if (window.briteSetOriginalAppointmentStart) {
+        window.briteSetOriginalAppointmentStart();
+    }
+
+    if (window.briteSyncDateTimePicker) {
+        window.briteSyncDateTimePicker();
+    }
+
     appointmentStatus.value=a.status || 'scheduled';
     appointmentLocation.value=a.location || '';
     appointmentDescription.value=a.description || '';
@@ -2654,6 +3015,8 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             document.getElementById('calendar'),
             {
                 initialView:'dayGridMonth',
+                // UTC represents tenant-local wall-clock values here.
+                timeZone:'UTC',
 
                 headerToolbar:{
                     left:'prev,next today',
@@ -2682,12 +3045,17 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                 select:info=>{
                     resetForm();
 
-                    startsAt.value=localDateTime(info.start);
+                    startsAt.value=calendarWallTime(info.start);
 
                     let end=new Date(info.start);
-                    end.setHours(end.getHours()+1);
+                    end.setUTCHours(end.getUTCHours()+1);
 
-                    endsAt.value=localDateTime(end);
+                    endsAt.value=calendarWallTime(end);
+
+                    if (window.briteSyncDateTimePicker) {
+                        window.briteSyncDateTimePicker();
+                    }
+
                     invalidateRecommendations();
                     openAppointmentWizard();
                 },
@@ -2729,5 +3097,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
     }
 });
 </script>
+
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-datetime-picker.js'))?>"></script>
 
 <?php require __DIR__.'/partials/app_footer.php'; ?>
