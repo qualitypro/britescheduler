@@ -283,3 +283,104 @@
         flex-direction: column;
     }
 }
+
+
+/* Milestone 148B: Midnight client dashboard contrast */
+.brite-app[data-brite-theme="midnight"] .brite-client-quick-action,
+.brite-app[data-brite-theme="midnight"] .brite-client-upcoming-item {
+    background: var(--brite-surface);
+    color: var(--brite-text);
+    border-color: var(--brite-border);
+}
+
+.brite-app[data-brite-theme="midnight"] .brite-client-quick-action:hover,
+.brite-app[data-brite-theme="midnight"] .brite-client-quick-action:focus-visible {
+    background: var(--brite-surface-muted);
+    border-color: var(--brite-indigo);
+}
+
+.brite-app[data-brite-theme="midnight"] .brite-client-quick-action small,
+.brite-app[data-brite-theme="midnight"] .brite-client-upcoming-meta,
+.brite-app[data-brite-theme="midnight"] .brite-client-upcoming-empty p {
+    color: var(--brite-text-secondary);
+}
+
+.brite-app[data-brite-theme="midnight"] .brite-client-upcoming-title,
+.brite-app[data-brite-theme="midnight"] .brite-client-section-heading h2 {
+    color: var(--brite-text);
+}
+
+.brite-app[data-brite-theme="midnight"] .brite-client-upcoming-date {
+    background: var(--brite-indigo-soft);
+    color: var(--brite-text);
+}
+
+.brite-app[data-brite-theme="midnight"] .brite-client-upcoming-empty {
+    background: var(--brite-surface);
+    color: var(--brite-text);
+    border-color: var(--brite-border);
+}
+
+.brite-app[data-brite-theme="midnight"] .brite-client-upcoming-empty h3 {
+    color: var(--brite-text);
+}
+
+.brite-app[data-brite-theme="midnight"] .brite-client-section-heading a {
+    color: #a5b4fc;
+}
+
+.brite-app[data-brite-theme="midnight"] .brite-client-quick-icon {
+    background: var(--brite-indigo-soft);
+    color: #e0e7ff;
+}
+
+
+/* Milestone 148B: Midnight hero and pagination contrast */
+.brite-app[data-brite-theme="midnight"] .brite-client-hero {
+    background: linear-gradient(125deg, #172554, #0f172a 70%);
+    border-color: var(--brite-border);
+    color: var(--brite-text);
+}
+
+.brite-app[data-brite-theme="midnight"] .brite-client-hero h1 {
+    color: var(--brite-text);
+}
+
+.brite-app[data-brite-theme="midnight"] .brite-client-eyebrow {
+    color: #c7d2fe;
+}
+
+.brite-app[data-brite-theme="midnight"] .brite-client-hero p,
+.brite-app[data-brite-theme="midnight"] .brite-client-hero-note {
+    color: #e2e8f0;
+}
+
+.brite-app[data-brite-theme="midnight"] .brite-pagination {
+    color: var(--brite-text-secondary);
+}
+
+.brite-app[data-brite-theme="midnight"] .brite-pagination a {
+    color: var(--brite-text);
+    background: var(--brite-surface-muted);
+    border-color: var(--brite-border);
+}
+
+.brite-app[data-brite-theme="midnight"] .brite-pagination a:hover,
+.brite-app[data-brite-theme="midnight"] .brite-pagination a:focus-visible {
+    background: var(--brite-indigo-soft);
+    border-color: var(--brite-indigo);
+}
+
+.brite-app[data-brite-theme="midnight"] .brite-pagination button {
+    color: var(--brite-text);
+    background: var(--brite-surface-muted);
+    border: 1px solid var(--brite-border);
+    border-radius: 6px;
+    padding: 8px 12px;
+}
+
+.brite-app[data-brite-theme="midnight"] .brite-pagination button:disabled {
+    color: #cbd5e1;
+    opacity: 0.75;
+    cursor: not-allowed;
+}

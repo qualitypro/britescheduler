@@ -1,0 +1,222 @@
+/*
+ * Brite Scheduler — User Color Palettes
+ *
+ * Palette selection is stored per authenticated user.
+ * The shared application header will apply data-brite-theme.
+ *
+ * Ocean is the default palette and retains existing colors.
+ */
+
+:root,
+[data-brite-theme="ocean"] {
+    --brite-navy: #172554;
+    --brite-indigo: #4f46e5;
+    --brite-indigo-hover: #4338ca;
+    --brite-indigo-soft: #eef2ff;
+
+    --brite-canvas: #f8fafc;
+    --brite-surface: #ffffff;
+    --brite-surface-muted: #f1f5f9;
+
+    --brite-text: #0f172a;
+    --brite-text-secondary: #475569;
+    --brite-text-muted: #64748b;
+
+    --brite-border: #e2e8f0;
+    --brite-border-strong: #cbd5e1;
+
+    --brite-sidebar-link: #cbd5e1;
+    --brite-sidebar-label: #a5b4fc;
+}
+
+[data-brite-theme="forest"] {
+    --brite-navy: #14532d;
+    --brite-indigo: #15803d;
+    --brite-indigo-hover: #166534;
+    --brite-indigo-soft: #dcfce7;
+
+    --brite-canvas: #f0fdf4;
+    --brite-surface: #ffffff;
+    --brite-surface-muted: #f0fdf4;
+
+    --brite-text: #14532d;
+    --brite-text-secondary: #365e46;
+    --brite-text-muted: #547361;
+
+    --brite-border: #d1e7d7;
+    --brite-border-strong: #a7cdb3;
+
+    --brite-sidebar-link: #dcfce7;
+    --brite-sidebar-label: #bbf7d0;
+}
+
+[data-brite-theme="midnight"] {
+    --brite-navy: #020617;
+    --brite-indigo: #6366f1;
+    --brite-indigo-hover: #818cf8;
+    --brite-indigo-soft: #312e81;
+
+    --brite-canvas: #020617;
+    --brite-surface: #0f172a;
+    --brite-surface-muted: #1e293b;
+
+    --brite-text: #f8fafc;
+    --brite-text-secondary: #cbd5e1;
+    --brite-text-muted: #94a3b8;
+
+    --brite-border: #334155;
+    --brite-border-strong: #475569;
+
+    --brite-sidebar-link: #cbd5e1;
+    --brite-sidebar-label: #a5b4fc;
+
+    color-scheme: dark;
+}
+
+[data-brite-theme="slate"] {
+    --brite-navy: #44403c;
+    --brite-indigo: #b45309;
+    --brite-indigo-hover: #92400e;
+    --brite-indigo-soft: #fef3c7;
+
+    --brite-canvas: #faf7f2;
+    --brite-surface: #ffffff;
+    --brite-surface-muted: #f5f0e8;
+
+    --brite-text: #292524;
+    --brite-text-secondary: #57534e;
+    --brite-text-muted: #78716c;
+
+    --brite-border: #e7e0d6;
+    --brite-border-strong: #d6c8b7;
+
+    --brite-sidebar-link: #f5f0e8;
+    --brite-sidebar-label: #fde68a;
+}
+
+/*
+ * Shared palette-aware application shell.
+ */
+
+.brite-app .brite-topbar,
+.brite-app .card,
+.brite-app table {
+    background: var(--brite-surface);
+    color: var(--brite-text);
+}
+
+.brite-app .card,
+.brite-app th,
+.brite-app td {
+    border-color: var(--brite-border);
+}
+
+.brite-app .brite-sidebar-nav a {
+    color: var(--brite-sidebar-link);
+}
+
+.brite-app .brite-sidebar-label,
+.brite-app .brite-sidebar-footer {
+    color: var(--brite-sidebar-label);
+}
+
+.brite-app .muted {
+    color: var(--brite-text-muted);
+}
+
+.brite-app input,
+.brite-app select,
+.brite-app textarea {
+    background: var(--brite-surface);
+    color: var(--brite-text);
+    border-color: var(--brite-border-strong);
+}
+
+.brite-app input:focus-visible,
+.brite-app select:focus-visible,
+.brite-app textarea:focus-visible {
+    outline: 2px solid var(--brite-indigo);
+    outline-offset: 2px;
+}
+
+[data-brite-reduced-motion="1"] *,
+[data-brite-reduced-motion="1"] *::before,
+[data-brite-reduced-motion="1"] *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+}
+
+[data-brite-high-contrast="1"] {
+    --brite-border: #64748b;
+    --brite-border-strong: #475569;
+}
+
+[data-brite-theme="midnight"][data-brite-high-contrast="1"] {
+    --brite-border: #cbd5e1;
+    --brite-border-strong: #f8fafc;
+}
+
+
+/* Milestone 148B: legacy shell compatibility */
+
+.brite-app {
+    background: var(--brite-canvas);
+    color: var(--brite-text);
+}
+
+.brite-app .top,
+.brite-app .brite-sidebar {
+    background: var(--brite-navy);
+}
+
+.brite-app .nav,
+.brite-app .card,
+.brite-app table,
+.brite-app .brite-topbar {
+    background: var(--brite-surface);
+    color: var(--brite-text);
+}
+
+.brite-app .nav,
+.brite-app .card,
+.brite-app th,
+.brite-app td,
+.brite-app .brite-topbar {
+    border-color: var(--brite-border);
+}
+
+.brite-app .nav a {
+    color: var(--brite-text-secondary);
+}
+
+.brite-app .muted {
+    color: var(--brite-text-muted);
+}
+
+.brite-app .brite-sidebar-nav a {
+    color: var(--brite-sidebar-link);
+}
+
+.brite-app .brite-sidebar-label,
+.brite-app .brite-sidebar-footer {
+    color: var(--brite-sidebar-label);
+}
+
+.brite-app .brite-brand-mark {
+    background: var(--brite-indigo);
+}
+
+.brite-app[data-brite-theme="midnight"] .card {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+.brite-app[data-brite-theme="midnight"] input,
+.brite-app[data-brite-theme="midnight"] select,
+.brite-app[data-brite-theme="midnight"] textarea {
+    color-scheme: dark;
+}
+
+.brite-app[data-brite-theme="midnight"] .brite-ui-button-primary {
+    color: #ffffff;
+}

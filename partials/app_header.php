@@ -2,6 +2,25 @@
 require_once dirname(__DIR__).'/app/bootstrap.php';
 $user=Auth::requireUser();$tenant=Auth::tenant();$csrf=csrf_token();
 
+$preferenceQuery = Database::connection()->prepare(
+    'SELECT color_palette, reduced_motion, high_contrast
+     FROM user_preferences
+     WHERE user_id = ?
+     LIMIT 1'
+);
+$preferenceQuery->execute([(int)$user['id']]);
+$uiPreferences = $preferenceQuery->fetch(PDO::FETCH_ASSOC) ?: [];
+
+$palette = (string)($uiPreferences['color_palette'] ?? 'ocean');
+
+if (!in_array($palette, ['ocean', 'forest', 'midnight', 'slate'], true)) {
+    $palette = 'ocean';
+}
+
+$reducedMotion = !empty($uiPreferences['reduced_motion']) ? '1' : '0';
+$highContrast = !empty($uiPreferences['high_contrast']) ? '1' : '0';
+
+
 $dashboardPath = match ($tenant['role']) {
     'client' => '/client-dashboard.php',
     'contractor' => '/contractor-dashboard.php',
@@ -16,9 +35,12 @@ $dashboardPath = match ($tenant['role']) {
       href="<?=htmlspecialchars(app_url('/assets/css/brite-app-shell.css'))?>">
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-activity-hub.css'))?>">
+
 <style>
 body{font-family:system-ui,sans-serif;margin:0;background:#f5f7fb;color:#1f2937}.top{background:#172033;color:#fff;padding:14px 24px;display:flex;justify-content:space-between}.nav{background:#fff;padding:10px 24px;border-bottom:1px solid #ddd}.nav a{margin-right:18px;color:#334155;text-decoration:none}.wrap{max-width:1250px;margin:24px auto;padding:0 18px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px;box-shadow:0 2px 8px #00000008}.metric{font-size:28px;font-weight:700}table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left}input,select,textarea,button{padding:9px;border:1px solid #cbd5e1;border-radius:6px}button{cursor:pointer}.row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}.row>*{flex:1;min-width:140px}.muted{color:#64748b}.danger{color:#b91c1c}
 </style>
+<link rel="stylesheet"
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-themes.css'), ENT_QUOTES, 'UTF-8')?>">
 <script>
 window.BRITE_CSRF=<?=json_encode($csrf)?>;
 window.BRITE_BASE=<?=json_encode(rtrim($_ENV['APP_URL'] ?? 'http://localhost/dashboard','/'))?>;
@@ -76,7 +98,10 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 </head>
-<body class="brite-app">
+<body class="brite-app"
+      data-brite-theme="<?=htmlspecialchars($palette, ENT_QUOTES, 'UTF-8')?>"
+      data-brite-reduced-motion="<?=htmlspecialchars($reducedMotion, ENT_QUOTES, 'UTF-8')?>"
+      data-brite-high-contrast="<?=htmlspecialchars($highContrast, ENT_QUOTES, 'UTF-8')?>">
 
 <aside class="brite-sidebar" id="briteSidebar" aria-label="Main navigation">
     <a class="brite-brand"
@@ -192,6 +217,28 @@ My Dashboard
 My Locations
 </a>
 <?php endif; ?>
+
+
+    <div class="brite-nav-group-label">Personal</div>
+    <a href="<?=htmlspecialchars(
+        app_url('/my-settings.php'),
+        ENT_QUOTES,
+        'UTF-8'
+    )?>">
+        <span class="brite-nav-icon" aria-hidden="true">
+            <svg width="18" height="18"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="1.8"
+                 stroke-linecap="round"
+                 stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/>
+            </svg>
+        </span>
+        My Settings
+    </a>
 
 </nav>
 
