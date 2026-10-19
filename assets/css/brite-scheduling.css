@@ -1,0 +1,652 @@
+/*
+ * Brite Scheduler
+ * Milestone 146C — Scheduling UI Modernization
+ *
+ * Page-scoped presentation overrides.
+ * Preserve existing calendar and appointment behavior.
+ */
+
+.schedule-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.schedule-toolbar h1 {
+    margin: 0;
+    color: var(--brite-text);
+    font-size: clamp(1.65rem, 2.5vw, 2.15rem);
+    font-weight: 750;
+    letter-spacing: -0.035em;
+}
+
+.schedule-toolbar #openAppointmentWizardButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 11px 20px;
+    border: 1px solid var(--brite-indigo);
+    border-radius: var(--brite-radius-md);
+    background: var(--brite-indigo);
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 650;
+    cursor: pointer;
+    transition: background 180ms ease;
+}
+
+.schedule-toolbar #openAppointmentWizardButton:hover {
+    background: var(--brite-indigo-hover);
+}
+
+.schedule-toolbar #openAppointmentWizardButton:focus-visible {
+    outline: 3px solid var(--brite-indigo);
+    outline-offset: 3px;
+}
+
+.scheduler-layout {
+    min-width: 0;
+}
+
+.scheduler-layout > .card {
+    min-width: 0;
+    padding: 24px;
+    border: 1px solid var(--brite-border);
+    border-radius: var(--brite-radius-lg);
+    background: var(--brite-surface);
+    box-shadow: var(--brite-shadow-sm);
+}
+
+#calendar {
+    min-width: 0;
+    font-family: var(--brite-font-family);
+    color: var(--brite-text);
+}
+
+#calendar .fc-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+#calendar .fc-toolbar-title {
+    font-size: clamp(1.1rem, 2vw, 1.4rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--brite-text);
+}
+
+#calendar .fc-button-primary {
+    background: var(--brite-surface);
+    border: 1px solid var(--brite-border-strong);
+    color: var(--brite-text-secondary);
+    box-shadow: none;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+#calendar .fc-button-primary:hover:not(:disabled) {
+    background: var(--brite-indigo-soft);
+    border-color: var(--brite-indigo);
+    color: var(--brite-indigo);
+}
+
+#calendar .fc-button-primary:not(:disabled).fc-button-active,
+#calendar .fc-button-primary:not(:disabled):active {
+    background: var(--brite-indigo);
+    border-color: var(--brite-indigo);
+    color: #fff;
+}
+
+#calendar .fc-button-primary:focus-visible {
+    outline: 3px solid var(--brite-indigo);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+#calendar .fc-col-header-cell {
+    background: var(--brite-surface-muted);
+}
+
+#calendar .fc-col-header-cell-cushion {
+    padding: 12px 4px;
+    color: var(--brite-text-secondary);
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+#calendar .fc-daygrid-day-number {
+    padding: 8px;
+    color: var(--brite-text-secondary);
+    font-size: 0.82rem;
+    text-decoration: none;
+}
+
+#calendar .fc-day-today {
+    background: var(--brite-indigo-soft);
+}
+
+#calendar .fc-scrollgrid {
+    border-color: var(--brite-border);
+}
+
+#calendar .fc-scrollgrid td,
+#calendar .fc-scrollgrid th {
+    border-color: var(--brite-border);
+}
+
+#calendar .fc-event {
+    border-radius: 5px;
+}
+
+@media (max-width: 760px) {
+    .scheduler-layout > .card {
+        padding: 14px;
+    }
+
+    #calendar .fc-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    #calendar .fc-toolbar-chunk {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    #calendar .fc-toolbar-title {
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .schedule-toolbar {
+        align-items: stretch;
+    }
+
+    .schedule-toolbar #openAppointmentWizardButton {
+        width: 100%;
+    }
+
+    .scheduler-layout > .card {
+        padding: 10px;
+    }
+
+    #calendar .fc-button-primary {
+        font-size: 0.75rem;
+        padding: 6px 9px;
+    }
+
+    #calendar .fc-col-header-cell-cushion {
+        font-size: 0.67rem;
+        padding: 8px 2px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .schedule-toolbar #openAppointmentWizardButton {
+        transition: none;
+    }
+}
+
+/* ============================================================
+   Milestone 146C-4B — Appointment Wizard Modernization
+   Presentation only. Existing wizard behavior is preserved.
+   ============================================================ */
+
+#appointmentDialog {
+    border: 1px solid var(--brite-border);
+    border-radius: var(--brite-radius-xl);
+    background: var(--brite-surface);
+    color: var(--brite-text);
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24);
+}
+
+#appointmentDialog::backdrop {
+    background: rgba(15, 23, 42, 0.66);
+}
+
+#appointmentDialog > .appointment-dialog-header {
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--brite-border);
+}
+
+#appointmentDialog .appointment-dialog-header h2 {
+    font-size: 1.3rem;
+    font-weight: 750;
+    letter-spacing: -0.025em;
+    color: var(--brite-text);
+}
+
+#appointmentDialog .appointment-dialog-close {
+    min-height: 36px;
+    padding: 7px 13px;
+    border: 1px solid var(--brite-border);
+    border-radius: var(--brite-radius-md);
+    background: var(--brite-surface-muted);
+    color: var(--brite-text-secondary);
+    font-size: 0.8rem;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+#appointmentDialog .appointment-dialog-close:hover {
+    background: var(--brite-indigo-soft);
+    color: var(--brite-indigo);
+}
+
+#appointmentWizardContent > #formTitle {
+    margin: 14px 0 2px;
+    color: var(--brite-text);
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+#appointmentDialog .appointment-wizard-progress {
+    margin: 12px 0 18px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--brite-border);
+}
+
+#appointmentDialog .appointment-wizard-progress-heading {
+    margin-bottom: 16px;
+    color: var(--brite-text-secondary);
+    font-size: 0.82rem;
+}
+
+#appointmentDialog #wizardStepTitle {
+    color: var(--brite-indigo);
+    font-weight: 750;
+}
+
+#appointmentDialog .wizard-progress-number {
+    background: var(--brite-surface-muted);
+    color: var(--brite-text-secondary);
+    border: 1px solid var(--brite-border);
+}
+
+#appointmentDialog .appointment-wizard-steps li.is-current
+.wizard-progress-number {
+    background: var(--brite-indigo);
+    border-color: var(--brite-indigo);
+    color: #fff;
+    box-shadow: 0 0 0 4px var(--brite-indigo-soft);
+}
+
+#appointmentDialog .appointment-wizard-steps li.is-complete
+.wizard-progress-number {
+    background: var(--brite-success);
+    border-color: var(--brite-success);
+    color: #fff;
+}
+
+#appointmentDialog .appointment-wizard-steps li.is-current {
+    color: var(--brite-indigo);
+}
+
+#appointmentDialog .wizard-progress-label {
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+#appointmentDialog .wizard-step {
+    color: var(--brite-text);
+}
+
+#appointmentDialog .scheduler-form label {
+    margin-top: 14px;
+    margin-bottom: 5px;
+    color: var(--brite-text-secondary);
+    font-size: 0.82rem;
+    font-weight: 650;
+}
+
+#appointmentDialog .scheduler-form input:not([type="checkbox"]),
+#appointmentDialog .scheduler-form select:not(.contractor-native-select),
+#appointmentDialog .scheduler-form textarea {
+    min-height: 42px;
+    padding: 10px 12px;
+    border: 1px solid var(--brite-border-strong);
+    border-radius: var(--brite-radius-md);
+    background: var(--brite-surface);
+    color: var(--brite-text);
+    font: inherit;
+    font-size: 0.9rem;
+}
+
+#appointmentDialog .scheduler-form textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+#appointmentDialog .scheduler-form input:focus-visible,
+#appointmentDialog .scheduler-form select:focus-visible,
+#appointmentDialog .scheduler-form textarea:focus-visible {
+    outline: 2px solid var(--brite-indigo);
+    outline-offset: 1px;
+}
+
+#appointmentDialog .scheduler-form .wizard-field-invalid {
+    border-color: #b91c1c !important;
+}
+
+#appointmentDialog .scheduler-form .wizard-field-invalid:focus-visible {
+    outline-color: #b91c1c;
+}
+
+#appointmentDialog .contractor-checkbox-list {
+    border-color: var(--brite-border);
+    border-radius: var(--brite-radius-md);
+    background: var(--brite-surface-muted);
+}
+
+#appointmentDialog .contractor-checkbox-row {
+    background: var(--brite-surface);
+    border-color: var(--brite-border);
+    border-radius: var(--brite-radius-md);
+}
+
+#appointmentDialog .contractor-checkbox-row.is-selected {
+    background: var(--brite-indigo-soft);
+    border-color: var(--brite-indigo);
+}
+
+#appointmentDialog .contractor-checkbox-row input[type="checkbox"] {
+    accent-color: var(--brite-indigo);
+}
+
+#appointmentDialog .selected-contractor-chip {
+    background: var(--brite-indigo-soft);
+    border-color: var(--brite-indigo);
+    color: var(--brite-indigo);
+}
+
+#appointmentDialog .contractor-recommendations {
+    border-radius: var(--brite-radius-lg);
+    border-color: var(--brite-border);
+}
+
+#appointmentDialog .recommendation-card.is-selected {
+    border-color: var(--brite-indigo);
+    box-shadow: 0 0 0 2px var(--brite-indigo-soft);
+}
+
+#appointmentDialog .appointment-wizard-footer {
+    border-top-color: var(--brite-border);
+    background: var(--brite-surface);
+}
+
+#appointmentDialog .appointment-wizard-footer button {
+    min-height: 40px;
+    border-radius: var(--brite-radius-md);
+    font-size: 0.82rem;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+#appointmentDialog #wizardNextButton,
+#appointmentDialog #saveButton {
+    background: var(--brite-indigo);
+    border: 1px solid var(--brite-indigo);
+    color: #fff;
+}
+
+#appointmentDialog #wizardNextButton:hover,
+#appointmentDialog #saveButton:hover {
+    background: var(--brite-indigo-hover);
+}
+
+#appointmentDialog #wizardBackButton,
+#appointmentDialog #newButton {
+    background: var(--brite-surface);
+    border: 1px solid var(--brite-border-strong);
+    color: var(--brite-text-secondary);
+}
+
+#appointmentDialog #wizardBackButton:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+#appointmentDialog .appointment-wizard-footer button:focus-visible,
+#appointmentDialog .appointment-dialog-close:focus-visible {
+    outline: 3px solid var(--brite-indigo);
+    outline-offset: 2px;
+}
+
+@media (max-width: 650px) {
+    #appointmentDialog {
+        width: calc(100vw - 16px);
+        height: calc(100dvh - 16px);
+        max-height: calc(100dvh - 16px);
+        padding: 14px;
+    }
+
+    #appointmentDialog .appointment-dialog-header h2 {
+        font-size: 1.1rem;
+    }
+
+    #appointmentDialog .appointment-wizard-progress {
+        margin: 8px 0 12px;
+        padding-bottom: 12px;
+    }
+
+    #appointmentDialog .wizard-progress-label {
+        font-size: 10px;
+    }
+
+    #appointmentDialog .appointment-wizard-footer button {
+        min-height: 38px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #appointmentDialog *,
+    #appointmentDialog *::before,
+    #appointmentDialog *::after {
+        transition: none;
+    }
+}
+
+/* ============================================================
+   Milestone 146C-5B — Appointment Details Modal
+   Presentation only; preserve existing Edit/Duplicate behavior.
+   ============================================================ */
+
+#appointmentDetailsDialog {
+    width: min(640px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    padding: 28px;
+    border: 1px solid var(--brite-border);
+    border-radius: var(--brite-radius-xl);
+    background: var(--brite-surface);
+    color: var(--brite-text);
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24);
+}
+
+#appointmentDetailsDialog::backdrop {
+    background: rgba(15, 23, 42, 0.66);
+}
+
+#appointmentDetailsDialog .appointment-dialog-header {
+    padding-bottom: 18px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--brite-border);
+}
+
+#appointmentDetailsDialog .appointment-dialog-header h2 {
+    margin: 0;
+    color: var(--brite-text);
+    font-size: 1.35rem;
+    font-weight: 750;
+    letter-spacing: -0.03em;
+}
+
+#appointmentDetailsDialog #closeAppointmentDetails {
+    min-height: 36px;
+    padding: 7px 14px;
+    border: 1px solid var(--brite-border);
+    border-radius: var(--brite-radius-md);
+    background: var(--brite-surface-muted);
+    color: var(--brite-text-secondary);
+    font-size: 0.82rem;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+#appointmentDetailsDialog #closeAppointmentDetails:hover {
+    background: var(--brite-indigo-soft);
+    color: var(--brite-indigo);
+}
+
+#appointmentDetailsContent {
+    min-width: 0;
+}
+
+#appointmentDetailsDialog .appointment-details-grid {
+    display: grid;
+    grid-template-columns: minmax(120px, 0.75fr) minmax(0, 1.75fr);
+    gap: 14px 20px;
+    margin: 0;
+}
+
+#appointmentDetailsDialog .appointment-details-grid dt {
+    color: var(--brite-text-muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+#appointmentDetailsDialog .appointment-details-grid dd {
+    margin: 0;
+    color: var(--brite-text);
+    font-size: 0.9rem;
+    font-weight: 550;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+#appointmentDetailsEditStatus {
+    margin: 14px 0 0;
+    color: var(--brite-text-secondary);
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+#appointmentDetailsEditStatus:empty {
+    display: none;
+}
+
+#appointmentDetailsDialog .appointment-details-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 26px;
+    padding-top: 18px;
+    border-top: 1px solid var(--brite-border);
+}
+
+#appointmentDetailsDialog .appointment-details-actions button {
+    min-height: 42px;
+    padding: 10px 16px;
+    border-radius: var(--brite-radius-md);
+    font-size: 0.84rem;
+    font-weight: 650;
+    cursor: pointer;
+    transition: background-color 180ms ease,
+                border-color 180ms ease;
+}
+
+#appointmentDetailsDialog #editAppointmentDetails {
+    background: var(--brite-indigo);
+    border: 1px solid var(--brite-indigo);
+    color: #fff;
+}
+
+#appointmentDetailsDialog #editAppointmentDetails:hover:not(:disabled) {
+    background: var(--brite-indigo-hover);
+}
+
+#appointmentDetailsDialog #duplicateAppointmentDetails {
+    background: var(--brite-indigo-soft);
+    border: 1px solid var(--brite-indigo);
+    color: var(--brite-indigo);
+}
+
+#appointmentDetailsDialog #duplicateAppointmentDetails:hover:not(:disabled) {
+    background: #e0e7ff;
+}
+
+#appointmentDetailsDialog #dismissAppointmentDetails {
+    background: var(--brite-surface);
+    border: 1px solid var(--brite-border-strong);
+    color: var(--brite-text-secondary);
+}
+
+#appointmentDetailsDialog #dismissAppointmentDetails:hover:not(:disabled) {
+    background: var(--brite-surface-muted);
+}
+
+#appointmentDetailsDialog button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#appointmentDetailsDialog button:focus-visible {
+    outline: 3px solid var(--brite-indigo);
+    outline-offset: 3px;
+}
+
+@media (max-width: 480px) {
+    #appointmentDetailsDialog {
+        width: calc(100vw - 16px);
+        max-height: calc(100dvh - 16px);
+        padding: 18px;
+    }
+
+    #appointmentDetailsDialog .appointment-dialog-header {
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    #appointmentDetailsDialog .appointment-dialog-header h2 {
+        font-size: 1.15rem;
+    }
+
+    #appointmentDetailsDialog .appointment-details-grid {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+
+    #appointmentDetailsDialog .appointment-details-grid dd {
+        margin-bottom: 12px;
+    }
+
+    #appointmentDetailsDialog .appointment-details-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    #appointmentDetailsDialog .appointment-details-actions button {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #appointmentDetailsDialog button {
+        transition: none;
+    }
+}

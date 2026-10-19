@@ -740,6 +740,9 @@ require __DIR__.'/partials/app_header.php';
 
 </style>
 
+<link rel="stylesheet"
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css'))?>">
+
 <div class="schedule-toolbar">
     <h1>Schedule</h1>
     <button type="button" id="openAppointmentWizardButton">
