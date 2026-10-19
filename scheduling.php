@@ -776,16 +776,45 @@ require __DIR__.'/partials/app_header.php';
 
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css'))?>">
+<link rel="stylesheet"
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'), ENT_QUOTES, 'UTF-8')?>">
 
-<div class="schedule-toolbar">
-    <h1>Schedule</h1>
-    <button
-        type="button"
-        id="openAppointmentWizardButton"
-        <?= $canManageAppointments ? '' : 'hidden disabled' ?>>
-        + New Appointment
-    </button>
-</div>
+<div class="brite-tab-workspace"
+     id="schedulingWorkspace"
+     data-viewport="true"
+     style="--brite-workspace-offset: 155px">
+
+    <div class="brite-tab-toolbar">
+        <div class="brite-tab-list"
+             role="tablist"
+             aria-label="Scheduling workspace">
+
+            <button type="button"
+                    class="brite-tab-button"
+                    id="scheduleCalendarTab"
+                    role="tab"
+                    aria-controls="scheduleCalendarPanel"
+                    aria-selected="true">
+                Calendar
+            </button>
+
+            <button type="button"
+                    class="brite-tab-button"
+                    id="scheduleActionsTab"
+                    role="tab"
+                    aria-controls="scheduleActionsPanel"
+                    aria-selected="false">
+                Quick Actions
+            </button>
+        </div>
+
+        <button
+            type="button"
+            id="openAppointmentWizardButton"
+            <?= $canManageAppointments ? '' : 'hidden disabled' ?>>
+            + New Appointment
+        </button>
+    </div>
 
 <!-- Modal foundation; existing appointment form remains unchanged. -->
 <dialog id="appointmentDialog"
@@ -1117,11 +1146,48 @@ require __DIR__.'/partials/app_header.php';
     </div>
 </dialog>
 
-<div class="scheduler-layout">
-    <div class="card">
-        <div id="calendar"></div>
+    <div class="brite-tab-panels">
+        <section class="brite-tab-panel"
+                 id="scheduleCalendarPanel"
+                 role="tabpanel"
+                 aria-labelledby="scheduleCalendarTab"
+                 tabindex="0">
+            <div class="scheduler-layout">
+                <div class="card">
+                    <div id="calendar"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="brite-tab-panel"
+                 id="scheduleActionsPanel"
+                 role="tabpanel"
+                 aria-labelledby="scheduleActionsTab"
+                 tabindex="0"
+                 hidden>
+            <div class="card">
+                <h2>Scheduling quick actions</h2>
+                <?php if ($canManageAppointments): ?>
+                <p>Manage appointments using the calendar or start a new appointment with the toolbar.</p>
+                <?php else: ?>
+                <p>View scheduled appointments and select an appointment on the calendar to see its details.</p>
+                <?php endif; ?>
+                <?php if ($canManageAppointments): ?>
+                <button type="button"
+                        id="openAppointmentWizardFromActions">
+                    + New Appointment
+                </button>
+                <?php endif; ?>
+                <button type="button"
+                        id="returnToScheduleCalendar">
+                    Return to Calendar
+                </button>
+            </div>
+        </section>
     </div>
 </div>
+
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-workspace-tabs.js'), ENT_QUOTES, 'UTF-8')?>"></script>
 
 <script>
 window.briteTenantTimezone = <?=json_encode(
@@ -1133,6 +1199,16 @@ window.briteTenantTimezone = <?=json_encode(
 let calendar;
 let services=[];
 let detailsEvent = null;
+
+document.getElementById('openAppointmentWizardFromActions')
+    ?.addEventListener('click', () => {
+        document.getElementById('openAppointmentWizardButton')?.click();
+    });
+
+document.getElementById('returnToScheduleCalendar')
+    ?.addEventListener('click', () => {
+        document.getElementById('scheduleCalendarTab')?.click();
+    });
 
 const detailsDialog =
     document.getElementById('appointmentDetailsDialog');
