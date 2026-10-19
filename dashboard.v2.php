@@ -46,22 +46,7 @@ require __DIR__.'/partials/app_header.php';
              aria-label="Business metrics"
              hidden></section>
 
-    <?php if ($role === 'owner'): ?>
-    <section id="ownerNotifications"
-             class="brite-dashboard-panel"
-             aria-label="Owner notifications"
-             style="margin-top:20px">
-        <h2>
-            Notifications
-            <span id="ownerNotificationsCount"
-                  aria-label="Unread notifications">0</span>
-        </h2>
-        <p id="ownerNotificationsStatus"
-           role="status">Loading notifications…</p>
-        <div id="ownerNotificationsList"></div>
-    </section>
 
-    <?php endif; ?>
 
     <div class="brite-dashboard-lower">
 
@@ -251,12 +236,6 @@ require __DIR__.'/partials/app_header.php';
 })();
 </script>
 
-<?php if ($role === 'owner'): ?>
-<script src="<?=htmlspecialchars(
-    app_url('/assets/js/owner-notifications.js'),
-    ENT_QUOTES,
-    'UTF-8'
-)?>"></script>
-<?php endif; ?>
+
 
 <?php require __DIR__.'/partials/app_footer.php'; ?>

@@ -14,6 +14,8 @@ $dashboardPath = match ($tenant['role']) {
 
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-app-shell.css'))?>">
+<link rel="stylesheet"
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-activity-hub.css'))?>">
 <style>
 body{font-family:system-ui,sans-serif;margin:0;background:#f5f7fb;color:#1f2937}.top{background:#172033;color:#fff;padding:14px 24px;display:flex;justify-content:space-between}.nav{background:#fff;padding:10px 24px;border-bottom:1px solid #ddd}.nav a{margin-right:18px;color:#334155;text-decoration:none}.wrap{max-width:1250px;margin:24px auto;padding:0 18px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px;box-shadow:0 2px 8px #00000008}.metric{font-size:28px;font-weight:700}table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left}input,select,textarea,button{padding:9px;border:1px solid #cbd5e1;border-radius:6px}button{cursor:pointer}.row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}.row>*{flex:1;min-width:140px}.muted{color:#64748b}.danger{color:#b91c1c}
 </style>
@@ -237,4 +239,72 @@ My Locations
         </div>
     </header>
 
-    <main class="brite-content">
+
+    <!-- Brite Activity Hub: owner-only shared notification UI -->
+    <?php if ($tenant['role'] === 'owner'): ?>
+    <aside
+        id="briteActivityHub"
+        class="brite-activity-hub"
+        aria-label="Owner activity hub"
+        aria-hidden="true"
+        hidden>
+
+        <div class="brite-activity-hub-header">
+            <div>
+                <strong>Activity Hub</strong>
+                <p>Bookings and business activity</p>
+            </div>
+
+            <button
+                type="button"
+                id="briteActivityHubClose"
+                aria-label="Collapse activity hub"
+                aria-controls="briteActivityHub">
+                &#10005;
+            </button>
+        </div>
+
+        <div class="brite-activity-hub-summary">
+            <span>Unread notifications</span>
+            <span id="briteActivityHubCount">0</span>
+        </div>
+
+        <p
+            id="briteActivityHubStatus"
+            role="status"
+            aria-live="polite">
+            Loading activity…
+        </p>
+
+        <div
+            id="briteActivityHubList"
+            class="brite-activity-hub-list"
+            aria-label="Recent owner notifications">
+        </div>
+    </aside>
+
+    <button
+        type="button"
+        id="briteActivityHubToggle"
+        class="brite-activity-hub-toggle"
+        aria-label="Open activity hub"
+        aria-controls="briteActivityHub"
+        aria-expanded="false"
+        hidden>
+        <svg
+            aria-hidden="true"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M3 12h4l3-7 4 14 3-7h4"/>
+        </svg>
+        <span id="briteActivityHubToggleCount">0</span>
+    </button>
+    <?php endif; ?>
+
+<main class="brite-content">
