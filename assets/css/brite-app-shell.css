@@ -1,0 +1,309 @@
+/*
+ * Brite Scheduler — Responsive Application Shell
+ * Milestone 146A
+ *
+ * Activated only when .brite-app is present.
+ */
+
+.brite-app {
+    min-height: 100vh;
+    background: var(--brite-canvas);
+    color: var(--brite-text);
+    font-family: var(--brite-font-family);
+}
+
+.brite-app *,
+.brite-app *::before,
+.brite-app *::after {
+    box-sizing: border-box;
+}
+
+.brite-app .brite-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 100;
+    width: var(--brite-sidebar-width);
+    background: var(--brite-navy);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.brite-app .brite-brand {
+    min-height: var(--brite-topbar-height);
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #fff;
+    text-decoration: none;
+    font-size: 1.15rem;
+    font-weight: 750;
+    letter-spacing: -0.035em;
+}
+
+.brite-app .brite-brand-mark {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    background: var(--brite-indigo);
+    color: #fff;
+    font-weight: 800;
+}
+
+.brite-app .brite-sidebar-label {
+    margin: 18px 22px 10px;
+    color: #a5b4fc;
+    font-size: 0.69rem;
+    font-weight: 750;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+}
+
+.brite-app .brite-sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 12px 24px;
+}
+
+.brite-app .brite-sidebar-nav a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 43px;
+    padding: 10px 13px;
+    border-radius: 9px;
+    color: #cbd5e1;
+    font-size: 0.875rem;
+    font-weight: 550;
+    text-decoration: none;
+    transition: background 180ms ease, color 180ms ease;
+}
+
+.brite-app .brite-sidebar-nav a:hover,
+.brite-app .brite-sidebar-nav a:focus-visible {
+    background: rgba(255,255,255,0.11);
+    color: #fff;
+}
+
+.brite-app .brite-sidebar-nav a[aria-current="page"] {
+    background: rgba(129,140,248,0.25);
+    color: #fff;
+    font-weight: 700;
+}
+
+.brite-app .brite-sidebar-nav .brite-nav-icon {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    flex-shrink: 0;
+    font-size: 1rem;
+}
+
+.brite-app .brite-sidebar-footer {
+    margin-top: auto;
+    padding: 18px 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    font-size: 0.75rem;
+    color: #a5b4fc;
+}
+
+.brite-app .brite-workspace {
+    min-height: 100vh;
+    margin-left: var(--brite-sidebar-width);
+    min-width: 0;
+}
+
+.brite-app .brite-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 80;
+    min-height: var(--brite-topbar-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 28px;
+    background: #fff;
+    border-bottom: 1px solid var(--brite-border);
+}
+
+.brite-app .brite-topbar-title {
+    font-size: 1.05rem;
+    font-weight: 750;
+    letter-spacing: -0.025em;
+    color: var(--brite-text);
+}
+
+.brite-app .brite-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.brite-app .brite-account {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.brite-app .brite-avatar {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--brite-indigo-soft);
+    color: var(--brite-indigo);
+    font-weight: 750;
+    font-size: 0.8rem;
+}
+
+.brite-app .brite-account-details {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.brite-app .brite-account-name {
+    color: var(--brite-text);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.brite-app .brite-account-role {
+    color: var(--brite-text-muted);
+    font-size: 0.72rem;
+}
+
+.brite-app .brite-signout {
+    padding: 9px 13px;
+    border: 1px solid var(--brite-border);
+    background: #fff;
+    color: var(--brite-text-secondary);
+    border-radius: 9px;
+    font-size: 0.8rem;
+    font-weight: 650;
+}
+
+.brite-app .brite-signout:hover {
+    background: var(--brite-surface-muted);
+}
+
+.brite-app .brite-content {
+    width: 100%;
+    max-width: var(--brite-content-max);
+    margin: 0 auto;
+    padding: 28px;
+    min-width: 0;
+}
+
+.brite-app .brite-mobile-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--brite-border);
+    background: #fff;
+    border-radius: 9px;
+    font-size: 1.2rem;
+    color: var(--brite-text);
+}
+
+.brite-app .brite-sidebar-backdrop {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    .brite-app .brite-sidebar {
+        transform: translateX(-100%);
+        transition: transform 200ms ease;
+        width: min(280px, 85vw);
+    }
+
+    .brite-app.brite-sidebar-open .brite-sidebar {
+        transform: translateX(0);
+    }
+
+    .brite-app .brite-workspace {
+        margin-left: 0;
+    }
+
+    .brite-app .brite-mobile-toggle {
+        display: inline-flex;
+    }
+
+    .brite-app.brite-sidebar-open .brite-sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        background: rgba(15,23,42,0.55);
+        border: 0;
+        border-radius: 0;
+        width: 100%;
+        height: 100%;
+        padding: 0;
+    }
+
+    .brite-app .brite-content {
+        padding: 20px;
+    }
+
+    .brite-app .brite-topbar {
+        padding: 12px 20px;
+    }
+}
+
+@media (max-width: 520px) {
+    .brite-app .brite-content {
+        padding: 16px;
+    }
+
+    .brite-app .brite-topbar {
+        padding: 10px 16px;
+    }
+
+    .brite-app .brite-account-details {
+        display: none;
+    }
+
+    .brite-app .brite-topbar-title {
+        font-size: 0.9rem;
+    }
+
+    .brite-app .brite-signout {
+        padding: 8px;
+        font-size: 0.75rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .brite-app .brite-sidebar,
+    .brite-app .brite-sidebar-nav a {
+        transition: none;
+    }
+}
+
+/* Milestone 146A-4F-2 — Sidebar navigation groups */
+.brite-app .brite-nav-group-label {
+    margin: 19px 12px 7px;
+    padding: 0 2px;
+    color: #a5b4fc;
+    font-size: 0.68rem;
+    font-weight: 750;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.brite-app .brite-nav-group-label:first-child {
+    margin-top: 4px;
+}

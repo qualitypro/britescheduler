@@ -2697,6 +2697,30 @@ document.addEventListener('DOMContentLoaded',async ()=>{
 
         calendar.render();
 
+        // Dashboard deep link: launch the existing creation wizard.
+        const launchParams = new URLSearchParams(
+            window.location.search
+        );
+
+        if (launchParams.get('action') === 'new') {
+            resetForm();
+            openAppointmentWizard();
+
+            launchParams.delete('action');
+
+            const remainingQuery = launchParams.toString();
+            const cleanUrl =
+                window.location.pathname +
+                (remainingQuery ? '?' + remainingQuery : '') +
+                window.location.hash;
+
+            window.history.replaceState(
+                window.history.state,
+                '',
+                cleanUrl
+            );
+        }
+
     } catch(e){
         appointmentError.textContent=e.message;
     }
