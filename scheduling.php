@@ -3074,6 +3074,105 @@ document.addEventListener('DOMContentLoaded',async ()=>{
 
         calendar.render();
 
+        // Owner booking deep link: use the existing tenant-scoped API.
+        const bookingParams = new URLSearchParams(
+            window.location.search
+        );
+        const bookingIdValue = bookingParams.get('appointment_id');
+
+        if (bookingIdValue !== null) {
+            const bookingId = Number(bookingIdValue);
+
+            if (
+                !/^[1-9]\d*$/.test(bookingIdValue) ||
+                !Number.isSafeInteger(bookingId)
+            ) {
+                console.warn('Invalid appointment deep-link ID');
+            } else {
+                try {
+                    const result = await api(
+                        '/api/appointments.php?appointment_id=' +
+                        encodeURIComponent(String(bookingId))
+                    );
+
+                    const appointment = (result.appointments || [])
+                        .find(a => Number(a.id) === bookingId);
+
+                    if (!appointment) {
+                        console.warn(
+                            'Appointment not found or unavailable:',
+                            bookingId
+                        );
+                    } else {
+                        const appointmentDate =
+                            calendarEventDateTime(
+                                appointment.starts_at
+                            );
+
+                        // Listen before navigation so fast calendar
+                        // responses cannot be missed.
+                        const eventLoaded = new Promise(resolve => {
+                            let finished = false;
+
+                            const finish = event => {
+                                if (finished) return;
+                                finished = true;
+                                clearTimeout(timeoutId);
+                                calendar.off('eventsSet', onEventsSet);
+                                resolve(event);
+                            };
+
+                            const onEventsSet = events => {
+                                const matching = events.find(
+                                    event => String(event.id) ===
+                                        String(bookingId)
+                                );
+
+                                if (matching) {
+                                    finish(matching);
+                                }
+                            };
+
+                            const timeoutId = setTimeout(
+                                () => finish(null),
+                                5000
+                            );
+
+                            calendar.on('eventsSet', onEventsSet);
+
+                            calendar.gotoDate(
+                                appointmentDate.substring(0, 10)
+                            );
+
+                            // The target may already be in the event store.
+                            const existingEvent =
+                                calendar.getEventById(String(bookingId));
+
+                            if (existingEvent) {
+                                finish(existingEvent);
+                            }
+                        });
+
+                        const targetEvent = await eventLoaded;
+
+                        if (targetEvent) {
+                            showAppointmentDetails(targetEvent);
+                        } else {
+                            console.warn(
+                                'Appointment event did not load:',
+                                bookingId
+                            );
+                        }
+                    }
+                } catch (error) {
+                    console.error(
+                        'Unable to open appointment deep link:',
+                        error
+                    );
+                }
+            }
+        }
+
         // Dashboard deep link: launch the existing creation wizard.
         const launchParams = new URLSearchParams(
             window.location.search

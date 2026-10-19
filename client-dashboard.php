@@ -167,6 +167,8 @@ $<?=number_format($outstandingBalance,2)?>
 
 <div class="card" style="margin-top:18px">
 
+<?php require __DIR__.'/partials/client_booking_wizard.php'; ?>
+
 <h2>My Appointments</h2>
 
 <?php if(!$appointments): ?>
@@ -313,5 +315,7 @@ $<?=number_format($outstandingBalance,2)?>
 
 
 </div>
+
+<script src="<?=htmlspecialchars(app_url('/assets/js/client-booking-wizard.js'), ENT_QUOTES, 'UTF-8')?>"></script>
 
 <?php require __DIR__.'/partials/app_footer.php'; ?>
