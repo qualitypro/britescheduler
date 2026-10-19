@@ -1003,6 +1003,9 @@ require __DIR__.'/partials/app_header.php';
         <button type="button" id="editAppointmentDetails">
             Edit Appointment
         </button>
+        <button type="button" id="duplicateAppointmentDetails">
+            Duplicate Appointment
+        </button>
         <button type="button" id="dismissAppointmentDetails">
             Close
         </button>
@@ -1127,6 +1130,47 @@ document.getElementById('editAppointmentDetails')
                 'Unable to prepare appointment: ' + error.message;
         } finally {
             button.disabled = false;
+        }
+    });
+
+document.getElementById('duplicateAppointmentDetails')
+    .addEventListener('click', async () => {
+        const event = detailsEvent;
+        if (!event) return;
+
+        const button = document.getElementById('duplicateAppointmentDetails');
+        const editButton = document.getElementById('editAppointmentDetails');
+        const status = document.getElementById('appointmentDetailsEditStatus');
+
+        if (button.disabled || editButton.disabled) return;
+
+        button.disabled = true;
+        editButton.disabled = true;
+        status.textContent = 'Preparing duplicate appointment...';
+
+        try {
+            const loaded = await editAppointment(event);
+
+            if (loaded) {
+                appointmentId.value = '';
+                formTitle.textContent = 'Duplicate Appointment';
+                saveButton.textContent = 'Create Appointment';
+                invalidateRecommendations();
+                invalidateContractorConflict();
+
+                closeAppointmentDetails();
+                openAppointmentWizard();
+            } else {
+                status.textContent =
+                    appointmentError.textContent ||
+                    'Unable to prepare duplicate appointment.';
+            }
+        } catch (error) {
+            status.textContent =
+                'Unable to duplicate appointment: ' + error.message;
+        } finally {
+            button.disabled = false;
+            editButton.disabled = false;
         }
     });
 
