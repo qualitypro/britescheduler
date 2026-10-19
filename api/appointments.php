@@ -364,6 +364,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 WHERE
                     own_ac.appointment_id=a.id
                     AND own_ac.contractor_id=?
+                    AND own_ac.status IN ('assigned','accepted')
             )
         ";
 

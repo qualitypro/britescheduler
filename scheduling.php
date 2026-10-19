@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__.'/app/bootstrap.php';
-Auth::requireRole('owner','admin','scheduler');
+Auth::requireRole('owner','admin','scheduler','accounting','contractor','client');
 
 $timezoneStatement = Database::connection()->prepare(
     'SELECT timezone FROM tenants WHERE id=? LIMIT 1'
@@ -21,6 +21,11 @@ try {
 $pageTitle='Schedule';
 require __DIR__.'/partials/app_header.php';
 ?>
+
+<?php if (($tenant['role'] ?? '') === 'client'): ?>
+<?php require __DIR__ . '/partials/client_booking_wizard.php'; ?>
+<script src="<?=htmlspecialchars(app_url('/assets/js/client-booking-wizard.js'), ENT_QUOTES, 'UTF-8')?>"></script>
+<?php endif; ?>
 
 <script src="<?=htmlspecialchars(app_url('/events/dist/index.global.min.js'))?>"></script>
 
@@ -1157,19 +1162,27 @@ function showAppointmentDetails(event) {
             : 'Contractor #' + id;
     });
 
+    const role = BRITE_CALENDAR_ROLE;
+    const isManagementRole = ['owner', 'admin', 'scheduler'].includes(role);
+
     const fields = [
         ['Title', appointment.title || event.title || 'Appointment'],
-        ['Client', [
-            appointment.client_first,
-            appointment.client_last
-        ].filter(Boolean).join(' ') || 'Not specified'],
+        ...(role !== 'client' ? [[
+            'Client',
+            [
+                appointment.client_first,
+                appointment.client_last
+            ].filter(Boolean).join(' ') || 'Not specified'
+        ]] : []),
         ['Service', appointment.service_name || 'Not specified'],
         ['Start', appointmentDetailsDate(event.start)],
         ['End', appointmentDetailsDate(event.end)],
         ['Status', String(appointment.status || 'scheduled')
             .replaceAll('_', ' ')],
         ['Location', appointment.location || 'Not specified'],
-        ['Contractors', contractorNames.join(', ') || 'Unassigned']
+        ...(isManagementRole
+            ? [['Contractors', contractorNames.join(', ') || 'Unassigned']]
+            : [])
     ];
 
     const list = document.createElement('dl');
@@ -1199,6 +1212,7 @@ document.getElementById('dismissAppointmentDetails')
 
 document.getElementById('editAppointmentDetails')
     .addEventListener('click', async () => {
+        if (BRITE_CALENDAR_READ_ONLY) return;
         const event = detailsEvent;
         if (!event) return;
 
@@ -1231,6 +1245,7 @@ document.getElementById('editAppointmentDetails')
 
 document.getElementById('duplicateAppointmentDetails')
     .addEventListener('click', async () => {
+        if (BRITE_CALENDAR_READ_ONLY) return;
         const event = detailsEvent;
         if (!event) return;
 
@@ -3011,11 +3026,26 @@ invoiceButton.onclick = async () => {
     }
 };
 
+const BRITE_CALENDAR_ROLE = <?=json_encode(
+    (string)($tenant['role'] ?? ''),
+    JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+)?>;
+const BRITE_CALENDAR_READ_ONLY = <?=in_array(
+    $tenant['role'],
+    ['accounting', 'contractor', 'client'],
+    true
+) ? 'true' : 'false'?>;
+const BRITE_CALENDAR_CLIENT = <?=($tenant['role'] ?? '') === 'client'
+    ? 'true'
+    : 'false'?>;
+
 document.addEventListener('DOMContentLoaded',async ()=>{
 
     try {
 
-        await loadLookups();
+        if (!BRITE_CALENDAR_READ_ONLY) {
+            await loadLookups();
+        }
 
         calendar=new FullCalendar.Calendar(
             document.getElementById('calendar'),
@@ -3030,25 +3060,46 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                     right:'dayGridMonth,timeGridWeek,timeGridDay'
                 },
 
-                selectable:true,
-                editable:true,
-                eventDurationEditable:true,
-                eventStartEditable:true,
+                selectable:!BRITE_CALENDAR_READ_ONLY,
+                editable:!BRITE_CALENDAR_READ_ONLY,
+                eventDurationEditable:!BRITE_CALENDAR_READ_ONLY,
+                eventStartEditable:!BRITE_CALENDAR_READ_ONLY,
 
                 events:loadEvents,
+
+                // Client date clicks start self-service booking.
+                // Other read-only roles retain a non-editable calendar.
+                dateClick:info=>{
+                    if (
+                        BRITE_CALENDAR_CLIENT &&
+                        typeof window.briteOpenClientBookingForDate === 'function'
+                    ) {
+                        window.briteOpenClientBookingForDate(info.dateStr);
+                    }
+                },
+
                 eventContent:calendarEventContent,
                 eventDisplay:'block',
                 displayEventEnd:false,
 
                 eventDrop:async info=>{
+                    if (BRITE_CALENDAR_READ_ONLY) {
+                        info.revert();
+                        return;
+                    }
                     await persistCalendarMove(info);
                 },
 
                 eventResize:async info=>{
+                    if (BRITE_CALENDAR_READ_ONLY) {
+                        info.revert();
+                        return;
+                    }
                     await persistCalendarMove(info);
                 },
 
                 select:info=>{
+                    if (BRITE_CALENDAR_READ_ONLY) return;
                     resetForm();
 
                     startsAt.value=calendarWallTime(info.start);
@@ -3073,6 +3124,45 @@ document.addEventListener('DOMContentLoaded',async ()=>{
         );
 
         calendar.render();
+
+        // Position the month view at the earliest upcoming appointment
+        // visible to this authenticated user. The endpoint derives
+        // client/contractor identity from the session.
+        try {
+            const firstDateResult = await api(
+                '/api/next_calendar_appointment.php'
+            );
+
+            const firstDate = firstDateResult.first_appointment_date;
+
+            if (
+                typeof firstDate === 'string' &&
+                /^\\d{4}-\\d{2}-\\d{2}$/.test(firstDate)
+            ) {
+                calendar.gotoDate(firstDate);
+            }
+        } catch (dateError) {
+            console.warn(
+                'Unable to locate first upcoming appointment; keeping current month.',
+                dateError
+            );
+        }
+
+        if (BRITE_CALENDAR_READ_ONLY) {
+            const newAppointmentButton = document.getElementById(
+                'openAppointmentWizardButton'
+            );
+            if (newAppointmentButton) newAppointmentButton.hidden = true;
+
+            const appointmentDialog = document.getElementById(
+                'appointmentDialog'
+            );
+            if (appointmentDialog) appointmentDialog.hidden = true;
+
+            document.getElementById('editAppointmentDetails').hidden = true;
+            document.getElementById('duplicateAppointmentDetails').hidden = true;
+            document.getElementById('appointmentDetailsEditStatus').hidden = true;
+        }
 
         // Owner booking deep link: use the existing tenant-scoped API.
         const bookingParams = new URLSearchParams(

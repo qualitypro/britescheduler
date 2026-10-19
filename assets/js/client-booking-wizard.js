@@ -212,7 +212,7 @@
         }
     }
 
-    function resetWizard() {
+    function resetWizard(preferredDate = '') {
         currentStep = 1;
         completed = false;
         submitting = false;
@@ -221,6 +221,12 @@
         locationSelect.value = '';
         serviceSelect.value = '';
         startInput.value = '';
+
+        // Calendar dates are tenant-local wall-clock dates.
+        // Leave the time editable by the client.
+        if (/^\d{4}-\d{2}-\d{2}$/.test(preferredDate)) {
+            startInput.value = preferredDate + 'T09:00';
+        }
 
         successBox.hidden = true;
         successBox.textContent = '';
@@ -231,10 +237,10 @@
         updateStep();
     }
 
-    async function openBookingWizard() {
+    async function openBookingWizard(preferredDate = '') {
         if (dialog.open) return;
 
-        resetWizard();
+        resetWizard(preferredDate);
         dialog.showModal();
 
         nextButton.disabled = true;
@@ -248,7 +254,14 @@
         }
     }
 
-    openButton.addEventListener('click', openBookingWizard);
+    openButton.addEventListener('click', () => openBookingWizard());
+
+    // Shared calendar integration: allow an optional preselected date.
+    window.briteOpenClientBookingForDate = dateValue => {
+        openBookingWizard(
+            typeof dateValue === 'string' ? dateValue : ''
+        );
+    };
 
     // Allow client navigation to open the wizard directly.
     const bookingUrl = new URL(window.location.href);

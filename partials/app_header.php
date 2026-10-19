@@ -96,7 +96,7 @@ Dashboard
 </a>
 <?php endif; ?>
 
-<?php if(in_array($tenant['role'],['owner','admin','scheduler'],true)): ?>
+<?php if(in_array($tenant['role'],['owner','admin','scheduler','accounting'],true)): ?>
 <a href="<?=htmlspecialchars(app_url('/scheduling.php'))?>">
 <span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 15h3M8 18h3"/></svg></span>
 Schedule
@@ -150,6 +150,13 @@ Billing
 <a href="<?=htmlspecialchars(app_url('/settings.php'))?>">
 <span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.86 2.86-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.55V21h-4v-.05A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.86-2.86.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3v-4h.05A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88L4.2 7.06 7.06 4.2l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3h4v.05A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.86 2.86-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.55 1H21v4h-.05A1.7 1.7 0 0 0 19.4 15Z"/></svg></span>
 Settings
+</a>
+<?php endif; ?>
+
+<?php if(in_array($tenant['role'],['contractor','client'],true)): ?>
+<a class="brite-shared-calendar-nav" href="<?=htmlspecialchars(app_url('/scheduling.php'),ENT_QUOTES,'UTF-8')?>">
+<span class="brite-nav-icon" aria-hidden="true">▦</span>
+Schedule
 </a>
 <?php endif; ?>
 
