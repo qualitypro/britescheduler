@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/app/bootstrap.php';
 require_once dirname(__DIR__) . '/app/AppointmentValidation.php';
+require_once dirname(__DIR__) . '/app/ClientBookingAvailability.php';
 
 $user = Auth::requireUser();
 $tenant = Auth::requireRole('client');
@@ -167,6 +168,56 @@ try {
         $tenantId,
         $startsAt
     );
+
+    // Match the client availability endpoint's 31-day window.
+    // Compare tenant-local calendar dates, not browser-local dates.
+    $timezoneQuery = $pdo->prepare(
+        'SELECT timezone FROM tenants WHERE id = ? LIMIT 1'
+    );
+    $timezoneQuery->execute([$tenantId]);
+
+    $timezoneName = $timezoneQuery->fetchColumn();
+
+    if (!$timezoneName) {
+        throw new DomainException('Tenant timezone unavailable');
+    }
+
+    $timezone = new DateTimeZone((string)$timezoneName);
+    $today = (new DateTimeImmutable('now', $timezone))
+        ->setTime(0, 0);
+
+    $lastDay = $today->modify('+31 days');
+
+    $bookingDay = DateTimeImmutable::createFromFormat(
+        '!Y-m-d',
+        substr($startsAt, 0, 10),
+        $timezone
+    );
+
+    if (
+        !$bookingDay ||
+        $bookingDay < $today ||
+        $bookingDay > $lastDay
+    ) {
+        throw new DomainException(
+            'Date outside booking window'
+        );
+    }
+
+    // Recheck availability immediately before creating the
+    // tentative appointment. This does not reserve a contractor.
+    if (!ClientBookingAvailability::isSlotAvailable(
+        $pdo,
+        $tenantId,
+        $locationId,
+        $serviceId,
+        $duration,
+        $startsAt
+    )) {
+        throw new DomainException(
+            'The selected appointment time is no longer available'
+        );
+    }
 
     $address = implode(', ', array_filter([
         trim((string)$location['address1']),

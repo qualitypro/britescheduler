@@ -101,6 +101,15 @@ declare(strict_types=1);
     overflow-wrap: anywhere;
 }
 
+.client-booking-field select:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+#clientBookingAvailabilityStatus {
+    min-height: 1.5em;
+}
+
 @media (max-width: 480px) {
     .client-booking-header,
     .client-booking-content,
@@ -172,18 +181,46 @@ declare(strict_types=1);
         <section class="client-booking-step"
                  data-booking-step="3"
                  hidden>
-            <h3>Preferred Appointment Time</h3>
+            <h3>Select Appointment Date &amp; Time</h3>
 
             <label class="client-booking-field">
-                Date and time
+                Appointment date
                 <input
-                    id="clientBookingStart"
-                    type="datetime-local"
+                    id="clientBookingDate"
+                    type="date"
                     required>
             </label>
 
+            <div class="client-booking-field">
+                <label for="clientBookingTime">
+                    Available starting times
+                </label>
+
+                <select
+                    id="clientBookingTime"
+                    required
+                    disabled>
+                    <option value="">
+                        Select a date to view available times
+                    </option>
+                </select>
+            </div>
+
+            <p
+                id="clientBookingAvailabilityStatus"
+                class="muted"
+                role="status"
+                aria-live="polite">
+                Choose a date to check availability.
+            </p>
+
+            <input
+                id="clientBookingStart"
+                type="hidden">
+
             <p class="muted">
-                Your requested time is subject to confirmation.
+                Available times are provisional. Your booking
+                requires confirmation by the account owner.
             </p>
         </section>
 

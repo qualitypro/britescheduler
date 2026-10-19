@@ -18,6 +18,12 @@ try {
     throw new RuntimeException('Invalid tenant timezone');
 }
 
+$canManageAppointments = in_array(
+    $tenant['role'] ?? '',
+    ['owner', 'admin', 'scheduler'],
+    true
+);
+
 $pageTitle='Schedule';
 require __DIR__.'/partials/app_header.php';
 ?>
@@ -759,6 +765,13 @@ require __DIR__.'/partials/app_header.php';
     }
 }
 
+
+/* Respect server-side visibility restrictions for role-protected controls. */
+#openAppointmentWizardButton[hidden],
+#appointmentDialog[hidden] {
+    display: none !important;
+}
+
 </style>
 
 <link rel="stylesheet"
@@ -766,7 +779,10 @@ require __DIR__.'/partials/app_header.php';
 
 <div class="schedule-toolbar">
     <h1>Schedule</h1>
-    <button type="button" id="openAppointmentWizardButton">
+    <button
+        type="button"
+        id="openAppointmentWizardButton"
+        <?= $canManageAppointments ? '' : 'hidden disabled' ?>>
         + New Appointment
     </button>
 </div>
@@ -774,7 +790,8 @@ require __DIR__.'/partials/app_header.php';
 <!-- Modal foundation; existing appointment form remains unchanged. -->
 <dialog id="appointmentDialog"
         class="appointment-dialog"
-        aria-labelledby="appointmentDialogTitle">
+        aria-labelledby="appointmentDialogTitle"
+        <?= $canManageAppointments ? '' : 'hidden' ?>>
     <div class="appointment-dialog-header">
         <h2 id="appointmentDialogTitle">Appointment Wizard</h2>
         <button type="button"
@@ -1737,7 +1754,12 @@ const appointmentWizardContent =
     document.getElementById('appointmentWizardContent');
 
 function openAppointmentWizard(){
+    if (BRITE_CALENDAR_READ_ONLY) return;
     if(!appointmentDialog || appointmentDialog.open) return;
+
+    // Management roles must be able to display the native dialog.
+    // Read-only roles are blocked by the guard above.
+    appointmentDialog.hidden = false;
 
     wizardShowStep(1);
 
@@ -1767,6 +1789,7 @@ closeAppointmentDialog.addEventListener(
 
 document.getElementById('openAppointmentWizardButton')
     .addEventListener('click', () => {
+        if (BRITE_CALENDAR_READ_ONLY) return;
         resetForm();
         openAppointmentWizard();
     });
@@ -3269,8 +3292,10 @@ document.addEventListener('DOMContentLoaded',async ()=>{
         );
 
         if (launchParams.get('action') === 'new') {
-            resetForm();
-            openAppointmentWizard();
+            if (!BRITE_CALENDAR_READ_ONLY) {
+                resetForm();
+                openAppointmentWizard();
+            }
 
             launchParams.delete('action');
 

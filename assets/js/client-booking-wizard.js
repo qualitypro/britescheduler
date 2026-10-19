@@ -12,6 +12,9 @@
     const locationSelect = $('clientBookingLocation');
     const serviceSelect = $('clientBookingService');
     const startInput = $('clientBookingStart');
+    const dateInput = $('clientBookingDate');
+    const timeSelect = $('clientBookingTime');
+    const availabilityStatus = $('clientBookingAvailabilityStatus');
     const review = $('clientBookingReview');
     const errorBox = $('clientBookingError');
     const successBox = $('clientBookingSuccess');
@@ -37,6 +40,9 @@
 
     // Preserve the request key for retries of the same booking.
     let requestKey = null;
+    let availableSlots = [];
+    let availabilityLoading = false;
+    let availabilityVersion = 0;
 
     const base = window.BRITE_BASE ||
         `${location.origin}/dashboard`;
@@ -79,6 +85,128 @@
         return address ? `${label} — ${address}` : label;
     }
 
+    function clearAvailableSlots(message) {
+        availableSlots = [];
+        startInput.value = '';
+        timeSelect.disabled = true;
+        timeSelect.replaceChildren(
+            new Option('Choose an available time', '')
+        );
+        availabilityStatus.textContent = message;
+    }
+
+    async function refreshAvailability() {
+        const version = ++availabilityVersion;
+
+        requestKey = null;
+        availabilityLoading = false;
+
+        clearAvailableSlots(
+            'Choose a date to check availability.'
+        );
+
+        if (
+            !selectedLocation() ||
+            !selectedService() ||
+            !dateInput.value
+        ) {
+            return;
+        }
+
+        availabilityLoading = true;
+
+        availabilityStatus.textContent =
+            'Checking available appointment times...';
+
+        const params = new URLSearchParams({
+            client_location_id: locationSelect.value,
+            service_id: serviceSelect.value,
+            date: dateInput.value
+        });
+
+        try {
+            const response = await fetch(
+                endpoint('/api/client_available_slots.php') +
+                    '?' + params.toString(),
+                {
+                    credentials: 'same-origin',
+                    cache: 'no-store'
+                }
+            );
+
+            const result = await response.json();
+
+            if (version !== availabilityVersion) return;
+
+            if (!response.ok || result.ok !== true) {
+                throw new Error(
+                    result.error ||
+                    'Unable to retrieve available times.'
+                );
+            }
+
+            if (!Array.isArray(result.slots)) {
+                throw new Error('Invalid availability response.');
+            }
+
+            availableSlots = result.slots.filter(slot =>
+                typeof slot.starts_at === 'string' &&
+                typeof slot.time === 'string'
+            );
+
+            timeSelect.replaceChildren(
+                new Option('Choose an available time', '')
+            );
+
+            for (const slot of availableSlots) {
+                const [hour, minute] = slot.time
+                    .split(':')
+                    .map(Number);
+
+                const displayHour = hour % 12 || 12;
+                const period = hour >= 12 ? 'PM' : 'AM';
+
+                timeSelect.add(new Option(
+                    `${displayHour}:${String(minute).padStart(2, '0')} ${period}`,
+                    slot.starts_at
+                ));
+            }
+
+            timeSelect.disabled = availableSlots.length === 0;
+
+            availabilityStatus.textContent =
+                availableSlots.length
+                    ? `${availableSlots.length} available starting times.`
+                    : 'No available times for this date. ' +
+                      'Please choose another date.';
+
+        } catch (error) {
+            if (version !== availabilityVersion) return;
+
+            clearAvailableSlots(
+                error.message ||
+                'Unable to load available times.'
+            );
+        } finally {
+            if (version === availabilityVersion) {
+                availabilityLoading = false;
+            }
+        }
+    }
+
+    function syncSelectedTime() {
+        const selected = availableSlots.find(
+            slot => slot.starts_at === timeSelect.value
+        );
+
+        startInput.value = selected
+            ? selected.starts_at.slice(0, 16)
+            : '';
+
+        requestKey = null;
+        clearError();
+    }
+
     function updateStep() {
         steps.forEach(section => {
             section.hidden =
@@ -114,18 +242,21 @@
         }
 
         if (currentStep === 3) {
-            if (!startInput.value) {
-                showError('Please select a date and time.');
+            if (availabilityLoading) {
+                showError('Please wait for availability to load.');
                 return false;
             }
 
-            const selected = new Date(startInput.value);
+            const selected = availableSlots.find(
+                slot => slot.starts_at === timeSelect.value
+            );
 
             if (
-                Number.isNaN(selected.getTime()) ||
-                selected.getTime() <= Date.now()
+                !selected ||
+                !startInput.value ||
+                startInput.value !== selected.starts_at.slice(0, 16)
             ) {
-                showError('Please choose a future date and time.');
+                showError('Please select an available appointment time.');
                 return false;
             }
         }
@@ -223,10 +354,16 @@
         startInput.value = '';
 
         // Calendar dates are tenant-local wall-clock dates.
-        // Leave the time editable by the client.
-        if (/^\d{4}-\d{2}-\d{2}$/.test(preferredDate)) {
-            startInput.value = preferredDate + 'T09:00';
-        }
+        dateInput.value =
+            /^\d{4}-\d{2}-\d{2}$/.test(preferredDate)
+                ? preferredDate
+                : '';
+
+        ++availabilityVersion;
+        availabilityLoading = false;
+        clearAvailableSlots(
+            'Choose a date to check availability.'
+        );
 
         successBox.hidden = true;
         successBox.textContent = '';
@@ -290,6 +427,10 @@
         if (currentStep < 4) {
             currentStep++;
             updateStep();
+
+            if (currentStep === 3) {
+                refreshAvailability();
+            }
         }
     });
 
@@ -300,21 +441,30 @@
         }
     });
 
-    [locationSelect, serviceSelect, startInput].forEach(field => {
+    [locationSelect, serviceSelect, dateInput].forEach(field => {
         field.addEventListener('change', () => {
-            // Changing booking details creates a distinct request.
             requestKey = null;
             clearError();
+            refreshAvailability();
         });
     });
+
+    timeSelect.addEventListener('change', syncSelectedTime);
 
     submitButton.addEventListener('click', async () => {
         if (submitting || completed) return;
 
-        if (!selectedLocation() ||
+        if (
+            !selectedLocation() ||
             !selectedService() ||
-            !startInput.value) {
-            showError('Complete all booking details.');
+            !startInput.value ||
+            !availableSlots.some(
+                slot =>
+                    slot.starts_at === timeSelect.value &&
+                    slot.starts_at.slice(0, 16) === startInput.value
+            )
+        ) {
+            showError('Please select a valid available time.');
             return;
         }
 
