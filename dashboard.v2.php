@@ -105,31 +105,41 @@ require __DIR__.'/partials/app_header.php';
 
             <div class="brite-dashboard-quick-actions">
                 <?php if(in_array($role,['owner','admin','scheduler'],true)): ?>
-                    <a class="brite-dashboard-quick-action"
+                    <a class="brite-dashboard-quick-action brite-quick-action-button"
                        href="<?=htmlspecialchars(app_url('/scheduling.php'))?>">
-                        Schedule Appointments
+                        <span class="brite-quick-action-icon-wrap"><svg class="brite-quick-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/><path d="M8 14h8M8 18h5"/></svg></span>
+                        <span class="brite-quick-action-content"><strong>Schedule Appointments</strong><span>Manage scheduled appointments.</span></span>
+                        <span class="brite-quick-action-arrow" aria-hidden="true">→</span>
                     </a>
 
-                    <a class="brite-dashboard-quick-action"
+                    <a class="brite-dashboard-quick-action brite-quick-action-button"
                        href="<?=htmlspecialchars(app_url('/contractors.v2.php'))?>">
-                        Manage Contractors
+                        <span class="brite-quick-action-icon-wrap"><svg class="brite-quick-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 15a9 9 0 0 1 18 0"/><path d="M12 6v7"/><path d="M8 8.5V13M16 8.5V13"/><path d="M2 15h20v3H2z"/></svg></span>
+                        <span class="brite-quick-action-content"><strong>Manage Contractors</strong><span>Manage service providers.</span></span>
+                        <span class="brite-quick-action-arrow" aria-hidden="true">→</span>
                     </a>
 
-                    <a class="brite-dashboard-quick-action"
+                    <a class="brite-dashboard-quick-action brite-quick-action-button"
                        href="<?=htmlspecialchars(app_url('/services.v2.php'))?>">
-                        Manage Services
+                        <span class="brite-quick-action-icon-wrap"><svg class="brite-quick-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18M10 13v2h4v-2"/></svg></span>
+                        <span class="brite-quick-action-content"><strong>Manage Services</strong><span>Configure available services.</span></span>
+                        <span class="brite-quick-action-arrow" aria-hidden="true">→</span>
                     </a>
                 <?php endif; ?>
 
-                <a class="brite-dashboard-quick-action"
+                <a class="brite-dashboard-quick-action brite-quick-action-button"
                    href="<?=htmlspecialchars(app_url('/clients.v2.php'))?>">
-                    Manage Clients
-                </a>
+                        <span class="brite-quick-action-icon-wrap"><svg class="brite-quick-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M5.5 17a3.5 3.5 0 0 1 7 0"/><path d="M15 9h3M15 13h3M15 17h3"/></svg></span>
+                        <span class="brite-quick-action-content"><strong>Manage Clients</strong><span>Manage client records.</span></span>
+                        <span class="brite-quick-action-arrow" aria-hidden="true">→</span>
+                    </a>
 
                 <?php if(in_array($role,['owner','admin','accounting'],true)): ?>
-                    <a class="brite-dashboard-quick-action"
+                    <a class="brite-dashboard-quick-action brite-quick-action-button"
                        href="<?=htmlspecialchars(app_url('/billing.php'))?>">
-                        View Billing
+                        <span class="brite-quick-action-icon-wrap"><svg class="brite-quick-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 3h16v18l-4-2-4 2-4-2-4 2z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span>
+                        <span class="brite-quick-action-content"><strong>View Billing</strong><span>Review billing and payments.</span></span>
+                        <span class="brite-quick-action-arrow" aria-hidden="true">→</span>
                     </a>
                 <?php endif; ?>
             </div>
