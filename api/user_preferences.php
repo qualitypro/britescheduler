@@ -16,7 +16,7 @@ $defaults = [
     'week_starts_on' => 'sunday',
     'time_format' => '12h',
     'reduced_motion' => 0,
-    'high_contrast' => 0,
+    'high_contrast' => 1,
     'in_app_notifications' => 1,
 ];
 

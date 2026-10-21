@@ -18,13 +18,36 @@
             );
         }
 
-        updateViewport();
+        const dashboardMain = root.matches(
+            '.brite-dashboard[data-viewport="true"]'
+        ) ? root.closest('main.brite-content') : null;
+
+        function normalizeDashboardPosition() {
+            if (!dashboardMain) return;
+
+            dashboardMain.scrollTop = 0;
+            dashboardMain.scrollLeft = 0;
+
+            updateViewport();
+        }
+
+        normalizeDashboardPosition();
 
         window.addEventListener(
             'resize',
-            updateViewport,
+            normalizeDashboardPosition,
             {passive: true}
         );
+
+        if (dashboardMain) {
+            window.addEventListener('load', () => {
+                normalizeDashboardPosition();
+
+                requestAnimationFrame(() => {
+                    normalizeDashboardPosition();
+                });
+            }, {once: true});
+        }
 
         const tabList = root.querySelector('[role="tablist"]');
         if (!tabList) return;

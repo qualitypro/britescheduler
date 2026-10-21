@@ -122,7 +122,7 @@ require __DIR__.'/partials/app_header.php';
              aria-label="Contractor dashboard sections">
 
             <button type="button"
-                    class="brite-tab"
+                    class="brite-tab brite-tab-button"
                     role="tab"
                     id="contractorOverviewTab"
                     aria-controls="contractorOverviewPanel"
@@ -131,7 +131,7 @@ require __DIR__.'/partials/app_header.php';
             </button>
 
             <button type="button"
-                    class="brite-tab"
+                    class="brite-tab brite-tab-button"
                     role="tab"
                     id="contractorScheduleTab"
                     aria-controls="contractorSchedulePanel"
@@ -141,7 +141,7 @@ require __DIR__.'/partials/app_header.php';
             </button>
 
             <button type="button"
-                    class="brite-tab"
+                    class="brite-tab brite-tab-button"
                     role="tab"
                     id="contractorActionsTab"
                     aria-controls="contractorActionsPanel"
@@ -309,46 +309,56 @@ require __DIR__.'/partials/app_header.php';
 
             <div class="brite-dashboard-quick-actions">
 
-                <a class="card brite-dashboard-action"
+                <a class="brite-dashboard-quick-action brite-quick-action-button"
                    href="#contractorSchedulePanel"
                    data-contractor-schedule-action="true">
-                    <strong>My Schedule</strong>
-                    <span class="muted">
-                        Review assigned appointments.
-                    </span>
-                </a>
+    <span class="brite-quick-action-icon-wrap"><svg class="brite-quick-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/><path d="m8 16 2.5 2.5L16 13"/></svg></span>
+    <span class="brite-quick-action-content">
+        <strong>My Schedule</strong>
+        <span>Review assigned appointments.</span>
+    </span>
+    <span class="brite-quick-action-arrow" aria-hidden="true">→</span>
+</a>
 
-                <a class="card brite-dashboard-action"
-                   href="<?=htmlspecialchars(app_url('/scheduling.php'),ENT_QUOTES,'UTF-8')?>">
-                    <strong>Full Calendar</strong>
-                    <span class="muted">
-                        Open the shared scheduling calendar.
-                    </span>
-                </a>
+                <a class="brite-dashboard-quick-action brite-quick-action-button"
+                   href="<?=htmlspecialchars(app_url('/scheduling.php'),ENT_QUOTES,'UTF-8')?>
+    <span class="brite-quick-action-icon-wrap"><svg class="brite-quick-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/><path d="M7 14h10M7 17h10"/></svg></span>
+    <span class="brite-quick-action-content">
+        <strong>Full Calendar</strong>
+        <span>Open the shared scheduling calendar.</span>
+    </span>
+    <span class="brite-quick-action-arrow" aria-hidden="true">→</span>
+</a>
 
-                <a class="card brite-dashboard-action"
-                   href="<?=htmlspecialchars(app_url('/contractor-service-areas.php'),ENT_QUOTES,'UTF-8')?>">
-                    <strong>My Service Areas</strong>
-                    <span class="muted">
-                        Manage the areas you serve.
-                    </span>
-                </a>
+                <a class="brite-dashboard-quick-action brite-quick-action-button"
+                   href="<?=htmlspecialchars(app_url('/contractor-service-areas.php'),ENT_QUOTES,'UTF-8')?>
+    <span class="brite-quick-action-icon-wrap"><svg class="brite-quick-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2"/><path d="M3 21h18"/></svg></span>
+    <span class="brite-quick-action-content">
+        <strong>My Service Areas</strong>
+        <span>Manage the areas you serve.</span>
+    </span>
+    <span class="brite-quick-action-arrow" aria-hidden="true">→</span>
+</a>
 
-                <a class="card brite-dashboard-action"
-                   href="<?=htmlspecialchars(app_url('/my-availability.php'),ENT_QUOTES,'UTF-8')?>">
-                    <strong>My Availability</strong>
-                    <span class="muted">
-                        Review your availability settings.
-                    </span>
-                </a>
+                <a class="brite-dashboard-quick-action brite-quick-action-button"
+                   href="<?=htmlspecialchars(app_url('/my-availability.php'),ENT_QUOTES,'UTF-8')?>
+    <span class="brite-quick-action-icon-wrap"><svg class="brite-quick-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2"/></svg></span>
+    <span class="brite-quick-action-content">
+        <strong>My Availability</strong>
+        <span>Review your availability settings.</span>
+    </span>
+    <span class="brite-quick-action-arrow" aria-hidden="true">→</span>
+</a>
 
-                <a class="card brite-dashboard-action"
-                   href="<?=htmlspecialchars(app_url('/my-settings.php'),ENT_QUOTES,'UTF-8')?>">
-                    <strong>My Settings</strong>
-                    <span class="muted">
-                        Customize your workspace preferences.
-                    </span>
-                </a>
+                <a class="brite-dashboard-quick-action brite-quick-action-button"
+                   href="<?=htmlspecialchars(app_url('/my-settings.php'),ENT_QUOTES,'UTF-8')?>
+    <span class="brite-quick-action-icon-wrap"><svg class="brite-quick-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l1.5 2.5 3-.2.8 2.9 2.7 1.4-1.2 2.8 1.2 2.8-2.7 1.4-.8 2.9-3-.2L12 22l-1.5-2.5-3 .2-.8-2.9L4 15.4l1.2-2.8L4 9.8l2.7-1.4.8-2.9 3 .2z"/><circle cx="12" cy="12.5" r="3"/></svg></span>
+    <span class="brite-quick-action-content">
+        <strong>My Settings</strong>
+        <span>Customize your workspace preferences.</span>
+    </span>
+    <span class="brite-quick-action-arrow" aria-hidden="true">→</span>
+</a>
 
             </div>
 
