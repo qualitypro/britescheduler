@@ -11,7 +11,16 @@ require __DIR__.'/partials/app_header.php';
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-dashboard.css'))?>">
 
-<section class="brite-dashboard" aria-label="Operations dashboard">
+<link rel="stylesheet"
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'),ENT_QUOTES,'UTF-8')?>">
+
+<link rel="stylesheet"
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-dashboard-workspace.css'),ENT_QUOTES,'UTF-8')?>">
+
+<section class="brite-dashboard brite-tab-workspace"
+         id="managementDashboardWorkspace"
+         data-viewport="true"
+         aria-label="Operations dashboard">
 
     <header class="brite-dashboard-header">
         <div class="brite-dashboard-heading">
@@ -34,6 +43,38 @@ require __DIR__.'/partials/app_header.php';
         </div>
     </header>
 
+    <div class="brite-tab-toolbar">
+        <div class="brite-tab-list"
+             role="tablist"
+             aria-label="Dashboard sections">
+            <button type="button"
+                    class="brite-tab-button"
+                    id="dashboardOverviewTab"
+                    role="tab"
+                    aria-controls="dashboardOverviewPanel"
+                    aria-selected="true">Overview</button>
+            <button type="button"
+                    class="brite-tab-button"
+                    id="dashboardActionsTab"
+                    role="tab"
+                    aria-controls="dashboardActionsPanel"
+                    aria-selected="false">Quick Actions</button>
+            <button type="button"
+                    class="brite-tab-button"
+                    id="dashboardSystemTab"
+                    role="tab"
+                    aria-controls="dashboardSystemPanel"
+                    aria-selected="false">System Information</button>
+        </div>
+    </div>
+
+    <div class="brite-tab-panels">
+        <section class="brite-tab-panel"
+                 id="dashboardOverviewPanel"
+                 role="tabpanel"
+                 aria-labelledby="dashboardOverviewTab"
+                 tabindex="0">
+
     <div id="dashboardStatus"
          class="brite-dashboard-status"
          role="status"
@@ -48,6 +89,14 @@ require __DIR__.'/partials/app_header.php';
 
 
 
+        </section>
+
+        <section class="brite-tab-panel"
+                 id="dashboardActionsPanel"
+                 role="tabpanel"
+                 aria-labelledby="dashboardActionsTab"
+                 tabindex="0"
+                 hidden>
     <div class="brite-dashboard-lower">
 
         <section class="brite-dashboard-panel">
@@ -86,6 +135,15 @@ require __DIR__.'/partials/app_header.php';
             </div>
         </section>
 
+        </div>
+        </section>
+
+        <section class="brite-tab-panel"
+                 id="dashboardSystemPanel"
+                 role="tabpanel"
+                 aria-labelledby="dashboardSystemTab"
+                 tabindex="0"
+                 hidden>
         <section class="brite-dashboard-panel">
             <h2>System Overview</h2>
             <p>
@@ -100,8 +158,11 @@ require __DIR__.'/partials/app_header.php';
             </p>
         </section>
 
+        </section>
     </div>
 </section>
+
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-workspace-tabs.js'),ENT_QUOTES,'UTF-8')?>"></script>
 
 <script>
 (function () {

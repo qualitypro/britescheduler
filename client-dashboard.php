@@ -172,9 +172,91 @@ require __DIR__.'/partials/app_header.php';
 ?>
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/client-dashboard.css'),ENT_QUOTES,'UTF-8')?>">
+<link rel="stylesheet"
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'),ENT_QUOTES,'UTF-8')?>">
+<link rel="stylesheet"
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-dashboard-workspace.css'),ENT_QUOTES,'UTF-8')?>">
 
-<div class="brite-client-dashboard">
 
+
+<div class="brite-client-dashboard brite-dashboard brite-tab-workspace"
+     id="clientDashboardWorkspace"
+     data-viewport="true">
+
+    <div class="brite-tab-toolbar">
+        <div class="brite-tab-list"
+             role="tablist"
+             aria-label="Client dashboard sections">
+
+<button type="button"
+        class="brite-tab"
+        id="clientHomeTab"
+        role="tab"
+        aria-controls="clientHomePanel"
+        aria-selected="true">
+    Home
+</button>
+
+<button type="button"
+        class="brite-tab"
+        id="clientOverviewTab"
+        role="tab"
+        aria-controls="clientOverviewPanel"
+        aria-selected="false"
+        tabindex="-1"
+        >
+    Overview
+</button>
+
+<button type="button"
+        class="brite-tab"
+        id="clientAppointmentsTab"
+        role="tab"
+        aria-controls="clientAppointmentsPanel"
+        aria-selected="false"
+        tabindex="-1">
+    My Appointments
+</button>
+
+<button type="button"
+        class="brite-tab"
+        id="clientInvoicesTab"
+        role="tab"
+        aria-controls="clientInvoicesPanel"
+        aria-selected="false"
+        tabindex="-1">
+    My Invoices
+</button>
+
+<button type="button"
+        class="brite-tab"
+        id="clientLocationsTab"
+        role="tab"
+        aria-controls="clientLocationsPanel"
+        aria-selected="false"
+        tabindex="-1">
+    My Locations
+</button>
+
+<button type="button"
+        class="brite-tab"
+        id="clientActionsTab"
+        role="tab"
+        aria-controls="clientActionsPanel"
+        aria-selected="false"
+        tabindex="-1">
+    Quick Actions
+</button>
+        </div>
+    </div>
+
+    <div class="brite-tab-panels">
+
+<section class="brite-tab-panel"
+         id="clientHomePanel"
+         role="tabpanel"
+         aria-labelledby="clientHomeTab">
+<div class="brite-client-persistent-hero">
 <section class="brite-client-hero" aria-labelledby="briteClientWelcome">
     <div class="brite-client-eyebrow">Simple service scheduling</div>
     <h1 id="briteClientWelcome">
@@ -196,25 +278,35 @@ require __DIR__.'/partials/app_header.php';
         Quick scheduling. No phone call required.
     </span>
 </section>
+    </div>
+</section>
 
-<div class="brite-client-quick-actions">
-    <a class="brite-client-quick-action" href="#myAppointments">
-        <span class="brite-client-quick-icon" aria-hidden="true">▦</span>
-        <span>
-            <strong>My Appointments</strong>
-            <small>View your scheduled services</small>
-        </span>
-    </a>
-    <a class="brite-client-quick-action"
-       href="<?=htmlspecialchars(app_url('/client-locations.php'),ENT_QUOTES,'UTF-8')?>">
-        <span class="brite-client-quick-icon" aria-hidden="true">⌖</span>
-        <span>
-            <strong>My Locations</strong>
-            <small>Manage your service addresses</small>
-        </span>
-    </a>
+<section class="brite-tab-panel"
+         id="clientOverviewPanel"
+         role="tabpanel"
+         aria-labelledby="clientOverviewTab"
+
+         hidden>
+<div class="grid">
+
+<div class="card">
+<div class="muted">Appointments</div>
+<div class="metric"><?=$appointmentCount?></div>
 </div>
 
+<div class="card">
+<div class="muted">Invoices</div>
+<div class="metric"><?=$invoiceCount?></div>
+</div>
+
+<div class="card">
+<div class="muted">Outstanding Balance</div>
+<div class="metric">
+$<?=number_format($outstandingBalance,2)?>
+</div>
+</div>
+
+</div>
 <section class="brite-client-upcoming"
          aria-labelledby="briteUpcomingHeading">
 
@@ -223,7 +315,7 @@ require __DIR__.'/partials/app_header.php';
             <div class="brite-client-eyebrow">Your schedule</div>
             <h2 id="briteUpcomingHeading">Upcoming Appointments</h2>
         </div>
-        <a href="#myAppointments">View all appointments →</a>
+        <a href="#clientAppointmentsPanel">View all appointments →</a>
     </div>
 
     <?php if (!$upcomingAppointments): ?>
@@ -317,28 +409,13 @@ require __DIR__.'/partials/app_header.php';
     <?php endif; ?>
 
 </section>
+</section>
 
-<div class="grid">
-
-<div class="card">
-<div class="muted">Appointments</div>
-<div class="metric"><?=$appointmentCount?></div>
-</div>
-
-<div class="card">
-<div class="muted">Invoices</div>
-<div class="metric"><?=$invoiceCount?></div>
-</div>
-
-<div class="card">
-<div class="muted">Outstanding Balance</div>
-<div class="metric">
-$<?=number_format($outstandingBalance,2)?>
-</div>
-</div>
-
-</div>
-
+<section class="brite-tab-panel"
+         id="clientAppointmentsPanel"
+         role="tabpanel"
+         aria-labelledby="clientAppointmentsTab"
+         hidden>
 <div class="card" style="margin-top:18px">
 
 
@@ -413,8 +490,13 @@ $<?=number_format($outstandingBalance,2)?>
 
 
 </div>
+</section>
 
-
+<section class="brite-tab-panel"
+         id="clientInvoicesPanel"
+         role="tabpanel"
+         aria-labelledby="clientInvoicesTab"
+         hidden>
 <div class="card" style="margin-top:18px">
 
 <h2>My Invoices</h2>
@@ -489,10 +571,75 @@ $<?=number_format($outstandingBalance,2)?>
 
 
 </div>
+</section>
 
+<section class="brite-tab-panel"
+         id="clientLocationsPanel"
+         role="tabpanel"
+         aria-labelledby="clientLocationsTab"
+         hidden>
 
-
+<div class="card">
+    <h2>My Service Locations</h2>
+    <p class="muted">
+        Manage the addresses where you receive services.
+    </p>
+    <a href="<?=htmlspecialchars(app_url('/client-locations.php'),ENT_QUOTES,'UTF-8')?>">
+        Manage My Locations →
+    </a>
 </div>
+</section>
+
+<section class="brite-tab-panel"
+         id="clientActionsPanel"
+         role="tabpanel"
+         aria-labelledby="clientActionsTab"
+         hidden>
+
+<div class="brite-dashboard-quick-actions">
+    <a class="card brite-dashboard-action"
+       href="#clientAppointmentsPanel">
+        <strong>My Appointments</strong>
+        <span class="muted">Review scheduled services.</span>
+    </a>
+    <a class="card brite-dashboard-action"
+       href="#clientInvoicesPanel">
+        <strong>My Invoices</strong>
+        <span class="muted">Review billing and balances.</span>
+    </a>
+    <a class="card brite-dashboard-action"
+       href="<?=htmlspecialchars(app_url('/client-locations.php'),ENT_QUOTES,'UTF-8')?>">
+        <strong>My Locations</strong>
+        <span class="muted">Manage service addresses.</span>
+    </a>
+    <a class="card brite-dashboard-action"
+       href="<?=htmlspecialchars(app_url('/my-settings.php'),ENT_QUOTES,'UTF-8')?>">
+        <strong>My Settings</strong>
+        <span class="muted">Customize account preferences.</span>
+    </a>
+</div>
+<div class="brite-client-quick-actions">
+    <a class="brite-client-quick-action" href="#clientAppointmentsPanel">
+        <span class="brite-client-quick-icon" aria-hidden="true">▦</span>
+        <span>
+            <strong>My Appointments</strong>
+            <small>View your scheduled services</small>
+        </span>
+    </a>
+    <a class="brite-client-quick-action"
+       href="<?=htmlspecialchars(app_url('/client-locations.php'),ENT_QUOTES,'UTF-8')?>">
+        <span class="brite-client-quick-icon" aria-hidden="true">⌖</span>
+        <span>
+            <strong>My Locations</strong>
+            <small>Manage your service addresses</small>
+        </span>
+    </a>
+</div>
+</section>
+    </div>
+</div>
+
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-workspace-tabs.js'),ENT_QUOTES,'UTF-8')?>"></script>
 
 <?php require __DIR__.'/partials/client_booking_wizard.php'; ?>
 

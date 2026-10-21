@@ -98,31 +98,94 @@ require __DIR__.'/partials/app_header.php';
 
 ?>
 
-<h1>Contractor Dashboard</h1>
+<link rel="stylesheet"
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'),ENT_QUOTES,'UTF-8')?>">
+<link rel="stylesheet"
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-dashboard-workspace.css'),ENT_QUOTES,'UTF-8')?>">
 
-<p class="muted">
-Welcome,
-<?=htmlspecialchars($user['first_name'])?>.
-</p>
+<section class="brite-dashboard brite-tab-workspace"
+         id="contractorDashboardWorkspace"
+         data-viewport="true">
 
-<div class="grid">
+    <header class="brite-dashboard-header">
+        <div class="brite-dashboard-heading">
+            <h1>Contractor Dashboard</h1>
+            <p class="muted">
+                Welcome, <?=htmlspecialchars($user['first_name'])?>.
+            </p>
+        </div>
+    </header>
 
-<div class="card">
-<div class="muted">Assigned Appointments</div>
-<div class="metric"><?=$appointmentCount?></div>
-</div>
+    <div class="brite-tab-toolbar">
+        <div class="brite-tab-list"
+             role="tablist"
+             aria-label="Contractor dashboard sections">
 
-<div class="card">
-<div class="muted">Business</div>
-<div style="font-size:20px;font-weight:700">
-<?=htmlspecialchars(
-    $contractor['business_name']
-    ?: $contractor['first_name'].' '.$contractor['last_name']
-)?>
-</div>
-</div>
+            <button type="button"
+                    class="brite-tab"
+                    role="tab"
+                    id="contractorOverviewTab"
+                    aria-controls="contractorOverviewPanel"
+                    aria-selected="true">
+                Overview
+            </button>
 
-</div>
+            <button type="button"
+                    class="brite-tab"
+                    role="tab"
+                    id="contractorScheduleTab"
+                    aria-controls="contractorSchedulePanel"
+                    aria-selected="false"
+                    tabindex="-1">
+                My Schedule
+            </button>
+
+            <button type="button"
+                    class="brite-tab"
+                    role="tab"
+                    id="contractorActionsTab"
+                    aria-controls="contractorActionsPanel"
+                    aria-selected="false"
+                    tabindex="-1">
+                Quick Actions
+            </button>
+
+        </div>
+    </div>
+
+    <div class="brite-tab-panels">
+
+        <section class="brite-tab-panel"
+                 id="contractorOverviewPanel"
+                 role="tabpanel"
+                 aria-labelledby="contractorOverviewTab">
+
+            <div class="brite-dashboard-metrics">
+
+                <article class="card brite-dashboard-metric">
+                    <div class="muted">Assigned Appointments</div>
+                    <div class="metric"><?=$appointmentCount?></div>
+                </article>
+
+                <article class="card brite-dashboard-metric">
+                    <div class="muted">Business</div>
+                    <div class="brite-contractor-business-name">
+                        <?=htmlspecialchars(
+                            $contractor['business_name']
+                            ?: $contractor['first_name'].' '.$contractor['last_name']
+                        )?>
+                    </div>
+                </article>
+
+            </div>
+
+        </section>
+
+        <section class="brite-tab-panel"
+                 id="contractorSchedulePanel"
+                 role="tabpanel"
+                 aria-labelledby="contractorScheduleTab"
+                 hidden>
 
 <div class="card" style="margin-top:18px">
 
@@ -235,5 +298,65 @@ Welcome,
 
 
 </div>
+
+        </section>
+
+        <section class="brite-tab-panel"
+                 id="contractorActionsPanel"
+                 role="tabpanel"
+                 aria-labelledby="contractorActionsTab"
+                 hidden>
+
+            <div class="brite-dashboard-quick-actions">
+
+                <a class="card brite-dashboard-action"
+                   href="#contractorSchedulePanel"
+                   data-contractor-schedule-action="true">
+                    <strong>My Schedule</strong>
+                    <span class="muted">
+                        Review assigned appointments.
+                    </span>
+                </a>
+
+                <a class="card brite-dashboard-action"
+                   href="<?=htmlspecialchars(app_url('/scheduling.php'),ENT_QUOTES,'UTF-8')?>">
+                    <strong>Full Calendar</strong>
+                    <span class="muted">
+                        Open the shared scheduling calendar.
+                    </span>
+                </a>
+
+                <a class="card brite-dashboard-action"
+                   href="<?=htmlspecialchars(app_url('/contractor-service-areas.php'),ENT_QUOTES,'UTF-8')?>">
+                    <strong>My Service Areas</strong>
+                    <span class="muted">
+                        Manage the areas you serve.
+                    </span>
+                </a>
+
+                <a class="card brite-dashboard-action"
+                   href="<?=htmlspecialchars(app_url('/my-availability.php'),ENT_QUOTES,'UTF-8')?>">
+                    <strong>My Availability</strong>
+                    <span class="muted">
+                        Review your availability settings.
+                    </span>
+                </a>
+
+                <a class="card brite-dashboard-action"
+                   href="<?=htmlspecialchars(app_url('/my-settings.php'),ENT_QUOTES,'UTF-8')?>">
+                    <strong>My Settings</strong>
+                    <span class="muted">
+                        Customize your workspace preferences.
+                    </span>
+                </a>
+
+            </div>
+
+        </section>
+
+    </div>
+</section>
+
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-workspace-tabs.js'),ENT_QUOTES,'UTF-8')?>"></script>
 
 <?php require __DIR__.'/partials/app_footer.php'; ?>

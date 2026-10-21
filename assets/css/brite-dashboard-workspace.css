@@ -1,0 +1,459 @@
+/*
+ * Brite Scheduler — Universal Dashboard Workspace
+ * Milestone 148E
+ *
+ * Management dashboard implementation.
+ * Role-specific dashboards will reuse this architecture.
+ */
+
+.brite-dashboard.brite-tab-workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    width: 100%;
+}
+
+.brite-dashboard .brite-dashboard-header {
+    flex: 0 0 auto;
+    gap: 12px;
+}
+
+.brite-dashboard .brite-dashboard-heading h1 {
+    font-size: clamp(1.25rem, 2vw, 1.65rem);
+    margin-bottom: 3px;
+}
+
+.brite-dashboard .brite-dashboard-heading p {
+    font-size: 0.82rem;
+    line-height: 1.35;
+}
+
+.brite-dashboard .brite-tab-toolbar {
+    flex: 0 0 auto;
+}
+
+.brite-dashboard .brite-tab-panels {
+    min-width: 0;
+}
+
+.brite-dashboard .brite-tab-panel {
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.brite-dashboard .brite-dashboard-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.brite-dashboard .brite-dashboard-metric {
+    padding: 14px;
+    gap: 8px;
+    min-height: 0;
+}
+
+.brite-dashboard .brite-dashboard-metric-top {
+    align-items: center;
+}
+
+.brite-dashboard .brite-dashboard-metric-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+}
+
+.brite-dashboard .brite-dashboard-metric-value {
+    font-size: clamp(1.4rem, 2vw, 1.85rem);
+}
+
+.brite-dashboard .brite-dashboard-metric-description {
+    font-size: 0.75rem;
+    line-height: 1.35;
+}
+
+.brite-dashboard .brite-dashboard-lower {
+    display: block;
+}
+
+.brite-dashboard .brite-dashboard-panel {
+    padding: 18px;
+}
+
+.brite-dashboard .brite-dashboard-quick-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 12px;
+}
+
+.brite-dashboard .brite-dashboard-quick-action {
+    min-height: 44px;
+}
+
+@media (min-width: 900px) and (min-height: 500px) {
+    .brite-dashboard.brite-tab-workspace[data-viewport="true"] {
+        min-height: 0;
+    }
+
+    .brite-dashboard.brite-tab-workspace[data-viewport="true"]
+    > .brite-tab-panels {
+        overflow: hidden;
+    }
+
+    .brite-dashboard.brite-tab-workspace[data-viewport="true"]
+    .brite-tab-panel:not([hidden]) {
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 2px;
+        scrollbar-gutter: stable;
+    }
+}
+
+@media (max-width: 899px) {
+    .brite-dashboard .brite-dashboard-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .brite-dashboard .brite-dashboard-quick-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 620px) {
+    .brite-dashboard .brite-dashboard-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .brite-dashboard .brite-dashboard-metric {
+        padding: 10px;
+        gap: 6px;
+    }
+
+    .brite-dashboard .brite-dashboard-metric-icon {
+        width: 28px;
+        height: 28px;
+    }
+
+    .brite-dashboard .brite-dashboard-metric-value {
+        font-size: 1.35rem;
+    }
+
+    .brite-dashboard .brite-dashboard-metric-description {
+        font-size: 0.7rem;
+    }
+
+    .brite-dashboard .brite-dashboard-quick-actions {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-height: 650px) and (min-width: 900px) {
+    .brite-dashboard .brite-dashboard-heading p {
+        display: none;
+    }
+
+    .brite-dashboard .brite-dashboard-metric {
+        padding: 10px;
+        gap: 5px;
+    }
+
+    .brite-dashboard .brite-dashboard-metric-description {
+        display: none;
+    }
+}
+
+/* STEP 148E-008: All-screen viewport containment */
+
+/*
+ * Override the shared desktop minimum height and extend
+ * viewport containment to smaller screens.
+ */
+.brite-dashboard.brite-tab-workspace[data-viewport="true"] {
+    height: max(
+        0px,
+        calc(100dvh - var(--brite-workspace-top, 155px) - 12px)
+    );
+    min-height: 0;
+    max-height: none;
+    overflow: hidden;
+}
+
+.brite-dashboard.brite-tab-workspace[data-viewport="true"]
+> .brite-dashboard-header,
+.brite-dashboard.brite-tab-workspace[data-viewport="true"]
+> .brite-tab-toolbar {
+    flex: 0 0 auto;
+}
+
+.brite-dashboard.brite-tab-workspace[data-viewport="true"]
+> .brite-tab-panels {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.brite-dashboard.brite-tab-workspace[data-viewport="true"]
+> .brite-tab-panels
+> .brite-tab-panel:not([hidden]) {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+/*
+ * On very short screens, the header and tab navigation
+ * may require more room than the available panel height.
+ * Keep controls accessible instead of clipping them.
+ */
+@media (max-height: 420px) {
+    .brite-dashboard.brite-tab-workspace[data-viewport="true"] {
+        overflow-y: auto;
+    }
+
+    .brite-dashboard.brite-tab-workspace[data-viewport="true"]
+    > .brite-tab-panels {
+        flex: 0 0 auto;
+        min-height: 120px;
+    }
+}
+
+
+/* STEP 148E-012: Bottom padding alignment */
+
+/*
+ * The application content shell has 16px bottom padding
+ * on mobile. Match that space so the document does not
+ * extend beyond the viewport.
+ */
+@media (max-width: 899px) {
+    .brite-dashboard.brite-tab-workspace[data-viewport="true"] {
+        height: max(
+            0px,
+            calc(100dvh - var(--brite-workspace-top, 155px) - 16px)
+        );
+    }
+}
+
+
+/* STEP 148E-019: Contractor short-screen containment */
+
+/*
+ * On short displays, keep the Contractor dashboard fixed
+ * within the available viewport. Long schedules scroll
+ * inside the active tab instead of expanding the page.
+ */
+@media (max-height: 420px) {
+    #contractorDashboardWorkspace.brite-tab-workspace[data-viewport="true"] {
+        height: max(
+            0px,
+            calc(100dvh - var(--brite-workspace-top, 155px) - 28px)
+        );
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    #contractorDashboardWorkspace
+    > .brite-tab-panels {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    #contractorDashboardWorkspace
+    > .brite-tab-panels
+    > .brite-tab-panel:not([hidden]) {
+        display: block;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-x: auto;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+}
+
+
+/* STEP 148E-032: Client viewport containment */
+
+/*
+ * Keep the Client dashboard within the visible viewport.
+ * The active panel owns its vertical scrolling.
+ */
+#clientDashboardWorkspace.brite-tab-workspace[data-viewport="true"] {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    height: max(
+        0px,
+        calc(100dvh - var(--brite-workspace-top, 155px) - 12px)
+    );
+    min-height: 0;
+    max-height: none;
+    overflow: hidden;
+}
+
+/* Tab navigation must not consume flexible panel space. */
+#clientDashboardWorkspace > .brite-tab-toolbar {
+    flex: 0 0 auto;
+    min-height: 0;
+}
+
+/* The panel container fills only the remaining space. */
+#clientDashboardWorkspace > .brite-tab-panels {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    max-height: 100%;
+    overflow: hidden;
+}
+
+/* Each active panel scrolls internally. */
+#clientDashboardWorkspace > .brite-tab-panels >
+.brite-tab-panel:not([hidden]) {
+    display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+/* Hidden panels must remain hidden. */
+#clientDashboardWorkspace > .brite-tab-panels >
+.brite-tab-panel[hidden] {
+    display: none !important;
+}
+
+/* Compact spacing in short viewports. */
+@media (max-height: 500px) {
+    #clientDashboardWorkspace.brite-tab-workspace[data-viewport="true"] {
+        height: max(
+            0px,
+            calc(100dvh - var(--brite-workspace-top, 155px) - 28px)
+        );
+        overflow: hidden;
+    }
+
+    #clientDashboardWorkspace .brite-tab-toolbar {
+        flex: 0 0 auto;
+    }
+
+    #clientDashboardWorkspace .brite-tab-panels {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    #clientDashboardWorkspace .brite-tab-panel:not([hidden]) {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+    }
+}
+
+/* Mobile uses the same contained workspace model. */
+@media (max-width: 899px) {
+    #clientDashboardWorkspace.brite-tab-workspace[data-viewport="true"] {
+        height: max(
+            0px,
+            calc(100dvh - var(--brite-workspace-top, 155px) - 16px)
+        );
+    }
+}
+
+
+/* STEP 148E-040: Short desktop workspace containment */
+
+/*
+ * At short desktop heights, the header and main content
+ * must share the available viewport height.
+ *
+ * This prevents the 72px header from adding an extra
+ * 72px to the document's scroll height.
+ */
+@media (min-width: 900px) and (max-height: 500px) {
+    body.brite-app > .brite-workspace {
+        height: 100dvh !important;
+        min-height: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+    }
+
+    body.brite-app > .brite-workspace > header {
+        flex: 0 0 auto !important;
+    }
+
+    body.brite-app > .brite-workspace > main {
+        flex: 1 1 auto !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: hidden !important;
+    }
+}
+
+
+/* STEP 148E-054: Mobile dashboard viewport containment */
+@media (max-width: 899px) {
+    body.brite-app:has(.brite-dashboard.brite-tab-workspace[data-viewport="true"])
+        > .brite-workspace {
+        height: 100dvh !important;
+        min-height: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+    }
+
+    body.brite-app:has(.brite-dashboard.brite-tab-workspace[data-viewport="true"])
+        > .brite-workspace > header {
+        flex: 0 0 auto !important;
+    }
+
+    body.brite-app:has(.brite-dashboard.brite-tab-workspace[data-viewport="true"])
+        > .brite-workspace > main {
+        flex: 1 1 auto !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: hidden !important;
+    }
+}
+
+/* STEP 148E-069: Standard desktop dashboard viewport containment */
+@media (min-width: 900px) and (min-height: 501px) {
+    body.brite-app:has(
+        .brite-dashboard.brite-tab-workspace[data-viewport="true"]
+    ) > .brite-workspace {
+        height: 100dvh !important;
+        min-height: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+    }
+
+    body.brite-app:has(
+        .brite-dashboard.brite-tab-workspace[data-viewport="true"]
+    ) > .brite-workspace > header {
+        flex: 0 0 auto !important;
+    }
+
+    body.brite-app:has(
+        .brite-dashboard.brite-tab-workspace[data-viewport="true"]
+    ) > .brite-workspace > main {
+        flex: 1 1 auto !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: hidden !important;
+    }
+}
