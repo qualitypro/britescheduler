@@ -18,7 +18,7 @@ if (!in_array($palette, ['ocean', 'forest', 'midnight', 'slate'], true)) {
 }
 
 $reducedMotion = !empty($uiPreferences['reduced_motion']) ? '1' : '0';
-$highContrast = !empty($uiPreferences['high_contrast']) ? '1' : '0';
+$highContrast = !empty($uiPreferences['high_contrast'] ?? 1) ? '1' : '0';
 
 
 $dashboardPath = match ($tenant['role']) {
