@@ -178,18 +178,15 @@ Settings
 </a>
 <?php endif; ?>
 
-<?php if(in_array($tenant['role'],['contractor','client'],true)): ?>
-<a class="brite-shared-calendar-nav" href="<?=htmlspecialchars(app_url('/scheduling.php'),ENT_QUOTES,'UTF-8')?>">
-<span class="brite-nav-icon" aria-hidden="true">▦</span>
-Schedule
-</a>
-<?php endif; ?>
-
 <?php if($tenant['role']==='contractor'): ?>
 <div class="brite-nav-group-label">Workspace</div>
 <a href="<?=htmlspecialchars(app_url('/contractor-dashboard.php'))?>">
 <span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span>
 My Dashboard
+</a>
+<a class="brite-shared-calendar-nav" href="<?=htmlspecialchars(app_url('/scheduling.php'),ENT_QUOTES,'UTF-8')?>">
+<span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 15h3M8 18h3"/></svg></span>
+Schedule
 </a>
 <a href="<?=htmlspecialchars(app_url('/contractor-service-areas.php'))?>">
 <span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/></svg></span>
@@ -211,6 +208,10 @@ Book a Service
 <a href="<?=htmlspecialchars(app_url('/client-dashboard.php'))?>">
 <span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span>
 My Dashboard
+</a>
+<a class="brite-shared-calendar-nav" href="<?=htmlspecialchars(app_url('/scheduling.php'),ENT_QUOTES,'UTF-8')?>">
+<span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 15h3M8 18h3"/></svg></span>
+Schedule
 </a>
 <a href="<?=htmlspecialchars(app_url('/client-locations.php'))?>">
 <span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
