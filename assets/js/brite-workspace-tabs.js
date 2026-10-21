@@ -168,6 +168,31 @@
             entries[0]
         );
 
+        root.addEventListener('click', event => {
+            const link = event.target.closest('a[href^="#"]');
+            if (!link || !root.contains(link)) return;
+
+            let targetId;
+
+            try {
+                targetId = decodeURIComponent(
+                    link.getAttribute('href').slice(1)
+                );
+            } catch (_) {
+                return;
+            }
+
+            const entry = entries.find(item =>
+                item.panel.id === targetId ||
+                item.tab.id === targetId
+            );
+
+            if (!entry) return;
+
+            event.preventDefault();
+            activate(entry, false, true);
+        });
+
         window.addEventListener('hashchange', () => {
             const entry = entryFromHash();
             if (entry) activate(entry);

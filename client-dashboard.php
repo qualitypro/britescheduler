@@ -616,7 +616,7 @@ $<?=number_format($outstandingBalance,2)?>
     <span class="brite-quick-action-arrow" aria-hidden="true">→</span>
 </a>
     <a class="brite-dashboard-quick-action brite-quick-action-button"
-       href="<?=htmlspecialchars(app_url('/client-locations.php'),ENT_QUOTES,'UTF-8')?>
+       href="<?=htmlspecialchars(app_url('/client-locations.php'),ENT_QUOTES,'UTF-8')?>">
     <span class="brite-quick-action-icon-wrap"><svg class="brite-quick-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
     <span class="brite-quick-action-content">
         <strong>My Locations</strong>
@@ -625,7 +625,7 @@ $<?=number_format($outstandingBalance,2)?>
     <span class="brite-quick-action-arrow" aria-hidden="true">→</span>
 </a>
     <a class="brite-dashboard-quick-action brite-quick-action-button"
-       href="<?=htmlspecialchars(app_url('/my-settings.php'),ENT_QUOTES,'UTF-8')?>
+       href="<?=htmlspecialchars(app_url('/my-settings.php'),ENT_QUOTES,'UTF-8')?>">
     <span class="brite-quick-action-icon-wrap"><svg class="brite-quick-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l1.5 2.5 3-.2.8 2.9 2.7 1.4-1.2 2.8 1.2 2.8-2.7 1.4-.8 2.9-3-.2L12 22l-1.5-2.5-3 .2-.8-2.9L4 15.4l1.2-2.8L4 9.8l2.7-1.4.8-2.9 3 .2z"/><circle cx="12" cy="12.5" r="3"/></svg></span>
     <span class="brite-quick-action-content">
         <strong>My Settings</strong>
