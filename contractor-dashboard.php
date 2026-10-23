@@ -143,6 +143,16 @@ require __DIR__.'/partials/app_header.php';
             <button type="button"
                     class="brite-tab brite-tab-button"
                     role="tab"
+                    id="contractorPricingTab"
+                    aria-controls="contractorPricingPanel"
+                    aria-selected="false"
+                    tabindex="-1">
+                My Services &amp; Pricing
+            </button>
+
+            <button type="button"
+                    class="brite-tab brite-tab-button"
+                    role="tab"
                     id="contractorActionsTab"
                     aria-controls="contractorActionsPanel"
                     aria-selected="false"
@@ -302,6 +312,37 @@ require __DIR__.'/partials/app_header.php';
         </section>
 
         <section class="brite-tab-panel"
+                 id="contractorPricingPanel"
+                 role="tabpanel"
+                 aria-labelledby="contractorPricingTab"
+                 hidden>
+
+            <div class="card">
+                <h2>My Services &amp; Pricing</h2>
+                <p class="muted">
+                    Configure hourly or flat-rate pricing for
+                    your qualified services. Pricing does not
+                    change your qualification approval.
+                </p>
+                <p id="contractorPricingStatus"
+                   role="status"
+                   aria-live="polite">
+                    Loading...
+                </p>
+            </div>
+
+            <div id="contractorPricingRows"
+                 style="display:grid;
+                        grid-template-columns:repeat(
+                            auto-fit,minmax(min(100%,280px),1fr)
+                        );
+                        gap:14px;
+                        margin-top:14px">
+            </div>
+
+        </section>
+
+        <section class="brite-tab-panel"
                  id="contractorActionsPanel"
                  role="tabpanel"
                  aria-labelledby="contractorActionsTab"
@@ -368,5 +409,7 @@ require __DIR__.'/partials/app_header.php';
 </section>
 
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-workspace-tabs.js'),ENT_QUOTES,'UTF-8')?>"></script>
+
+<script src="<?=htmlspecialchars(app_url('/assets/js/contractor-service-pricing.js'),ENT_QUOTES,'UTF-8')?>"></script>
 
 <?php require __DIR__.'/partials/app_footer.php'; ?>
