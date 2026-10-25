@@ -134,6 +134,7 @@
 
         select.addEventListener('change', () => {
             button.disabled = !select.value;
+            message.replaceChildren();
         });
 
         button.addEventListener('click', async () => {
@@ -150,9 +151,86 @@
                 select.selectedOptions[0]?.textContent.trim() ||
                 `Contractor #${replacementId}`;
 
-            if (!window.confirm(
-                `Reassign this declined assignment to ${selectedName}?`
-            )) {
+            // Preview is advisory: the POST endpoint revalidates under locks.
+            // Never submit when preview fails or eligibility is rejected.
+            button.disabled = true;
+            select.disabled = true;
+            message.replaceChildren();
+            message.textContent = 'Checking contractor eligibility...';
+
+            let preview;
+            try {
+                const query = new URLSearchParams({
+                    appointment_id: String(appointmentId),
+                    declined_contractor_id: String(assignment.contractor_id),
+                    replacement_contractor_id: String(replacementId)
+                });
+                const response = await fetch(
+                    `${base}/api/owner_assignment_eligibility_preview.php?${query}`,
+                    {
+                        credentials: 'same-origin',
+                        headers: { Accept: 'application/json' }
+                    }
+                );
+                preview = await response.json();
+                if (!response.ok || !preview.ok) {
+                    throw new Error(preview.error || 'Eligibility preview failed');
+                }
+            } catch (error) {
+                message.textContent = error.message || 'Eligibility preview unavailable';
+                select.disabled = false;
+                button.disabled = !select.value;
+                return;
+            }
+
+            if (Number(select.value) !== replacementId || !dialog.open) {
+                select.disabled = false;
+                button.disabled = !select.value;
+                return;
+            }
+
+            const warnings = Array.isArray(preview.warnings)
+                ? preview.warnings.map(String)
+                : [];
+            const errors = Array.isArray(preview.errors)
+                ? preview.errors.map(String)
+                : [];
+
+            message.replaceChildren();
+            const summary = document.createElement('strong');
+            summary.textContent = preview.allowed
+                ? (warnings.length ? 'Eligibility warnings:' : 'Eligibility checks passed.')
+                : 'Contractor is not eligible:';
+            message.append(summary);
+
+            if (warnings.length || errors.length) {
+                const list = document.createElement('ul');
+                for (const item of [...errors, ...warnings]) {
+                    const entry = document.createElement('li');
+                    entry.textContent = item;
+                    list.append(entry);
+                }
+                message.append(list);
+            }
+
+            if (!preview.allowed) {
+                select.disabled = false;
+                button.disabled = !select.value;
+                return;
+            }
+
+            const warningText = warnings.length
+                ? '\n\nEligibility warnings:\n- ' + warnings.join('\n- ')
+                : '\n\nEligibility checks passed.';
+            const confirmed = window.confirm(
+                `Reassign this declined assignment to ${selectedName}?` +
+                warningText +
+                '\n\nThe server will recheck eligibility before saving.'
+            );
+
+            if (!confirmed) {
+                select.disabled = false;
+                button.disabled = !select.value;
                 return;
             }
 
