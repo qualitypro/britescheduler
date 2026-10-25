@@ -160,6 +160,53 @@ function validate_assignment_eligibility(
     return $warnings;
 }
 
+
+/**
+ * Serialize scheduling changes for the specified contractors.
+ *
+ * Must be called inside an active database transaction.
+ * Locks are acquired in ascending contractor ID order.
+ */
+function lock_assignment_contractors(
+    PDO $pdo,
+    int $tenantId,
+    array $contractorIds
+): void {
+    if (!$pdo->inTransaction()) {
+        throw new RuntimeException(
+            'Contractor locking requires an active transaction'
+        );
+    }
+
+    $ids = array_values(array_unique(
+        array_map('intval', $contractorIds)
+    ));
+
+    sort($ids, SORT_NUMERIC);
+
+    $lock = $pdo->prepare("
+        SELECT id
+        FROM contractors
+        WHERE tenant_id = ?
+          AND id = ?
+        FOR UPDATE
+    ");
+
+    foreach ($ids as $contractorId) {
+        if ($contractorId < 1) {
+            throw new RuntimeException('Invalid contractor ID');
+        }
+
+        $lock->execute([$tenantId, $contractorId]);
+
+        if (!$lock->fetchColumn()) {
+            throw new RuntimeException(
+                'Contractor not found during assignment'
+            );
+        }
+    }
+}
+
 function validate_times(string $startsAt, string $endsAt): void
 {
     // Both values have already been normalized by
@@ -554,6 +601,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $pdo->beginTransaction();
 
+        lock_assignment_contractors(
+            $pdo,
+            $tid,
+            $contractorIds
+        );
+
+        $eligibilityWarnings = validate_assignment_eligibility(
+            $pdo,
+            $tid,
+            $contractorIds,
+            $serviceId,
+            $clientLocationId
+        );
+
+        check_contractor_availability(
+            $pdo,
+            $tid,
+            $contractorIds,
+            $startsAt,
+            $endsAt
+        );
+
+        check_contractor_conflicts(
+            $pdo,
+            $tid,
+            $contractorIds,
+            $startsAt,
+            $endsAt
+        );
+
         $q = $pdo->prepare("
             INSERT INTO appointments(
                 tenant_id,
@@ -756,6 +833,105 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 
         $pdo->beginTransaction();
 
+        /*
+         * Serialize appointment edits with marketplace award operations.
+         * Lock the appointment before inspecting its listing or assignments.
+         */
+        $lock = $pdo->prepare("
+            SELECT id
+            FROM appointments
+            WHERE id=? AND tenant_id=?
+            FOR UPDATE
+        ");
+        $lock->execute([$id, $tid]);
+
+        if (!$lock->fetchColumn()) {
+            throw new RuntimeException('Appointment not found');
+        }
+
+        $listingQuery = $pdo->prepare("
+            SELECT status
+            FROM appointment_bid_listings
+            WHERE tenant_id=?
+              AND appointment_id=?
+            FOR UPDATE
+        ");
+        $listingQuery->execute([$tid, $id]);
+        $listingStatus = $listingQuery->fetchColumn();
+
+        $currentAssignmentsQuery = $pdo->prepare("
+            SELECT contractor_id
+            FROM appointment_contractors
+            WHERE appointment_id=?
+        ");
+        $currentAssignmentsQuery->execute([$id]);
+
+        $currentAssignmentIds = array_map(
+            'intval',
+            $currentAssignmentsQuery->fetchAll(PDO::FETCH_COLUMN)
+        );
+
+        $requestedIds = array_values(array_unique($contractorIds));
+        sort($requestedIds);
+        sort($currentAssignmentIds);
+
+        $assignmentsChanged = $requestedIds !== $currentAssignmentIds;
+
+        if (
+            in_array(
+                $listingStatus,
+                ['open', 'paused', 'awarded'],
+                true
+            )
+        ) {
+            /*
+             * Marketplace appointments are immutable through the
+             * ordinary editor until explicit marketplace amendment,
+             * cancellation and award workflows are available.
+             */
+            throw new RuntimeException(
+                'This appointment is controlled by the marketplace'
+            );
+        }
+
+        lock_assignment_contractors(
+            $pdo,
+            $tid,
+            array_merge(
+                $currentAssignmentIds,
+                $contractorIds
+            )
+        );
+
+        if ($assignmentsChanged) {
+            validate_assignment_eligibility(
+                $pdo,
+                $tid,
+                $contractorIds,
+                $serviceId,
+                $clientLocationId,
+                $currentAssignmentIds
+            );
+
+        }
+
+        check_contractor_availability(
+            $pdo,
+            $tid,
+            $contractorIds,
+            $startsAt,
+            $endsAt
+        );
+
+        check_contractor_conflicts(
+            $pdo,
+            $tid,
+            $contractorIds,
+            $startsAt,
+            $endsAt,
+            $id
+        );
+
         $q = $pdo->prepare("
             UPDATE appointments
             SET
@@ -877,6 +1053,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
 
     try {
         $pdo->beginTransaction();
+
+        /*
+         * Lock appointment before inspecting marketplace state.
+         * All marketplace assignment/deletion operations must
+         * acquire locks in this same order.
+         */
+        $lock = $pdo->prepare("
+            SELECT id
+            FROM appointments
+            WHERE id=? AND tenant_id=?
+            FOR UPDATE
+        ");
+        $lock->execute([$id, $tid]);
+
+        if (!$lock->fetchColumn()) {
+            throw new RuntimeException('Appointment not found');
+        }
+
+        $listingCheck = $pdo->prepare("
+            SELECT id
+            FROM appointment_bid_listings
+            WHERE tenant_id=?
+              AND appointment_id=?
+            FOR UPDATE
+        ");
+        $listingCheck->execute([$tid, $id]);
+
+        if ($listingCheck->fetchColumn()) {
+            throw new RuntimeException(
+                'Marketplace appointments cannot be deleted through the ordinary editor'
+            );
+        }
 
         // Preserve notification history when an appointment is deleted.
         // Tenant-scoped updates retain cross-tenant isolation.

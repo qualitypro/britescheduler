@@ -278,6 +278,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             !empty($d['is_available'])
                 ? 1 : 0;
 
+        /*
+         * Serialize availability writes with marketplace awards
+         * and appointment assignment operations.
+         */
+        $pdo->beginTransaction();
+
+        $lock=$pdo->prepare("
+            SELECT id
+            FROM contractors
+            WHERE tenant_id=? AND id=?
+            FOR UPDATE
+        ");
+        $lock->execute([$tid,$contractorId]);
+
+        if (!$lock->fetchColumn()) {
+            throw new RuntimeException(
+                'Contractor not found during availability update'
+            );
+        }
+
         $q=$pdo->prepare("
             INSERT INTO contractor_availability(
                 tenant_id,
@@ -301,12 +321,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $isAvailable
         ]);
 
+        $newId=(int)$pdo->lastInsertId();
+        $pdo->commit();
+
         json_response([
             'ok'=>true,
-            'id'=>(int)$pdo->lastInsertId()
+            'id'=>$newId
         ],201);
 
     } catch(Throwable $e) {
+
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
 
         json_response([
             'error'=>$e->getMessage()
@@ -331,21 +358,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
         ],422);
     }
 
-    /*
-     * Contractor deletion is restricted to rules
-     * belonging to their own contractor profile.
-     */
+    try {
+        /*
+         * Resolve the rule without locking, then lock its
+         * contractor and recheck the rule under that lock.
+         */
+        $q=$pdo->prepare("
+            SELECT contractor_id
+            FROM contractor_availability
+            WHERE id=? AND tenant_id=?
+        ");
+        $q->execute([$id,$tid]);
 
-    if ($role === 'contractor') {
+        $contractorId=(int)($q->fetchColumn() ?: 0);
 
-        $contractorId =
-            resolve_availability_contractor(
-                $pdo,
-                $tid,
-                $user,
-                $role,
-                $managementRoles
+        if ($contractorId <= 0) {
+            json_response([
+                'error'=>'Availability rule not found'
+            ],404);
+        }
+
+        if ($role === 'contractor') {
+            $ownContractorId =
+                resolve_availability_contractor(
+                    $pdo,
+                    $tid,
+                    $user,
+                    $role,
+                    $managementRoles
+                );
+
+            if ($ownContractorId !== $contractorId) {
+                json_response([
+                    'error'=>'Availability rule not found'
+                ],404);
+            }
+        }
+
+        $pdo->beginTransaction();
+
+        $lock=$pdo->prepare("
+            SELECT id
+            FROM contractors
+            WHERE tenant_id=? AND id=?
+            FOR UPDATE
+        ");
+        $lock->execute([$tid,$contractorId]);
+
+        if (!$lock->fetchColumn()) {
+            throw new RuntimeException(
+                'Contractor not found during availability deletion'
             );
+        }
 
         $q=$pdo->prepare("
             DELETE FROM contractor_availability
@@ -353,36 +417,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
               AND tenant_id=?
               AND contractor_id=?
         ");
+        $q->execute([$id,$tid,$contractorId]);
 
-        $q->execute([
-            $id,
-            $tid,
-            $contractorId
-        ]);
+        if (!$q->rowCount()) {
+            $pdo->rollBack();
+            json_response([
+                'error'=>'Availability rule not found'
+            ],404);
+        }
 
-    } else {
+        $pdo->commit();
 
-        $q=$pdo->prepare("
-            DELETE FROM contractor_availability
-            WHERE id=?
-              AND tenant_id=?
-        ");
+        json_response(['ok'=>true]);
 
-        $q->execute([
-            $id,
-            $tid
-        ]);
-    }
+    } catch(Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
 
-    if (!$q->rowCount()) {
+        error_log(
+            'Availability deletion error: ' .
+            $e->getMessage()
+        );
+
         json_response([
-            'error'=>'Availability rule not found'
-        ],404);
+            'error'=>'Availability deletion could not be completed'
+        ],500);
     }
-
-    json_response(['ok'=>true]);
 }
-
 
 json_response([
     'error'=>'Method not allowed'

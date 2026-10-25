@@ -295,12 +295,11 @@ My Locations
     </header>
 
 
-    <!-- Brite Activity Hub: owner-only shared notification UI -->
-    <?php if ($tenant['role'] === 'owner'): ?>
-    <aside
+    <!-- Brite Activity Hub: shared notification UI -->
+        <aside
         id="briteActivityHub"
         class="brite-activity-hub"
-        aria-label="Owner activity hub"
+        aria-label="Activity hub"
         aria-hidden="true"
         hidden>
 
@@ -334,7 +333,7 @@ My Locations
         <div
             id="briteActivityHubList"
             class="brite-activity-hub-list"
-            aria-label="Recent owner notifications">
+            aria-label="Recent notifications">
         </div>
     </aside>
 
@@ -360,6 +359,5 @@ My Locations
         </svg>
         <span id="briteActivityHubToggleCount">0</span>
     </button>
-    <?php endif; ?>
 
 <main class="brite-content">

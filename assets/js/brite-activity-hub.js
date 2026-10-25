@@ -92,7 +92,7 @@
 
         try {
             const response = await fetch(
-                base + '/api/owner_notification_read.php',
+                base + '/api/user_notification_read.php',
                 {
                     method: 'POST',
                     credentials: 'same-origin',
@@ -156,8 +156,14 @@
 
         const appointmentId = Number(notification.appointment_id);
 
+        const bookingLinkTypes = [
+            'appointment',
+            'marketplace_bid_selected',
+            'marketplace_contractor_assigned'
+        ];
+
         if (
-            notification.type === 'appointment' &&
+            bookingLinkTypes.includes(notification.type) &&
             notification.appointment_id !== null &&
             Number.isSafeInteger(appointmentId) &&
             appointmentId > 0
@@ -207,7 +213,7 @@
 
         try {
             const response = await fetch(
-                base + '/api/owner_notifications.php',
+                base + '/api/user_notifications.php',
                 {
                     credentials: 'same-origin',
                     cache: 'no-store'

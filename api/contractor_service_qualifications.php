@@ -139,6 +139,28 @@ $verifiedAt = $status === 'unverified'
     ? null
     : date('Y-m-d H:i:s');
 
+try {
+    $pdo->beginTransaction();
+
+    /*
+     * Coordinate qualification changes with marketplace
+     * awards and appointment assignment operations.
+     */
+    $lock = $pdo->prepare("
+        SELECT id
+        FROM contractors
+        WHERE tenant_id = ?
+          AND id = ?
+        FOR UPDATE
+    ");
+    $lock->execute([$tid, $contractorId]);
+
+    if (!$lock->fetchColumn()) {
+        throw new RuntimeException(
+            'Contractor not found during qualification update'
+        );
+    }
+
 $q = $pdo->prepare("
     INSERT INTO contractor_service_qualifications (
         tenant_id,
@@ -163,6 +185,23 @@ $q->execute([
     $verifiedBy,
     $verifiedAt
 ]);
+
+
+    $pdo->commit();
+
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
+    error_log(
+        'Qualification update error: ' . $e->getMessage()
+    );
+
+    json_response([
+        'error' => 'Qualification update could not be completed'
+    ], 500);
+}
 
 json_response([
     'ok' => true,
