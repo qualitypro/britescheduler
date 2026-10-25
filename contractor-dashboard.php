@@ -219,6 +219,7 @@ require __DIR__.'/partials/app_header.php';
 <th>Start</th>
 <th>End</th>
 <th>Assignment</th>
+<th>Actions</th>
 </tr>
 </thead>
 
@@ -253,7 +254,41 @@ require __DIR__.'/partials/app_header.php';
 </td>
 
 <td>
+<span data-assignment-status>
 <?=htmlspecialchars($a['assignment_status'])?>
+</span>
+</td>
+
+<td>
+<?php
+$assignmentEligible =
+    $a['assignment_status'] === 'assigned'
+    && in_array(
+        $a['status'],
+        ['tentative', 'scheduled', 'confirmed'],
+        true
+    )
+    && strtotime($a['starts_at']) > time();
+?>
+<?php if ($assignmentEligible): ?>
+<div class="brite-assignment-actions"
+     data-appointment-id="<?=(int)$a['id']?>"
+     style="display:flex;gap:8px;flex-wrap:wrap">
+
+<button type="button"
+        data-assignment-action="accept">
+    Accept
+</button>
+
+<button type="button"
+        data-assignment-action="decline">
+    Decline
+</button>
+
+</div>
+<?php else: ?>
+<span class="muted">—</span>
+<?php endif; ?>
 </td>
 
 </tr>
@@ -411,5 +446,11 @@ require __DIR__.'/partials/app_header.php';
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-workspace-tabs.js'),ENT_QUOTES,'UTF-8')?>"></script>
 
 <script src="<?=htmlspecialchars(app_url('/assets/js/contractor-service-pricing.js'),ENT_QUOTES,'UTF-8')?>"></script>
+
+<script src="<?=htmlspecialchars(
+    app_url('/assets/js/contractor-assignment-response.js'),
+    ENT_QUOTES,
+    'UTF-8'
+)?>"></script>
 
 <?php require __DIR__.'/partials/app_footer.php'; ?>

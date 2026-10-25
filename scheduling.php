@@ -1187,6 +1187,7 @@ require __DIR__.'/partials/app_header.php';
     </div>
 </div>
 
+<script src="<?=htmlspecialchars(app_url('/assets/js/owner-assignment-details.js'), ENT_QUOTES, 'UTF-8')?>"></script>
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-workspace-tabs.js'), ENT_QUOTES, 'UTF-8')?>"></script>
 
 <script>
@@ -1241,6 +1242,7 @@ function showAppointmentDetails(event) {
     if (!event || detailsDialog.open) return;
 
     detailsEvent = event;
+    window.briteOwnerDetailsEvent = event;
     const appointment = event.extendedProps || {};
     const contractorIds = String(appointment.contractor_ids || '')
         .split(',')

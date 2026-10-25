@@ -989,6 +989,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
             $contractorIds
         );
 
+        /*
+         * Lifecycle-protected assignments must not be deleted through
+         * the ordinary appointment editor. Preserve their status and
+         * history; use an explicit audited workflow for changes.
+         */
+        if ($removedIds) {
+            $protectedQuery = $pdo->prepare("
+                SELECT contractor_id, status
+                FROM appointment_contractors
+                WHERE appointment_id = ?
+                  AND status IN ('accepted', 'declined', 'completed')
+                FOR UPDATE
+            ");
+            $protectedQuery->execute([$id]);
+
+            foreach ($protectedQuery->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                if (in_array(
+                    (int)$row['contractor_id'],
+                    $removedIds,
+                    true
+                )) {
+                    throw new RuntimeException(
+                        'Cannot remove a contractor with a protected '
+                        . 'assignment status (' . $row['status'] . ') '
+                        . 'through the ordinary appointment editor'
+                    );
+                }
+            }
+        }
+
         $addedIds = array_diff(
             $contractorIds,
             $existingIds
