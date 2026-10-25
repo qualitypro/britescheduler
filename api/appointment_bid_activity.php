@@ -170,4 +170,53 @@ if ($isManager) {
     $response['bids'] = $q->fetchAll(PDO::FETCH_ASSOC);
 }
 
+/*
+ * Clients may view eligible bids only after the listing
+ * ownership and tenant authorization checks above succeed.
+ *
+ * Withdrawn and rejected bids are not included.
+ * Contractor contact details are intentionally excluded.
+ */
+if (!$isManager) {
+    $q = $pdo->prepare("
+        SELECT
+            b.id AS bid_id,
+            b.contractor_id,
+            c.first_name,
+            c.last_name,
+            c.business_name,
+            b.pricing_type,
+            b.amount,
+            b.message,
+            b.status,
+            b.submitted_at,
+            b.updated_at
+        FROM appointment_bids b
+        JOIN contractors c
+          ON c.id = b.contractor_id
+         AND c.tenant_id = b.tenant_id
+        WHERE b.tenant_id = ?
+          AND b.listing_id = ?
+          AND b.status IN (
+              'submitted',
+              'shortlisted',
+              'selected',
+              'accepted'
+          )
+        ORDER BY
+            CASE b.status
+                WHEN 'selected' THEN 0
+                WHEN 'accepted' THEN 1
+                WHEN 'shortlisted' THEN 2
+                ELSE 3
+            END,
+            b.submitted_at ASC,
+            b.id ASC
+    ");
+
+    $q->execute([$tid, $listingId]);
+
+    $response['bids'] = $q->fetchAll(PDO::FETCH_ASSOC);
+}
+
 json_response($response);

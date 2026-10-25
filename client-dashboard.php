@@ -83,7 +83,25 @@ $q = $pdo->prepare(
         a.starts_at,
         a.ends_at,
         a.status,
-        s.name AS service_name
+        s.name AS service_name,
+        (
+            SELECT GROUP_CONCAT(
+                CONCAT_WS(
+                    ':',
+                    ac.contractor_id,
+                    COALESCE(c.first_name, ''),
+                    COALESCE(c.last_name, '')
+                )
+                ORDER BY ac.contractor_id
+                SEPARATOR '|'
+            )
+            FROM appointment_contractors ac
+            JOIN contractors c
+              ON c.id = ac.contractor_id
+             AND c.tenant_id = a.tenant_id
+            WHERE ac.appointment_id = a.id
+              AND ac.status IN ('assigned', 'accepted', 'completed')
+        ) AS assigned_contractors
      FROM appointments a
      LEFT JOIN services s
        ON s.id=a.service_id
@@ -437,6 +455,7 @@ $<?=number_format($outstandingBalance,2)?>
 <th>Appointment</th>
 <th>Start</th>
 <th>Status</th>
+<th scope="col">Assigned Contractor</th>
 </tr>
 </thead>
 
@@ -449,6 +468,47 @@ $<?=number_format($outstandingBalance,2)?>
 <td><?=htmlspecialchars($a['title'] ?? '')?></td>
 <td><?=htmlspecialchars($a['starts_at'])?></td>
 <td><?=htmlspecialchars($a['status'])?></td>
+
+<td class="clientAssignedContractorProfiles">
+<?php
+$assignedContractors = array_filter(
+    explode('|', (string)($a['assigned_contractors'] ?? ''))
+);
+?>
+<?php if (!$assignedContractors): ?>
+    <span class="muted">Not assigned</span>
+<?php else: ?>
+    <?php foreach ($assignedContractors as $entry): ?>
+        <?php
+        $parts = explode(':', $entry, 3);
+        $contractorId = (int)($parts[0] ?? 0);
+        $contractorName = trim(
+            ($parts[1] ?? '') . ' ' . ($parts[2] ?? '')
+        );
+        if ($contractorId <= 0) continue;
+        $profileUrl = app_url(
+            '/marketplace-contractor-profile.php'
+        ) . '?' . http_build_query([
+            'appointment_id' => (int)$a['id'],
+            'contractor_id' => $contractorId
+        ]);
+        ?>
+        <div>
+            <a href="<?=htmlspecialchars(
+                $profileUrl,
+                ENT_QUOTES,
+                'UTF-8'
+            )?>">
+                <?=htmlspecialchars(
+                    $contractorName ?: 'Contractor',
+                    ENT_QUOTES,
+                    'UTF-8'
+                )?> — View Profile
+            </a>
+        </div>
+    <?php endforeach; ?>
+<?php endif; ?>
+</td>
 </tr>
 
 <?php endforeach; ?>

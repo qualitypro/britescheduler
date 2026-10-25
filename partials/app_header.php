@@ -113,6 +113,34 @@ document.addEventListener('DOMContentLoaded', function () {
 
     <nav class="brite-sidebar-nav" aria-label="Primary">
 
+<?php if (in_array(
+    $tenant['role'],
+    ['owner', 'admin', 'scheduler', 'accounting', 'contractor', 'client'],
+    true
+)): ?>
+<a class="brite-bidding-nav"
+   href="<?=htmlspecialchars(
+       app_url('/bidding.php'),
+       ENT_QUOTES,
+       'UTF-8'
+   )?>">
+    <span class="brite-nav-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round"
+             stroke-linejoin="round">
+            <path d="M14 4 20 10"/>
+            <path d="M11 7 17 13"/>
+            <path d="m5 21 9-9"/>
+            <path d="m2 18 4 4"/>
+            <path d="m12 3 9 9"/>
+        </svg>
+    </span>
+    Marketplace
+</a>
+<?php endif; ?>
+
+
 <?php if(in_array($tenant['role'],['owner','admin','scheduler','accounting'],true)): ?>
 <div class="brite-nav-group-label">Workspace</div>
 <a href="<?=htmlspecialchars(app_url('/dashboard.v2.php'))?>">
