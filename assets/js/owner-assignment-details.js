@@ -134,6 +134,7 @@
 
         select.addEventListener('change', () => {
             button.disabled = !select.value;
+            message.replaceChildren();
         });
 
         button.addEventListener('click', async () => {
@@ -219,12 +220,12 @@
             }
 
             const warningText = warnings.length
-                ? '\\n\\nEligibility warnings:\\n- ' + warnings.join('\\n- ')
-                : '\\n\\nEligibility checks passed.';
+                ? '\n\nEligibility warnings:\n- ' + warnings.join('\n- ')
+                : '\n\nEligibility checks passed.';
             const confirmed = window.confirm(
                 `Reassign this declined assignment to ${selectedName}?` +
                 warningText +
-                '\\n\\nThe server will recheck eligibility before saving.'
+                '\n\nThe server will recheck eligibility before saving.'
             );
 
             if (!confirmed) {
