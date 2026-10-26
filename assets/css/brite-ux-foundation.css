@@ -1,0 +1,87 @@
+/* Brite Scheduler — shared UX accessibility and responsive polish.
+ * Presentation only; no API, authorization or database changes.
+ */
+.brite-app :where(a,button,input,select,textarea,[tabindex]):focus-visible {
+    outline: 3px solid var(--brite-indigo, #4f46e5);
+    outline-offset: 3px;
+}
+.brite-app .brite-sidebar :where(a,button):focus-visible {
+    outline-color: #c7d2fe;
+}
+.brite-skip-link {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 10000;
+    padding: 12px 18px;
+    background: #fff;
+    color: #172554;
+    border: 2px solid #4f46e5;
+    border-radius: 10px;
+    transform: translateY(-160%);
+}
+.brite-skip-link:focus { transform: translateY(0); }
+.brite-app .brite-sidebar-nav a[aria-current="page"] {
+    box-shadow: inset 3px 0 0 #c7d2fe;
+}
+.brite-app :where(input,select,textarea):not([type="checkbox"]):not([type="radio"]) {
+    max-width: 100%;
+}
+.brite-app :where(input,select,textarea):disabled {
+    cursor: not-allowed;
+    opacity: .65;
+}
+.brite-app :where(button,[role="button"]):disabled {
+    cursor: not-allowed;
+    opacity: .6;
+}
+.brite-app :where(input,select,textarea)[aria-invalid="true"] {
+    border-color: #b91c1c;
+    box-shadow: 0 0 0 1px #b91c1c;
+}
+.brite-app :where(button,input,select,textarea) {
+    font: inherit;
+}
+.brite-app :where(dialog) {
+    max-width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
+}
+.brite-app :where(dialog[open]) {
+    overscroll-behavior: contain;
+}
+.brite-app :where(.card,.brite-ui-card) {
+    min-width: 0;
+}
+.brite-app :where(table) {
+    font-variant-numeric: tabular-nums;
+}
+.brite-app :where(th) {
+    font-weight: 700;
+}
+.brite-app :where(td,th) {
+    overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+    .brite-app .brite-topbar { gap: 8px; }
+    .brite-app .brite-topbar-actions { gap: 8px; }
+    .brite-app .brite-content { min-width: 0; }
+    .brite-app :where(button,input,select,textarea) { min-height: 40px; }
+    .brite-app :where(dialog) { padding: 16px; }
+    .brite-app :where(th,td) { padding: 9px 7px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .brite-app *, .brite-app *::before, .brite-app *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+}
+.brite-app[data-brite-reduced-motion="1"] *,
+.brite-app[data-brite-reduced-motion="1"] *::before,
+.brite-app[data-brite-reduced-motion="1"] *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+}
