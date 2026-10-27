@@ -10,6 +10,45 @@ require __DIR__.'/partials/app_header.php';
 ?>
 
 <h1>Business Settings</h1>
+<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-directory-accordion.css'),ENT_QUOTES,'UTF-8')?>">
+<section class="brite-directory" aria-label="Owner account">
+  <details class="brite-directory-record">
+    <summary class="brite-directory-summary"><span class="brite-directory-summary-main"><strong>My owner / administrator profile</strong><small>Expand to edit your account name and email</small></span><span class="brite-directory-state">Edit</span></summary>
+    <form id="briteOwnerProfile" class="brite-directory-form">
+      <div class="brite-directory-fields">
+        <div class="brite-directory-field"><label for="ownerFirst">First name</label><input id="ownerFirst" name="first_name" required maxlength="150"></div>
+        <div class="brite-directory-field"><label for="ownerLast">Last name</label><input id="ownerLast" name="last_name" required maxlength="150"></div>
+        <div class="brite-directory-field"><label for="ownerEmail">Email</label><input id="ownerEmail" name="email" type="email" required maxlength="254"></div>
+      </div>
+      <div class="brite-directory-actions"><button type="submit">Save my profile</button><span id="ownerProfileStatus" role="status"></span></div>
+    </form>
+  </details>
+</section>
+<script>
+(() => {
+ const form=document.getElementById('briteOwnerProfile');
+ const status=document.getElementById('ownerProfileStatus');
+ async function load(){
+   try {
+     const result=await api('/api/owner_profile.php');
+     for(const [key,value] of Object.entries(result.profile||{})){
+       if(form.elements.namedItem(key)) form.elements.namedItem(key).value=value??'';
+     }
+   } catch(error){status.textContent='Profile unavailable: '+error.message;}
+ }
+ form.addEventListener('submit',async event=>{
+   event.preventDefault();const button=form.querySelector('[type=submit]');button.disabled=true;
+   status.textContent='Saving…';
+   try {
+     await api('/api/owner_profile.php',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(form)))});
+     status.textContent='Profile saved';
+   }catch(error){status.textContent='Save failed: '+error.message;}
+   finally{button.disabled=false;}
+ });
+ load();
+})();
+</script>
+
 
 <p class="muted">
     Configure the business information displayed on invoices
