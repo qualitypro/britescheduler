@@ -9,6 +9,7 @@ require_once dirname(__DIR__).'/app/bootstrap.php';
 require_once dirname(__DIR__).'/app/ContractorEligibilityEngine.php';
 require_once dirname(__DIR__).'/app/ContractorRankingEngine.php';
 require_once dirname(__DIR__).'/app/ContractorAssignmentValidator.php';
+require_once dirname(__DIR__).'/app/ContractorScheduleValidator.php';
 
 Auth::requireUser();
 $tenant=Auth::requireRole('owner','admin','scheduler');
@@ -38,9 +39,23 @@ try{
  );
  foreach($contractors as &$candidate){
   $validation=ContractorAssignmentValidator::evaluate($pdo,$tenantId,(int)$candidate['contractor_id'],$serviceId,$locationId);
+  // Mirror the scheduling checks used by the appointment assignment path.
+  // Advisory only: writes must revalidate under contractor locks.
+  $scheduleErrors=[];
+  try{
+   check_contractor_availability($pdo,$tenantId,[(int)$candidate['contractor_id']],$appointment['starts_at'],$appointment['ends_at']);
+  }catch(RuntimeException $e){
+   $scheduleErrors[]=$e->getMessage();
+  }
+  try{
+   check_contractor_conflicts($pdo,$tenantId,[(int)$candidate['contractor_id']],$appointment['starts_at'],$appointment['ends_at'],(int)$id);
+  }catch(RuntimeException $e){
+   $scheduleErrors[]=$e->getMessage();
+  }
+  $candidate['schedule_policy']=['allowed'=>count($scheduleErrors)===0,'errors'=>$scheduleErrors];
   $candidate['assignment_policy']=$validation;
   $candidate['eligible_for_review']=(
-   !empty($candidate['eligible_for_review']) && !empty($validation['allowed'])
+   !empty($candidate['eligible_for_review']) && !empty($validation['allowed']) && count($scheduleErrors)===0
   );
   $candidate['assignment_approved']=false;
  }
