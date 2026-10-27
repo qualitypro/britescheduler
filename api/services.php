@@ -85,6 +85,45 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     ],201);
 }
 
+
+/*
+|----------------------------------------------------------------------
+| Update existing tenant service (preserve ID and historical references)
+|----------------------------------------------------------------------
+*/
+if ($_SERVER['REQUEST_METHOD']==='PUT' || $_SERVER['REQUEST_METHOD']==='PATCH') {
+    $rawId=$d['id'] ?? null;
+    if (!is_scalar($rawId) || !ctype_digit((string)$rawId) || (int)$rawId < 1) {
+        json_response(['error'=>'Invalid service ID'],422);
+    }
+    $id=(int)$rawId;
+    $name=trim((string)($d['name'] ?? ''));
+    $description=trim((string)($d['description'] ?? ''));
+    $duration=filter_var($d['duration_minutes'] ?? null,FILTER_VALIDATE_INT);
+    $rawPrice=$d['price'] ?? null;
+    if ($name==='' || strlen($name)>255 || $duration===false ||
+        $duration<1 || $duration>10080 ||
+        !is_scalar($rawPrice) || !preg_match('/^\\d{1,9}(?:\\.\\d{1,2})?$/',(string)$rawPrice)) {
+        json_response(['error'=>'Invalid service name, duration or price'],422);
+    }
+    if (!in_array((string)($d['active'] ?? ''),['0','1'],true)) {
+        json_response(['error'=>'Invalid active status'],422);
+    }
+    $q=$pdo->prepare('UPDATE services
+        SET name=?, description=?, duration_minutes=?, price=?, active=?
+        WHERE id=? AND tenant_id=?');
+    $q->execute([
+        $name,$description==='' ? null : $description,$duration,
+        (string)$rawPrice,(int)$d['active'],$id,$tid
+    ]);
+    $check=$pdo->prepare('SELECT id FROM services WHERE id=? AND tenant_id=?');
+    $check->execute([$id,$tid]);
+    if (!$check->fetchColumn()) {
+        json_response(['error'=>'Service not found'],404);
+    }
+    json_response(['ok'=>true,'id'=>$id]);
+}
+
 json_response([
     'error'=>'Method not allowed'
 ],405);
