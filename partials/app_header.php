@@ -28,6 +28,8 @@ $dashboardPath = match ($tenant['role']) {
 };
 ?><!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?=htmlspecialchars($pageTitle??'BriteScheduler')?></title>
+<link rel="icon" type="image/x-icon"
+      href="<?=htmlspecialchars(app_url('/favicon.ico'), ENT_QUOTES, 'UTF-8')?>">
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-design-system.css'))?>">
 
@@ -45,7 +47,7 @@ body{font-family:system-ui,sans-serif;margin:0;background:#f5f7fb;color:#1f2937}
       href="<?=htmlspecialchars(app_url('/assets/css/brite-themes.css'), ENT_QUOTES, 'UTF-8')?>">
 <script>
 window.BRITE_CSRF=<?=json_encode($csrf)?>;
-window.BRITE_BASE=<?=json_encode(rtrim($_ENV['APP_URL'] ?? 'http://localhost/dashboard','/'))?>;
+window.BRITE_BASE=<?=json_encode(app_url())?>;
 
 async function api(url,opt={}){
     opt.headers={
