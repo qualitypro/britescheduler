@@ -9,7 +9,7 @@ if(!preg_match('/^[a-f0-9]{64}$/D',$token))json_response(['error'=>'Invalid invi
 $pdo=Database::connection();
 $pdo->beginTransaction();
 try{
- $q=$pdo->prepare("SELECT * FROM staff_invitations WHERE token_hash=? AND status='pending' AND expires_at>UTC_TIMESTAMP() FOR UPDATE");
+ $q=$pdo->prepare("SELECT i.* FROM staff_invitations i JOIN tenants t ON t.id=i.tenant_id AND t.status='active' WHERE i.token_hash=? AND i.status='pending' AND i.expires_at>UTC_TIMESTAMP() FOR UPDATE");
  $q->execute([hash('sha256',$token)]);
  $invite=$q->fetch(PDO::FETCH_ASSOC);
  if(!$invite){$pdo->rollBack();json_response(['error'=>'Invitation expired, revoked or already used'],410);}
