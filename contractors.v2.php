@@ -3,8 +3,9 @@ require_once __DIR__.'/app/bootstrap.php';
 Auth::requireRole('owner','admin','scheduler');
 $qualificationCanEdit = in_array((string)Auth::tenant()['role'], ['owner','admin'], true);
  $pageTitle='Contractors';require __DIR__.'/partials/app_header.php';?>
-<h1>Contractors</h1><div class="card"><form id="f"><div class="row"><input name="first_name" placeholder="First name" required><input name="last_name" placeholder="Last name" required><input name="business_name" placeholder="Business"><input name="email" type="email" placeholder="Email"><input name="phone" placeholder="Phone"><input name="hourly_rate" type="number" step=".01" placeholder="Hourly rate"><button>Add contractor</button></div></form></div>
-<div class="card" style="margin-top:18px"><table><thead><tr><th>Name</th><th>Business</th><th>Email</th><th>Phone</th><th>Rate</th><th>Qualifications</th></tr></thead><tbody id="rows"></tbody></table><div id="contractorPagination"></div></div>
+<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-directory-accordion.css'),ENT_QUOTES,'UTF-8')?>">
+<h1>Contractors</h1><p class="muted">Expand a contractor to edit their profile and manage service qualifications.</p><div class="card"><form id="f"><div class="row"><input name="first_name" placeholder="First name" required><input name="last_name" placeholder="Last name" required><input name="business_name" placeholder="Business"><input name="email" type="email" placeholder="Email"><input name="phone" placeholder="Phone"><input name="hourly_rate" type="number" step=".01" placeholder="Hourly rate"><button>Add contractor</button></div></form></div>
+<section class="brite-directory-list" id="rows" aria-label="Contractor records" style="margin-top:18px"></section><div id="contractorPagination"></div>
 
 <div class="card" id="qualificationPanel"
      style="margin-top:18px;display:none">
@@ -36,26 +37,101 @@ function esc(s){return String(s??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&l
 const contractorPager = new BritePagination({
     container: document.getElementById('contractorPagination'),
     render(contractors) {
-        document.getElementById('rows').innerHTML =
-            contractors.length
-                ? contractors.map(c => `
-            <tr>
-                <td>${esc(c.first_name)} ${esc(c.last_name)}</td>
-                <td>${esc(c.business_name)}</td>
-                <td>${esc(c.email)}</td>
-                <td>${esc(c.phone)}</td>
-                <td>${c.hourly_rate
-                    ? '$' + Number(c.hourly_rate).toFixed(2)
-                    : ''}</td>
-                <td>
-                    <button type="button"
-                        data-qualification-contractor="${Number(c.id)}">
-                        Manage Qualifications
-                    </button>
-                </td>
-            </tr>
-        `).join('')
-                : '<tr><td colspan="6">No contractors found.</td></tr>';
+        const list=document.getElementById('rows');
+        list.replaceChildren();
+        contractors.forEach(c=>{
+            const details=document.createElement('details');
+            details.className='brite-directory-record';
+            details.dataset.contractorId=String(c.id);
+            const summary=document.createElement('summary');
+            summary.className='brite-directory-summary';
+            const main=document.createElement('span');
+            main.className='brite-directory-summary-main';
+            const title=document.createElement('strong');
+            title.textContent=[c.first_name,c.last_name].filter(Boolean).join(' ')||'Unnamed contractor';
+            const subtitle=document.createElement('small');
+            subtitle.textContent=[c.business_name,c.email,c.phone].filter(Boolean).join(' · ');
+            main.append(title,subtitle);
+            const state=document.createElement('span');
+            state.className='brite-directory-state';
+            state.textContent=c.status||'Unknown';
+            summary.append(main,state);
+            details.append(summary);
+            const form=document.createElement('form');
+            form.className='brite-directory-form';
+            const fields=[
+                ['first_name','First name','text',true],['last_name','Last name','text',true],
+                ['business_name','Business','text'],['email','Email','email'],
+                ['phone','Phone','tel'],['hourly_rate','Hourly rate','number'],
+                ['skills','Skills','textarea'],['color','Color','text'],
+                ['status','Status','status']
+            ];
+            const grid=document.createElement('div');
+            grid.className='brite-directory-fields';
+            fields.forEach(([name,label,type,required])=>{
+                const wrap=document.createElement('div');wrap.className='brite-directory-field';
+                const labelNode=document.createElement('label');
+                const id='contractor-'+c.id+'-'+name;
+                labelNode.htmlFor=id;labelNode.textContent=label;
+                let input;
+                if(type==='textarea'){input=document.createElement('textarea');input.rows=3;}
+                else if(type==='status'){
+                    input=document.createElement('select');
+                    ['active','inactive'].forEach(value=>{
+                        const option=document.createElement('option');
+                        option.value=value;option.textContent=value;input.append(option);
+                    });
+                }else{
+                    input=document.createElement('input');
+                    input.type=type;
+                    if(type==='number'){input.min='0';input.step='0.01';}
+                }
+                input.name=name;input.id=id;input.required=!!required;
+                input.value=c[name]??'';
+                wrap.append(labelNode,input);grid.append(wrap);
+            });
+            const actions=document.createElement('div');
+            actions.className='brite-directory-actions';
+            const save=document.createElement('button');save.type='submit';save.textContent='Save changes';
+            const reset=document.createElement('button');reset.type='reset';reset.textContent='Reset';
+            const feedback=document.createElement('span');
+            feedback.className='brite-directory-feedback';feedback.setAttribute('role','status');
+            actions.append(save,reset,feedback);form.append(grid,actions);
+            form.addEventListener('submit',async event=>{
+                event.preventDefault();save.disabled=true;feedback.textContent='Saving…';
+                try {
+                    const payload=Object.fromEntries(new FormData(form));payload.id=Number(c.id);
+                    await api('/api/contractors.php',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+                    Object.assign(c,payload);
+                    title.textContent=[c.first_name,c.last_name].filter(Boolean).join(' ');
+                    subtitle.textContent=[c.business_name,c.email,c.phone].filter(Boolean).join(' · ');
+                    state.textContent=c.status||'Unknown';
+                    feedback.textContent='Changes saved';
+                }catch(error){feedback.textContent='Save failed: '+error.message;}
+                finally{save.disabled=false;}
+            });
+            details.append(form);
+            const qualifications=document.createElement('div');
+            qualifications.className='brite-directory-form';
+            const qualificationButton=document.createElement('button');
+            qualificationButton.type='button';
+            qualificationButton.dataset.qualificationContractor=String(c.id);
+            qualificationButton.textContent='Manage service qualifications';
+            qualifications.append(qualificationButton);
+            const mount=document.createElement('div');
+            mount.dataset.qualificationMount='true';
+            qualifications.append(mount);
+            details.append(qualifications);
+            details.addEventListener('toggle',()=>{
+                if(!details.open && activeQualificationContractor===Number(c.id)){
+                    activeQualificationContractor=null;
+                    ++qualificationRequestSequence;
+                    document.getElementById('qualificationPanel').style.display='none';
+                }
+            });
+            list.append(details);
+        });
+        if(!contractors.length){const p=document.createElement('p');p.textContent='No contractors found.';list.append(p);}
     }
 });
 
@@ -67,27 +143,19 @@ async function load(){
 let activeQualificationContractor = null;
 
 document.getElementById('rows').addEventListener('click', async e => {
-    const button = e.target.closest(
-        '[data-qualification-contractor]'
-    );
-    if (!button) return;
-
-    const contractorId = Number(
-        button.dataset.qualificationContractor
-    );
-
-    const name = button.closest('tr')
-        .querySelector('td').textContent.trim();
-
-    activeQualificationContractor = contractorId;
-
-    const panel = document.getElementById('qualificationPanel');
-    panel.style.display = '';
-
-    document.getElementById('qualificationContractor')
-        .textContent = name;
-
-    qualificationPager.setRecords([], true);
+    const button=e.target.closest('[data-qualification-contractor]');
+    if(!button)return;
+    const contractorId=Number(button.dataset.qualificationContractor);
+    const record=button.closest('[data-contractor-id]');
+    if(!record)return;
+    const mount=record.querySelector('[data-qualification-mount]');
+    const panel=document.getElementById('qualificationPanel');
+    mount.append(panel);
+    panel.style.display='';
+    activeQualificationContractor=contractorId;
+    document.getElementById('qualificationContractor').textContent=
+        record.querySelector('summary strong')?.textContent||'Contractor';
+    qualificationPager.setRecords([],true);
     await loadQualifications(contractorId);
 });
 
