@@ -10,6 +10,9 @@ require __DIR__.'/partials/app_header.php';
 ?>
 
 <h1>Business Settings</h1>
+<?php if ((string)Auth::tenant()['role'] === 'owner'): ?>
+<p><a href="<?=htmlspecialchars(app_url('/staff-management.php'),ENT_QUOTES,'UTF-8')?>">Manage staff accounts and tenant roles</a></p>
+<?php endif; ?>
 <link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-directory-accordion.css'),ENT_QUOTES,'UTF-8')?>">
 <section class="brite-directory" aria-label="Owner account">
   <details class="brite-directory-record">
