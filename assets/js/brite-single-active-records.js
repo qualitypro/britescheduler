@@ -69,11 +69,12 @@ function wire(){
 document.addEventListener('toggle',event=>{
  const record=event.target;
  if(!(record instanceof HTMLDetailsElement)||!record.matches(selectors)||!record.open)return;
- const parent=record.parentElement;
+ const host=record.closest('.brite-marketplace-record-host');
+ const parent=host?.parentElement||record.parentElement;
  if(!parent)return;
  for(const sibling of parent.children){
-  if(sibling!==record&&sibling instanceof HTMLDetailsElement&&sibling.matches(selectors)&&sibling.open)sibling.open=false;
-  // Contractor and client directories wrap details differently; only siblings in the same list.
+  const other=sibling.matches?.(selectors)?sibling:sibling.querySelector?.(':scope > .brite-marketplace-record');
+  if(other&&other!==record&&other.open)other.open=false;
  }
 },true);
 const observer=new MutationObserver(wire);
