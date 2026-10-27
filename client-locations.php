@@ -16,6 +16,7 @@ if ($tenant['role']==='client') {
 $pageTitle='Client Locations';
 require __DIR__.'/partials/app_header.php';
 ?>
+<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-directory-accordion.css'),ENT_QUOTES,'UTF-8')?>">
 <h1>Client Locations</h1>
 <p class="muted">Manage service addresses for each client. Saved service locations are displayed on the map when coordinates are available.</p>
 <div class="card">
@@ -26,8 +27,8 @@ require __DIR__.'/partials/app_header.php';
 <?php endforeach; ?>
 </select>
 <p id="message" role="status"></p>
-<div id="locations"></div>
-<div id="locationPagination"></div>
+<div id="locations" class="brite-directory-list"></div>
+<div id="locationPagination"></div><button type="button" id="addLocation">Add location</button>
 <div style="margin-top:20px">
 <h2>Service Location Map</h2>
 <div id="clientLocationMap"
@@ -37,7 +38,7 @@ require __DIR__.'/partials/app_header.php';
 <p id="mapMessage" class="muted"></p>
 </div>
 </div>
-<div class="card" style="margin-top:18px">
+<div class="card" id="locationEditor" style="margin-top:18px" hidden>
 <h2 id="formTitle">Add Location</h2>
 <form id="locationForm">
 <input type="hidden" name="id" id="locationId">
@@ -126,29 +127,44 @@ function refreshMap(){
 
 function say(s){msg.textContent=s;}
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+const editor=document.getElementById('locationEditor');
+const addLocation=document.getElementById('addLocation');
+let activeLocationId=null;
+function closeEditor(){clearForm();editor.hidden=true;activeLocationId=null;}
+addLocation.addEventListener('click',()=>{
+  list.querySelectorAll('details[open]').forEach(d=>d.open=false);
+  clearForm();activeLocationId=null;editor.hidden=false;form.scrollIntoView({behavior:'smooth'});
+});
 const locationPager = new BritePagination({
     container: document.getElementById('locationPagination'),
     render(pageLocations) {
         list.innerHTML = pageLocations.length
-            ? pageLocations.map(x => {
-    const diagnostics=x.geocoding_diagnostics||{};
-    const statusLabel=String(diagnostics.label||'Unknown geocoding status');
-    const statusMessage=String(diagnostics.message||'');
-    const statusAction=String(diagnostics.action||'');
-    const retryable=x.geocoding_retry_available===true;
-
-    return `<div style="padding:12px;border-bottom:1px solid #ddd">
-        <b>${escapeHtml(x.label)}</b> ${Number(x.is_primary)?'(Primary)':''}
-        <p>${escapeHtml([x.address1,x.address2,x.city,x.state,x.postal_code].filter(Boolean).join(', '))}</p>
-        <p class="muted">Geocoding: ${escapeHtml(statusLabel)}</p>
-        ${statusMessage?`<p class="muted">${escapeHtml(statusMessage)}</p>`:''}
-        ${statusAction?`<p class="muted">${escapeHtml(statusAction)}</p>`:''}
-        <button type="button" data-edit="${x.id}">Edit</button>
-        <button type="button" data-delete="${x.id}">Delete</button>
-        ${retryable?`<button type="button" data-geocode-retry="${x.id}">Retry Geocoding</button>`:''}
-    </div>`;
- }).join('')
-            : 'No locations saved.';
+          ? pageLocations.map(x=>{
+            const diagnostics=x.geocoding_diagnostics||{};
+            const statusLabel=String(diagnostics.label||'Unknown geocoding status');
+            const statusMessage=String(diagnostics.message||'');
+            const statusAction=String(diagnostics.action||'');
+            const retryable=x.geocoding_retry_available===true;
+            const id=Number(x.id);
+            return `<details class="brite-directory-record" data-location-id="${id}">
+              <summary class="brite-directory-summary">
+                <span class="brite-directory-summary-main"><strong>${escapeHtml(x.label)}</strong>
+                <small>${escapeHtml([x.address1,x.city,x.state,x.postal_code].filter(Boolean).join(', '))}</small></span>
+                <span class="brite-directory-state">${Number(x.is_primary)?'Primary':'Location'}</span>
+              </summary>
+              <div class="brite-directory-form">
+                <p><strong>Address:</strong> ${escapeHtml([x.address1,x.address2,x.city,x.state,x.postal_code].filter(Boolean).join(', '))}</p>
+                <p><strong>Service instructions:</strong> ${escapeHtml(x.service_instructions||'—')}</p>
+                <p><strong>Geocoding:</strong> ${escapeHtml(statusLabel)}</p>
+                ${statusMessage?`<p class="muted">${escapeHtml(statusMessage)}</p>`:''}
+                ${statusAction?`<p class="muted">${escapeHtml(statusAction)}</p>`:''}
+                <button type="button" data-edit="${id}">Edit location</button>
+                <button type="button" data-delete="${id}">Delete location</button>
+                ${retryable?`<button type="button" data-geocode-retry="${id}">Retry geocoding</button>`:''}
+              </div>
+            </details>`;
+          }).join('')
+          : '<p>No locations saved.</p>';
     }
 });
 
@@ -184,7 +200,7 @@ async function refresh(resetPage = false){
 }
 function clearForm(){form.reset();document.getElementById('locationId').value='';document.getElementById('formTitle').textContent='Add Location';}
 document.getElementById('resetForm').onclick=clearForm;
-clientSelect.onchange=()=>{say('');clearForm();refresh(true);};
+clientSelect.onchange=()=>{say('');closeEditor();refresh(true);};
 list.addEventListener('click',async e=>{
  const edit=e.target.closest('[data-edit]'),
        del=e.target.closest('[data-delete]'),
@@ -220,8 +236,8 @@ list.addEventListener('click',async e=>{
     }
     return;
  }
- if(edit){const x=locations.find(x=>String(x.id)===edit.dataset.edit);if(!x)return;clearForm();for(const [k,v] of Object.entries(x)){const el=form.elements.namedItem(k);if(el&&k!=='is_primary')el.value=v??'';}form.elements.namedItem('is_primary').checked=Number(x.is_primary)===1;document.getElementById('formTitle').textContent='Edit Location';form.scrollIntoView({behavior:'smooth'});}
- if(del&&confirm('Delete this service location?')){try{await api('/api/client_locations.php',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(del.dataset.delete),client_id:Number(clientSelect.value)})});say('Location deleted');clearForm();await refresh();}catch(err){say(err.message);}}
+ if(edit){const x=locations.find(x=>String(x.id)===edit.dataset.edit);if(!x)return;clearForm();activeLocationId=Number(x.id);editor.hidden=false;for(const [k,v] of Object.entries(x)){const el=form.elements.namedItem(k);if(el&&k!=='is_primary')el.value=v??'';}form.elements.namedItem('is_primary').checked=Number(x.is_primary)===1;document.getElementById('formTitle').textContent='Edit Location';form.scrollIntoView({behavior:'smooth'});}
+ if(del&&confirm('Delete this service location?')){try{await api('/api/client_locations.php',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(del.dataset.delete),client_id:Number(clientSelect.value)})});say('Location deleted');closeEditor();await refresh();}catch(err){say(err.message);}}
 });
 form.onsubmit=async e=>{
  e.preventDefault();
@@ -237,7 +253,15 @@ form.onsubmit=async e=>{
 
  const d=Object.fromEntries(new FormData(form).entries());
  d.postal_code=zip;
- d.client_id=Number(clientSelect.value);d.is_primary=form.elements.namedItem('is_primary').checked?1:0;const method=d.id?'PUT':'POST';if(!d.id)delete d.id;try{await api('/api/client_locations.php',{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});say('Location saved');clearForm();await refresh();}catch(err){say(err.message);}};
+ d.client_id=Number(clientSelect.value);d.is_primary=form.elements.namedItem('is_primary').checked?1:0;const method=d.id?'PUT':'POST';if(!d.id)delete d.id;try{await api('/api/client_locations.php',{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});say('Location saved');closeEditor();await refresh();}catch(err){say(err.message);}};
+list.addEventListener('toggle',e=>{
+  const target=e.target;
+  if(!(target instanceof HTMLDetailsElement)||!target.open)return;
+  list.querySelectorAll('details[open]').forEach(d=>{if(d!==target)d.open=false;});
+  if(editor.hidden===false && activeLocationId!==Number(target.dataset.locationId))closeEditor();
+},true);
+document.getElementById('resetForm').textContent='Cancel';
+document.getElementById('resetForm').onclick=closeEditor;
 refresh();
 </script>
 <?php require __DIR__.'/partials/app_footer.php'; ?>
