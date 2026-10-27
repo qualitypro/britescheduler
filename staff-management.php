@@ -53,7 +53,7 @@ require __DIR__.'/partials/app_header.php';
  function closeAdd(){addPanel.hidden=true;addForm.reset();addStatus.textContent='';}
  addToggle.addEventListener('click',()=>{
    list.querySelectorAll('details[open]').forEach(record=>record.open=false);
-   closeInvite();addPanel.hidden=false;addForm.elements.namedItem('email').focus();
+   closeInvite();document.getElementById('inviteRecords').querySelectorAll('details[open]').forEach(d=>d.open=false);addPanel.hidden=false;addForm.elements.namedItem('email').focus();
  });
  document.getElementById('staffAddCancel').addEventListener('click',closeAdd);
  addForm.addEventListener('submit',async event=>{
@@ -76,6 +76,7 @@ require __DIR__.'/partials/app_header.php';
  function closeInvite(){invitePanel.hidden=true;inviteForm.reset();inviteFeedback.textContent='';inviteLinkContainer.hidden=true;}
  inviteToggle.addEventListener('click',()=>{
    closeAdd();list.querySelectorAll('details[open]').forEach(d=>d.open=false);
+   document.getElementById('inviteRecords').querySelectorAll('details[open]').forEach(d=>d.open=false);
    invitePanel.hidden=false;inviteForm.elements.namedItem('first_name').focus();
  });
  document.getElementById('inviteCancel').addEventListener('click',closeInvite);
@@ -101,10 +102,19 @@ require __DIR__.'/partials/app_header.php';
      const data=await api('/api/staff_invitations.php');
      host.replaceChildren();
      for(const item of data.invitations||[]){
-       const row=document.createElement('div');row.className='brite-directory-record';
-       const label=document.createElement('span');
-       label.textContent=item.first_name+' '+item.last_name+' · '+item.email+' · '+item.role+' · '+item.status+' · expires '+item.expires_at;
-       row.append(label);
+       const row=document.createElement('details');row.className='brite-directory-record';
+       const label=document.createElement('summary');label.className='brite-directory-summary';
+       label.textContent=item.first_name+' '+item.last_name+' · '+item.email+' · '+item.status;
+       const detail=document.createElement('div');detail.className='brite-directory-form';
+       const meta=document.createElement('p');
+       meta.textContent='Role: '+item.role+' · Expires (UTC): '+item.expires_at;
+       detail.append(meta);row.append(label,detail);
+       row.addEventListener('toggle',()=>{
+         if(!row.open)return;
+         closeAdd();closeInvite();
+         host.querySelectorAll('details[open]').forEach(other=>{if(other!==row)other.open=false;});
+         list.querySelectorAll('details[open]').forEach(other=>other.open=false);
+       });
        if(item.status==='pending'){
          const revoke=document.createElement('button');revoke.type='button';revoke.textContent='Revoke';
          revoke.addEventListener('click',async()=>{
@@ -113,7 +123,7 @@ require __DIR__.'/partials/app_header.php';
            try{await api('/api/staff_invitations.php',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(item.id)})});await loadInvitations();}
            catch(error){status.textContent='Unable to revoke invitation: '+error.message;revoke.disabled=false;}
          });
-         row.append(revoke);
+         detail.append(revoke);
        }
        host.append(row);
      }
@@ -136,6 +146,7 @@ require __DIR__.'/partials/app_header.php';
        details.addEventListener('toggle',()=>{
          if(!details.open)return;
          closeAdd();closeInvite();
+         document.getElementById('inviteRecords').querySelectorAll('details[open]').forEach(other=>other.open=false);
          list.querySelectorAll('details[open]').forEach(other=>{if(other!==details)other.open=false;});
        });
        const summary=document.createElement('summary');summary.className='brite-directory-summary';
