@@ -54,7 +54,7 @@ require __DIR__.'/partials/app_header.php';
             <th>Service</th>
             <th>Duration</th>
             <th>Price</th>
-            <th>Status</th><th>Manage</th>
+            <th>Status</th>
         </tr>
         </thead>
         <tbody id="serviceRows"></tbody>
@@ -74,11 +74,10 @@ function esc(s){
     }[x]));
 }
 
-let openId=null, editId=null, allServices=[];
+let openId=null, allServices=[];
 function serviceDetail(s){
  const id=Number(s.id);
- if(editId!==id) return '<tr><td colspan="5"><p>'+esc(s.description||'No description')+'</p><button type="button" data-edit="'+id+'">Edit</button></td></tr>';
- return '<tr><td colspan="5"><form class="edit-service" data-id="'+id+'">'+
+ return '<tr><td colspan="4"><form class="edit-service" data-id="'+id+'">'+
  '<label>Name <input name="name" required maxlength="255" value="'+esc(s.name)+'"></label> '+
  '<label>Duration <input name="duration_minutes" type="number" min="1" max="10080" required value="'+Number(s.duration_minutes)+'"></label> '+
  '<label>Price <input name="price" type="number" min="0" step=".01" required value="'+Number(s.price).toFixed(2)+'"></label> '+
@@ -88,12 +87,17 @@ function serviceDetail(s){
 }
 function refreshServiceRows(){servicePager.setRecords(allServices);}
 serviceRows.addEventListener('click',e=>{
- const open=e.target.closest('[data-open]'), edit=e.target.closest('[data-edit]'), cancel=e.target.closest('[data-cancel]');
- if(open){const id=Number(open.dataset.open);openId=openId===id?null:id;editId=null;}
- else if(edit){openId=editId=Number(edit.dataset.edit);}
- else if(cancel){editId=null;}
+ const open=e.target.closest('[data-open]'), cancel=e.target.closest('[data-cancel]');
+ if(open && !e.target.closest('button,a,input,textarea,select,label')){const id=Number(open.dataset.open);openId=openId===id?null:id;}
+ else if(cancel){openId=null;}
  else return;
  refreshServiceRows();
+});
+serviceRows.addEventListener('keydown',e=>{
+ const row=e.target.closest('tr[data-open]');
+ if(row && e.target===row && (e.key==='Enter'||e.key===' ')){
+  e.preventDefault();row.click();
+ }
 });
 serviceRows.addEventListener('submit',async e=>{
  if(!e.target.matches('.edit-service'))return;
@@ -103,7 +107,7 @@ serviceRows.addEventListener('submit',async e=>{
  try{
   const data=Object.fromEntries(new FormData(form));data.id=Number(form.dataset.id);
   await api('/api/services.php',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-  editId=null;await loadServices();
+  await loadServices();
  }catch(err){form.querySelector('[role="alert"]').textContent=err.message;}
  finally{button.disabled=false;}
 });
@@ -112,14 +116,14 @@ const servicePager = new BritePagination({
     render(services) {
         serviceRows.innerHTML = services.length
             ? services.map(s => `
-                <tr>
+                <tr data-open="${Number(s.id)}" tabindex="0" role="button" aria-expanded="${openId===Number(s.id)}" aria-label="Edit ${esc(s.name)}" style="cursor:pointer">
                     <td>
                         <strong>${esc(s.name)}</strong>
                         <div class="muted">${esc(s.description)}</div>
                     </td>
                     <td>${Number(s.duration_minutes)} min</td>
                     <td>$${Number(s.price).toFixed(2)}</td>
-                    <td>${Number(s.active) ? 'Active' : 'Inactive'}</td><td><button type="button" data-open="${Number(s.id)}">${openId===Number(s.id)?'Close':'Details'}</button></td>
+                    <td>${Number(s.active) ? 'Active' : 'Inactive'}</td>
                 </tr>
                 ${openId===Number(s.id)?serviceDetail(s):''}` ).join('')
             : '<tr><td colspan="5">No services found.</td></tr>';
