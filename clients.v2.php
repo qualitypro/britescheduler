@@ -18,4 +18,6 @@ require __DIR__.'/partials/app_header.php';
   <section class="brite-directory-list" data-directory-list aria-label="Clients directory"></section>
 </main>
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-directory-accordion.js'),ENT_QUOTES,'UTF-8')?>" defer></script>
+<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-single-active-records.css'),ENT_QUOTES,'UTF-8')?>">
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-single-active-records.js'),ENT_QUOTES,'UTF-8')?>" defer></script>
 <?php require __DIR__.'/partials/app_footer.php'; ?>
