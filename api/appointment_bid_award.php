@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/app/bootstrap.php';
+require_once dirname(__DIR__) . '/app/TenantClock.php';
 require_once dirname(__DIR__) . '/app/ContractorScheduleValidator.php';
 
 $user = Auth::requireUser();
@@ -121,9 +122,7 @@ try {
      * wall-clock time. Reject awards at or after the
      * appointment's actual start time.
      */
-    $databaseNow = (string)$pdo
-        ->query('SELECT NOW()')
-        ->fetchColumn();
+    $databaseNow = TenantClock::now($pdo, $tid);
 
     if ((string)$appointment['starts_at'] <= $databaseNow) {
         throw new DomainException(

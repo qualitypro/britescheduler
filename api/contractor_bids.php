@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/app/bootstrap.php';
+require_once dirname(__DIR__) . '/app/TenantClock.php';
 
 $user = Auth::requireUser();
 $tenant = Auth::requireRole('contractor');
@@ -228,9 +229,7 @@ try {
      * Reject bid changes once the appointment has started.
      * DATETIME values use tenant-local wall-clock time.
      */
-    $databaseNow = (string)$pdo
-        ->query("SELECT NOW()")
-        ->fetchColumn();
+    $databaseNow = TenantClock::now($pdo, $tid);
 
     if ((string)$listing['starts_at'] <= $databaseNow) {
         $pdo->rollBack();

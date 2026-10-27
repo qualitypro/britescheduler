@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/app/bootstrap.php';
+require_once dirname(__DIR__) . '/app/TenantClock.php';
 
 $user = Auth::requireUser();
 $tenant = Auth::requireRole('owner', 'admin');
@@ -32,7 +33,7 @@ if ($method === 'GET') {
           ON l.tenant_id = a.tenant_id
          AND l.appointment_id = a.id
         WHERE a.tenant_id = ?
-          AND a.starts_at >= CURRENT_DATE()
+          AND a.starts_at >= ?
           AND a.status IN (
               'tentative', 'scheduled', 'confirmed'
           )
@@ -40,7 +41,10 @@ if ($method === 'GET') {
         LIMIT 200
     ");
 
-    $q->execute([$tid]);
+    $q->execute([
+        $tid,
+        TenantClock::today($pdo, $tid)
+    ]);
 
     json_response([
         'appointments' => $q->fetchAll(PDO::FETCH_ASSOC)
@@ -106,13 +110,12 @@ try {
         ], 409);
     }
 
-    $q = $pdo->query("SELECT CURRENT_DATE()");
-    $today = (string)$q->fetchColumn();
+    $tenantNow = TenantClock::now($pdo, $tid);
 
-    if (substr($appointment['starts_at'], 0, 10) < $today) {
+    if ((string)$appointment['starts_at'] <= $tenantNow) {
         $pdo->rollBack();
         json_response([
-            'error' => 'Past appointment cannot be opened'
+            'error' => 'Appointment has already started'
         ], 409);
     }
 

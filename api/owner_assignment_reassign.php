@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/app/bootstrap.php';
+require_once dirname(__DIR__) . '/app/TenantClock.php';
 require_once dirname(__DIR__) . '/app/ContractorScheduleValidator.php';
 require_once dirname(__DIR__) . '/app/ContractorAssignmentValidator.php';
 
@@ -64,14 +65,18 @@ try {
             ends_at,
             service_id,
             client_location_id,
-            (starts_at > NOW()) AS is_future
+            (starts_at > ?) AS is_future
         FROM appointments
         WHERE id = ?
           AND tenant_id = ?
         FOR UPDATE
     ");
 
-    $q->execute([$appointmentId, $tenantId]);
+    $q->execute([
+        TenantClock::now($pdo, $tenantId),
+        $appointmentId,
+        $tenantId
+    ]);
     $appointment = $q->fetch(PDO::FETCH_ASSOC);
 
     if (!$appointment) {

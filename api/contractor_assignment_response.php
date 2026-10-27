@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/app/bootstrap.php';
+require_once dirname(__DIR__) . '/app/TenantClock.php';
 
 $user = Auth::requireUser();
 $tenant = Auth::requireRole('contractor');
@@ -83,7 +84,7 @@ try {
             ac.status,
             a.status AS appointment_status,
             a.starts_at,
-            (a.starts_at > NOW()) AS is_future
+            (a.starts_at > ?) AS is_future
         FROM appointment_contractors ac
         JOIN appointments a
           ON a.id = ac.appointment_id
@@ -94,6 +95,7 @@ try {
     ");
 
     $q->execute([
+        TenantClock::now($pdo, $tid),
         $tid,
         $appointmentId,
         $contractorId

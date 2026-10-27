@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/app/bootstrap.php';
+require_once dirname(__DIR__) . '/app/TenantClock.php';
 
 $user = Auth::requireUser();
 $tenant = Auth::requireRole('contractor');
@@ -70,7 +71,7 @@ $q = $pdo->prepare("
       ON s.id = a.service_id
      AND s.tenant_id = a.tenant_id
     WHERE a.tenant_id = ?
-      AND a.starts_at >= CURRENT_DATE()
+      AND a.starts_at >= ?
       AND a.status IN (
           'tentative',
           'scheduled',
@@ -87,7 +88,10 @@ $q = $pdo->prepare("
     LIMIT 200
 ");
 
-$q->execute([$tid]);
+$q->execute([
+    $tid,
+    TenantClock::today($pdo, $tid)
+]);
 
 $appointments = $q->fetchAll(PDO::FETCH_ASSOC);
 
