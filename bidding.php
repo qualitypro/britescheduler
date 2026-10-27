@@ -1766,4 +1766,6 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
 
 </div>
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-marketplace-records.js'), ENT_QUOTES, 'UTF-8')?>" defer></script>
+<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-single-active-records.css'),ENT_QUOTES,'UTF-8')?>">
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-single-active-records.js'),ENT_QUOTES,'UTF-8')?>" defer></script>
 <?php require __DIR__ . '/partials/app_footer.php'; ?>
