@@ -12,6 +12,8 @@ $existing=(bool)$q->fetchColumn();
 $session=Auth::user();
 $ready=$existing && $session && strcasecmp((string)$session['email'],(string)$inv['email'])===0;
 header('Referrer-Policy: no-referrer');
+header("Content-Security-Policy: frame-ancestors 'none'");
+header('X-Robots-Tag: noindex, nofollow');
 header('Cache-Control: no-store');
 ?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Accept staff invitation</title><style>body{font:16px system-ui;background:#f5f7fb;padding:3rem 1rem}.card{max-width:440px;margin:auto;padding:2rem;border-radius:12px;background:white}input,button{display:block;width:100%;box-sizing:border-box;padding:12px;margin:12px 0}</style></head><body><main class="card"><h1>Staff invitation</h1>
 <p>You've been invited to join <strong><?=htmlspecialchars($inv['name'],ENT_QUOTES,'UTF-8')?></strong> as <?=htmlspecialchars($inv['role'],ENT_QUOTES,'UTF-8')?>.</p>
@@ -20,14 +22,17 @@ header('Cache-Control: no-store');
 <p>This email already has an account. <a href="<?=htmlspecialchars(app_url('/sign-in.v2.php'),ENT_QUOTES,'UTF-8')?>">Sign in</a> with that account, then reopen this invitation link.</p>
 <?php else: ?>
 <form id="acceptForm">
-<?php if(!$existing): ?><label>Create a password (12 characters minimum)<input type="password" name="password" minlength="12" autocomplete="new-password" required></label><?php endif; ?>
+<?php if(!$existing): ?><label>Create a password (12 characters minimum)<input type="password" name="password" minlength="12" autocomplete="new-password" required></label><label>Confirm password<input type="password" name="password_confirm" minlength="12" autocomplete="new-password" required></label><?php endif; ?>
 <button type="submit">Accept invitation</button><p id="feedback" role="status"></p>
 </form>
 <?php endif; ?>
 </main><script>
 const form=document.getElementById('acceptForm');
 if(form)form.addEventListener('submit',async event=>{
- event.preventDefault();const button=form.querySelector('button');button.disabled=true;
+ event.preventDefault();const button=form.querySelector('button');
+ const password=form.elements.namedItem('password');const confirmation=form.elements.namedItem('password_confirm');
+ if(password&&confirmation&&password.value!==confirmation.value){document.getElementById('feedback').textContent='Passwords do not match';return;}
+ button.disabled=true;
  try{
   const payload={token:<?=json_encode($token)?>,...Object.fromEntries(new FormData(form))};
   const r=await fetch(<?=json_encode(app_url('/api/staff_invitation_accept.php'))?>,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':<?=json_encode(csrf_token())?>},body:JSON.stringify(payload)});
