@@ -1,0 +1,7 @@
+/* Cycle 59: click-through details and editing */
+.brite-directory-form[hidden],.brite-record-readonly[hidden],.brite-record-edit-toggle[hidden],.brite-record-cancel[hidden]{display:none!important}
+.brite-record-readonly{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:1rem;margin:0 0 1rem}
+.brite-record-readonly-field{min-width:0}
+.brite-record-readonly dt{font-size:.8rem;font-weight:650;color:var(--brite-text-secondary,#475569)}
+.brite-record-readonly dd{margin:.3rem 0 0;overflow-wrap:anywhere}
+.brite-record-edit-toggle,.brite-record-cancel{min-height:42px;padding:.6rem 1rem;margin:.3rem .5rem .3rem 0}
