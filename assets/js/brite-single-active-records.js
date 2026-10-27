@@ -10,7 +10,7 @@ function initialize(record) {
  if(!form)return;
  const actualForm=form.tagName==='FORM'?form:form.querySelector('form');
  if(!actualForm)return;
- const sheet=actualForm.closest('.brite-directory-form')||actualForm;
+ const sheet=actualForm.parentElement;
  const actions=actualForm.querySelector('.brite-directory-actions');
  if(!actions)return;
  const fields=[...actualForm.querySelectorAll('input,textarea,select')];
