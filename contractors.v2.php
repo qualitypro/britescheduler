@@ -280,4 +280,6 @@ document.getElementById('qualificationRows')
     });
 
 f.onsubmit=async e=>{e.preventDefault();let d=Object.fromEntries(new FormData(f));await api('/api/contractors.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});f.reset();load()};load();
-</script><?php require __DIR__.'/partials/app_footer.php';?>
+</script><link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-single-active-records.css'),ENT_QUOTES,'UTF-8')?>">
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-single-active-records.js'),ENT_QUOTES,'UTF-8')?>" defer></script>
+<?php require __DIR__.'/partials/app_footer.php';?>
