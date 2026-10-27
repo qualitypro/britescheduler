@@ -22,6 +22,21 @@ require __DIR__.'/partials/app_header.php';
    <p id="staffAddStatus" role="status" aria-live="polite"></p>
   </form>
  </section>
+ <button type="button" id="inviteToggle">Invite new staff</button>
+ <section id="invitePanel" class="card" hidden>
+  <h2>Invite staff member</h2>
+  <p class="muted">Create a seven-day invitation. Share the generated link privately with the intended recipient; the link grants access to the selected role when accepted.</p>
+  <form id="inviteForm">
+   <div class="row"><label>First name <input name="first_name" maxlength="100" required></label>
+   <label>Last name <input name="last_name" maxlength="100" required></label></div>
+   <div class="row"><label>Email <input name="email" type="email" maxlength="190" required></label>
+   <label>Role <select name="role"><option value="scheduler">Scheduler</option><option value="accounting">Accounting</option><option value="admin">Administrator</option></select></label></div>
+   <button type="submit">Create invitation</button><button type="button" id="inviteCancel">Cancel</button>
+  </form>
+  <p id="inviteFeedback" role="status"></p>
+  <div id="inviteLinkContainer" hidden><label>Private invitation link <input id="inviteLink" readonly></label><button type="button" id="inviteCopy">Copy link</button></div>
+ </section>
+ <h2>Invitations</h2><section id="inviteRecords" aria-label="Staff invitations"></section>
  <p id="staffStatus" role="status" aria-live="polite">Loading staff…</p>
  <section id="staffRecords" class="brite-directory-list" aria-label="Tenant staff"></section>
 </main>
@@ -38,7 +53,7 @@ require __DIR__.'/partials/app_header.php';
  function closeAdd(){addPanel.hidden=true;addForm.reset();addStatus.textContent='';}
  addToggle.addEventListener('click',()=>{
    list.querySelectorAll('details[open]').forEach(record=>record.open=false);
-   addPanel.hidden=false;addForm.elements.namedItem('email').focus();
+   closeInvite();addPanel.hidden=false;addForm.elements.namedItem('email').focus();
  });
  document.getElementById('staffAddCancel').addEventListener('click',closeAdd);
  addForm.addEventListener('submit',async event=>{
@@ -53,6 +68,58 @@ require __DIR__.'/partials/app_header.php';
    }catch(error){addStatus.textContent='Unable to add staff: '+error.message;}
    finally{submit.disabled=false;}
  });
+ const inviteToggle=document.getElementById('inviteToggle');
+ const invitePanel=document.getElementById('invitePanel');
+ const inviteForm=document.getElementById('inviteForm');
+ const inviteFeedback=document.getElementById('inviteFeedback');
+ const inviteLinkContainer=document.getElementById('inviteLinkContainer');
+ function closeInvite(){invitePanel.hidden=true;inviteForm.reset();inviteFeedback.textContent='';inviteLinkContainer.hidden=true;}
+ inviteToggle.addEventListener('click',()=>{
+   closeAdd();list.querySelectorAll('details[open]').forEach(d=>d.open=false);
+   invitePanel.hidden=false;inviteForm.elements.namedItem('first_name').focus();
+ });
+ document.getElementById('inviteCancel').addEventListener('click',closeInvite);
+ document.getElementById('inviteCopy').addEventListener('click',async()=>{
+   const link=document.getElementById('inviteLink');
+   try{await navigator.clipboard.writeText(link.value);inviteFeedback.textContent='Link copied';}
+   catch(e){link.select();inviteFeedback.textContent='Select and copy the link manually';}
+ });
+ inviteForm.addEventListener('submit',async event=>{
+   event.preventDefault();const button=inviteForm.querySelector('[type="submit"]');
+   button.disabled=true;inviteFeedback.textContent='Creating invitation…';
+   try{
+     const data=await api('/api/staff_invitations.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(inviteForm)))});
+     document.getElementById('inviteLink').value=data.invitation_url;
+     inviteLinkContainer.hidden=false;inviteFeedback.textContent='Invitation created. Share the link privately.';
+     await loadInvitations();
+   }catch(error){inviteFeedback.textContent=error.message;}
+   finally{button.disabled=false;}
+ });
+ async function loadInvitations(){
+   const host=document.getElementById('inviteRecords');
+   try{
+     const data=await api('/api/staff_invitations.php');
+     host.replaceChildren();
+     for(const item of data.invitations||[]){
+       const row=document.createElement('div');row.className='brite-directory-record';
+       const label=document.createElement('span');
+       label.textContent=item.first_name+' '+item.last_name+' · '+item.email+' · '+item.role+' · '+item.status+' · expires '+item.expires_at;
+       row.append(label);
+       if(item.status==='pending'){
+         const revoke=document.createElement('button');revoke.type='button';revoke.textContent='Revoke';
+         revoke.addEventListener('click',async()=>{
+           if(!confirm('Revoke this invitation?'))return;
+           revoke.disabled=true;
+           try{await api('/api/staff_invitations.php',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(item.id)})});await loadInvitations();}
+           catch(error){status.textContent='Unable to revoke invitation: '+error.message;revoke.disabled=false;}
+         });
+         row.append(revoke);
+       }
+       host.append(row);
+     }
+     if(!host.children.length)host.textContent='No invitations yet.';
+   }catch(error){host.textContent='Unable to load invitations: '+error.message;}
+ }
  const roles=['admin','scheduler','accounting'];
  function select(name,values,selected){
    const el=document.createElement('select');el.name=name;
@@ -68,7 +135,7 @@ require __DIR__.'/partials/app_header.php';
        const details=document.createElement('details');details.className='brite-directory-record';
        details.addEventListener('toggle',()=>{
          if(!details.open)return;
-         closeAdd();
+         closeAdd();closeInvite();
          list.querySelectorAll('details[open]').forEach(other=>{if(other!==details)other.open=false;});
        });
        const summary=document.createElement('summary');summary.className='brite-directory-summary';
@@ -117,7 +184,7 @@ require __DIR__.'/partials/app_header.php';
    }catch(error){status.textContent='Unable to load staff: '+error.message;}
    finally{refresh.disabled=false;}
  }
- refresh.addEventListener('click',load);load();
+ refresh.addEventListener('click',()=>{load();loadInvitations();});load();loadInvitations();
 })();
 </script>
 <link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-single-active-records.css'),ENT_QUOTES,'UTF-8')?>">
