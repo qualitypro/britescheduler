@@ -24,8 +24,15 @@ try{
   if($existing['status']!=='active'){$pdo->rollBack();json_response(['error'=>'Account is not active'],403);}
   $uid=(int)$existing['id'];
  }else{
+  // Do not create a second identity while another account is signed in.
+  if(Auth::user()){
+   $pdo->rollBack();
+   json_response(['error'=>'Sign out of your current account before creating a new staff account'],403);
+  }
   $first=(string)$invite['first_name'];$last=(string)$invite['last_name'];
   $password=(string)($d['password']??'');
+  $confirm=(string)($d['password_confirm']??'');
+  if(!hash_equals($password,$confirm)){$pdo->rollBack();json_response(['error'=>'Passwords do not match'],422);}
   if(strlen($password)<12||strlen($password)>1024){$pdo->rollBack();json_response(['error'=>'Password must contain at least 12 characters'],422);}
   $q=$pdo->prepare("INSERT INTO users (email,password_hash,first_name,last_name,status) VALUES (?,?,?,?,'active')");
   $q->execute([$invite['email'],password_hash($password,PASSWORD_DEFAULT),$first,$last]);
