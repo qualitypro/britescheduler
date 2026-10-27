@@ -7,7 +7,7 @@ $tid=(int)$tenant['tenant_id'];
 $pdo=Database::connection();
 $method=$_SERVER['REQUEST_METHOD']??'GET';
 if($method==='GET'){
- $q=$pdo->prepare("SELECT id,email,first_name,last_name,role,status,expires_at,created_at FROM staff_invitations WHERE tenant_id=? ORDER BY id DESC LIMIT 100");
+ $q=$pdo->prepare("SELECT id,email,first_name,last_name,role,CASE WHEN status='pending' AND expires_at<=UTC_TIMESTAMP() THEN 'expired' ELSE status END AS status,expires_at,created_at FROM staff_invitations WHERE tenant_id=? ORDER BY id DESC LIMIT 100");
  $q->execute([$tid]);
  json_response(['invitations'=>$q->fetchAll(PDO::FETCH_ASSOC)]);
 }
