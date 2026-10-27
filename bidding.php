@@ -17,6 +17,8 @@ require __DIR__ . '/partials/app_header.php';
 
 $marketplaceRole = (string)($tenant['role'] ?? '');
 ?>
+<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-marketplace-ux.css'), ENT_QUOTES, 'UTF-8')?>">
+<div class="brite-marketplace">
 
 <style>
 .bidding-heading {
@@ -415,6 +417,15 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
             projectsContainer.appendChild(projectCard(project));
         });
 
+        if (!visible.length) {
+            projectsContainer.appendChild(element(
+                'p', 'brite-marketplace-empty',
+                projects.length
+                    ? 'No projects match these filters. Try another search or service.'
+                    : 'No client projects are available right now. Check back soon.'
+            ));
+        }
+
         projectStatus.textContent = visible.length
             ? visible.length + ' available project(s)'
             : 'No projects match your current filters.';
@@ -659,11 +670,11 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
                 appointment.title || 'Untitled appointment'
             ));
 
-            card.appendChild(element(
-                'span',
-                'bidding-status',
-                listingState(appointment)
-            ));
+            const stateBadge = element(
+                'span', 'bidding-status', listingState(appointment)
+            );
+            stateBadge.dataset.state = String(listingState(appointment)).toLowerCase();
+            card.appendChild(stateBadge);
 
             card.appendChild(element(
                 'p',
@@ -731,6 +742,9 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
 
                 activityPanel.hidden = true;
                 activityPanel.style.marginTop = '16px';
+                activityButton.setAttribute('aria-expanded', 'false');
+                activityButton.setAttribute('aria-controls', 'owner-bid-activity-' + appointment.listing_id);
+                activityPanel.id = 'owner-bid-activity-' + appointment.listing_id;
 
                 let activityLoaded = false;
 
@@ -739,12 +753,14 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
                     async () => {
                         if (!activityPanel.hidden) {
                             activityPanel.hidden = true;
+                            activityButton.setAttribute('aria-expanded', 'false');
                             activityButton.textContent =
                                 'View Bid Activity';
                             return;
                         }
 
                         activityPanel.hidden = false;
+                        activityButton.setAttribute('aria-expanded', 'true');
                         activityButton.textContent =
                             'Hide Bid Activity';
 
@@ -1299,6 +1315,15 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
             container.appendChild(card);
         }
 
+        if (!visible.length) {
+            container.appendChild(element(
+                'p', 'brite-marketplace-empty',
+                appointments.length
+                    ? 'No appointments match your filters. Try another search or status.'
+                    : 'No marketplace appointments are available yet.'
+            ));
+        }
+
         status.textContent =
             visible.length + ' of ' +
             appointments.length +
@@ -1677,6 +1702,15 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
             container.appendChild(renderListing(listing));
         }
 
+        if (!visible.length) {
+            container.appendChild(element(
+                'p', 'brite-marketplace-empty',
+                listings.length
+                    ? 'No requests match your search. Try a different keyword.'
+                    : 'You have no marketplace requests yet. Book a service to get started.'
+            ));
+        }
+
         status.textContent =
             visible.length + ' of ' +
             listings.length +
@@ -1730,4 +1764,5 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
 
 <?php endif; ?>
 
+</div>
 <?php require __DIR__ . '/partials/app_footer.php'; ?>
