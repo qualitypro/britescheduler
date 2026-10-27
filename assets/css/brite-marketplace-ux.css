@@ -40,3 +40,112 @@
  .brite-marketplace .bidding-actions :is(button,a) {width:100%;max-width:100%;white-space:normal;text-align:center}
 }
 @media(prefers-reduced-motion:reduce) {.brite-marketplace * {scroll-behavior:auto}}
+
+
+/* Cycle 55: compact list + expandable record sheets for every Marketplace role. */
+.brite-marketplace .bidding-projects {
+    display:flex !important;
+    flex-direction:column;
+    grid-template-columns:none !important;
+    gap:0 !important;
+    border:1px solid var(--brite-border,#dce3ec);
+    border-radius:12px;
+    overflow:hidden;
+    background:var(--brite-surface,#fff);
+}
+.brite-marketplace .bidding-projects > .bidding-project.brite-marketplace-record-host {
+    display:block;
+    width:100%;
+    min-width:0;
+    padding:0 !important;
+    margin:0 !important;
+    border:0 !important;
+    border-radius:0 !important;
+    box-shadow:none !important;
+    background:transparent !important;
+}
+.brite-marketplace .bidding-projects > .bidding-project.brite-marketplace-record-host + .bidding-project.brite-marketplace-record-host {
+    border-top:1px solid var(--brite-border,#e2e8f0) !important;
+}
+.brite-marketplace .brite-marketplace-record-summary {
+    display:flex;
+    align-items:center;
+    gap:1rem;
+    padding:.85rem 1rem;
+    cursor:pointer;
+    list-style:none;
+    background:var(--brite-surface,#fff);
+    color:var(--brite-text,#0f172a);
+}
+.brite-marketplace .brite-marketplace-record-summary::-webkit-details-marker {display:none}
+.brite-marketplace .brite-marketplace-record-summary:hover,
+.brite-marketplace .brite-marketplace-record[open] > .brite-marketplace-record-summary {
+    background:var(--brite-surface-muted,#f1f5f9);
+}
+.brite-marketplace .brite-marketplace-record-summary:focus-visible {
+    outline:3px solid var(--brite-indigo,#4f46e5);
+    outline-offset:-3px;
+}
+.brite-marketplace .brite-marketplace-record-main {
+    flex:1;
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    gap:.25rem;
+}
+.brite-marketplace .brite-marketplace-record-title {
+    font-size:.95rem;
+    line-height:1.35;
+    overflow-wrap:anywhere;
+}
+.brite-marketplace .brite-marketplace-record-meta {
+    color:var(--brite-text-secondary,#475569);
+    font-size:.82rem;
+    line-height:1.45;
+    overflow-wrap:anywhere;
+}
+.brite-marketplace .brite-marketplace-record-state {
+    flex-shrink:0;
+    border:1px solid var(--brite-border,#cbd5e1);
+    border-radius:999px;
+    padding:.22rem .6rem;
+    font-size:.76rem;
+    font-weight:650;
+    background:var(--brite-surface,#fff);
+}
+.brite-marketplace .brite-marketplace-record-chevron {
+    flex-shrink:0;
+    font-size:1.35rem;
+    transition:transform .15s ease;
+}
+.brite-marketplace .brite-marketplace-record[open] .brite-marketplace-record-chevron {
+    transform:rotate(180deg);
+}
+.brite-marketplace .brite-marketplace-record-sheet {
+    padding:1rem 1.15rem 1.25rem;
+    border-top:1px solid var(--brite-border,#e2e8f0);
+    background:var(--brite-surface,#fff);
+    overflow-wrap:anywhere;
+}
+.brite-marketplace .brite-marketplace-record-sheet > h3,
+.brite-marketplace .brite-marketplace-record-sheet > h4 {
+    font-size:1rem;
+    margin:0 0 .65rem;
+}
+.brite-marketplace .brite-marketplace-record-sheet .bidding-actions {
+    padding-top:.5rem;
+    border-top:1px solid var(--brite-border,#e2e8f0);
+}
+.brite-marketplace .brite-marketplace-record-sheet :is(input,select,textarea) {
+    max-width:100%;
+}
+@media(max-width:640px) {
+    .brite-marketplace .brite-marketplace-record-summary {padding:.75rem;gap:.5rem;flex-wrap:wrap}
+    .brite-marketplace .brite-marketplace-record-state {order:2}
+    .brite-marketplace .brite-marketplace-record-chevron {order:3;margin-left:auto}
+    .brite-marketplace .brite-marketplace-record-main {flex-basis:100%}
+    .brite-marketplace .brite-marketplace-record-sheet {padding:.85rem}
+}
+@media(prefers-reduced-motion:reduce) {
+    .brite-marketplace .brite-marketplace-record-chevron {transition:none}
+}
