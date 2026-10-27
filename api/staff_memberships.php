@@ -13,6 +13,35 @@ if($_SERVER['REQUEST_METHOD']==='GET'){
     $q->execute([$tid]);
     json_response(['members'=>$q->fetchAll(PDO::FETCH_ASSOC)]);
 }
+if($_SERVER['REQUEST_METHOD']==='POST'){
+    verify_csrf();
+    $d=request_data();
+    $email=strtolower(trim((string)($d['email']??'')));
+    $role=(string)($d['role']??'');
+    if(!filter_var($email,FILTER_VALIDATE_EMAIL)||strlen($email)>190||
+       !in_array($role,['admin','scheduler','accounting'],true))
+        json_response(['error'=>'Valid existing account email and staff role required'],422);
+    $pdo->beginTransaction();
+    try{
+        $q=$pdo->prepare('SELECT id FROM users WHERE email=? AND status=? LIMIT 1 FOR UPDATE');
+        $q->execute([$email,'active']);
+        $target=$q->fetchColumn();
+        if(!$target){
+            $pdo->rollBack();
+            json_response(['error'=>'No active account with that email. Ask the user to register first.'],404);
+        }
+        $q=$pdo->prepare('SELECT role,status FROM tenant_memberships WHERE tenant_id=? AND user_id=? FOR UPDATE');
+        $q->execute([$tid,(int)$target]);
+        if($q->fetch()){
+            $pdo->rollBack();
+            json_response(['error'=>'This account already belongs to the tenant'],409);
+        }
+        $q=$pdo->prepare("INSERT INTO tenant_memberships (tenant_id,user_id,role,status) VALUES (?,?,?,'active')");
+        $q->execute([$tid,(int)$target,$role]);
+        $pdo->commit();
+    }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
+    json_response(['ok'=>true],201);
+}
 if($_SERVER['REQUEST_METHOD']!=='PUT')json_response(['error'=>'Method not allowed'],405);
 verify_csrf();
 $d=request_data();
