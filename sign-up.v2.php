@@ -20,6 +20,7 @@ $isContractor = $type === 'contractor';
 ?><!doctype html>
 <html>
 <head>
+<link rel="icon" type="image/x-icon" href="<?=htmlspecialchars(app_url('/favicon.ico'), ENT_QUOTES, 'UTF-8')?>">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
@@ -249,7 +250,7 @@ Sign In
 <script>
 
 const BASE =
-    <?=json_encode(rtrim($_ENV['APP_URL'] ?? 'http://localhost/dashboard','/'))?>;
+    <?=json_encode(app_url())?>;
 
 const CSRF =
     <?=json_encode($csrf)?>;
