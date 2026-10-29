@@ -338,3 +338,48 @@
     outline: 3px solid #86efac;
     outline-offset: 2px;
 }
+
+
+/* Usability sprint: consistent keyboard cues and touch targets across app screens. */
+.brite-app :is(a, button, input, select, textarea, [role="button"]):focus-visible {
+    outline: 3px solid var(--brite-indigo, #4f46e5);
+    outline-offset: 3px;
+}
+.brite-app button:disabled,
+.brite-app [aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: .65;
+}
+.brite-app .brite-pagination-page-size {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .875rem;
+    color: var(--brite-text-secondary, #475569);
+}
+.brite-app .brite-pagination-page-size select {
+    min-height: 40px;
+    min-width: 68px;
+    background: var(--brite-surface, #fff);
+    color: inherit;
+}
+@media (max-width: 520px) {
+    .brite-app .brite-pagination {
+        align-items: stretch !important;
+    }
+    .brite-app .brite-pagination > div {
+        flex-wrap: wrap;
+    }
+    .brite-app .brite-pagination button {
+        min-width: 40px;
+        min-height: 40px;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .brite-app .brite-sidebar {
+        transition: none;
+    }
+}
+.brite-app[data-brite-reduced-motion="1"] .brite-sidebar {
+    transition: none;
+}
