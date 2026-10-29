@@ -3546,6 +3546,31 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                     }
                 },
 
+                // Accessible native hover hint; data is already scoped by the
+                // appointments API to the signed-in user's calendar role.
+                eventDidMount: info => {
+                    const a = info.event.extendedProps || {};
+                    const lines = [
+                        a.title || a.service_name || 'Appointment',
+                        'Status: ' + appointmentStatusLabel(a.status),
+                        'Start: ' + appointmentDetailsDate(info.event.start),
+                        'End: ' + appointmentDetailsDate(info.event.end)
+                    ];
+                    const client = [a.client_first, a.client_last]
+                        .filter(Boolean).join(' ');
+                    if (client && BRITE_CALENDAR_ROLE !== 'client') {
+                        lines.push('Client: ' + client);
+                    }
+                    if (a.service_name) lines.push('Service: ' + a.service_name);
+                    if (a.location) lines.push('Location: ' + a.location);
+                    if (['owner', 'admin', 'scheduler'].includes(BRITE_CALENDAR_ROLE)) {
+                        const names = appointmentContractorNames(a);
+                        if (names.length) lines.push('Contractors: ' + names.join(', '));
+                    }
+                    info.el.title = lines.join('\\n');
+                    info.el.setAttribute('aria-label', lines.join('. '));
+                },
+
                 eventContent:calendarEventContent,
                 eventDisplay:'block',
                 displayEventEnd:false,
