@@ -46,6 +46,10 @@ try {
 
     $count->execute([$tenantId, $userId]);
 
+    $all = isset($_GET['all']) && $_GET['all'] === '1';
+    $limit = $all ? 500 : 50;
+    $offset = $all ? max(0, min(1000000, (int)($_GET['offset'] ?? 0))) : 0;
+
     $query = $pdo->prepare("
         SELECT
             id,
@@ -59,7 +63,7 @@ try {
         WHERE tenant_id = ?
           AND user_id = ?
         ORDER BY created_at DESC, id DESC
-        LIMIT 50
+        LIMIT {$limit} OFFSET {$offset}
     ");
 
     $query->execute([$tenantId, $userId]);
@@ -67,7 +71,9 @@ try {
     json_response([
         'ok' => true,
         'unread_count' => (int)$count->fetchColumn(),
-        'notifications' => $query->fetchAll(PDO::FETCH_ASSOC)
+        'notifications' => $query->fetchAll(PDO::FETCH_ASSOC),
+        'limit' => $limit,
+        'offset' => $offset
     ]);
 
 } catch (Throwable $e) {
