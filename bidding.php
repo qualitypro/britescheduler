@@ -617,6 +617,10 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
         document.getElementById('ownerBiddingRefresh');
 
     let appointments = [];
+    const targetAppointmentId = new URLSearchParams(
+        window.location.search
+    ).get('appointment_id');
+    let targetFocused = false;
 
     function element(tag, className, value) {
         const node = document.createElement(tag);
@@ -663,6 +667,13 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
                 'article',
                 'card bidding-project'
             );
+            if(targetAppointmentId &&
+                String(appointment.appointment_id) === targetAppointmentId){
+                card.id = 'marketplace-appointment-' + targetAppointmentId;
+                card.tabIndex = -1;
+                card.style.outline = '3px solid var(--brite-indigo, #4f46e5)';
+                card.style.outlineOffset = '3px';
+            }
 
             card.appendChild(element(
                 'h3',
@@ -1328,6 +1339,19 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
             visible.length + ' of ' +
             appointments.length +
             ' marketplace appointment(s) displayed.';
+        if(targetAppointmentId && !targetFocused){
+            const target = document.getElementById(
+                'marketplace-appointment-' + targetAppointmentId
+            );
+            if(target){
+                targetFocused = true;
+                target.scrollIntoView({block:'center'});
+                target.focus({preventScroll:true});
+            } else if(appointments.length){
+                status.textContent +=
+                    ' Requested appointment is not visible in these Marketplace results.';
+            }
+        }
     }
 
     async function load(propagateErrors = false) {
