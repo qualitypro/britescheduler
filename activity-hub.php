@@ -29,7 +29,7 @@ const records=el('activityRecords'),message=el('activityMessage');
 let offset=0,items=[],hasMore=false,unread=0;
 const limit=500;
 function category(n){const t=String(n.type||'').toLowerCase();return /marketplace|bid|award/.test(t)?'marketplace':/cancel|fail|declin|reject|overdue|urgent/.test(t)?'warning':/appointment|booking|assign|schedul/.test(t)?'schedule':'general';}
-function isBookingRequest(n){const t=String(n.type||'').toLowerCase();return /booking_request|client_booking_request|appointment_request|booking_requested/.test(t);}
+function isBookingRequest(n){const t=String(n.type||'').toLowerCase();const title=String(n.title||'').trim().toLowerCase();return /booking_request|client_booking_request|appointment_request|booking_requested/.test(t)||(t==='appointment'&&title==='new client booking request');}
 function node(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=String(text);if(cls)e.className=cls;return e;}
 function render(){
 records.replaceChildren();
