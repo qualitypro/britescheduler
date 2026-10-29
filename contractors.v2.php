@@ -123,6 +123,17 @@ const contractorPager = new BritePagination({
             mount.dataset.qualificationMount='true';
             qualifications.append(mount);
             details.append(qualifications);
+            const offeringSection=document.createElement('section');
+            offeringSection.className='brite-directory-form';
+            const offeringHeading=document.createElement('h3');
+            offeringHeading.textContent='Services offered and pricing';
+            const offeringMount=document.createElement('div');
+            offeringMount.dataset.offeringMount=String(c.id);
+            offeringSection.append(offeringHeading,offeringMount);
+            details.append(offeringSection);
+            details.addEventListener('toggle',()=>{
+                if(details.open)loadOfferings(Number(c.id),offeringMount);
+            });
             details.addEventListener('toggle',()=>{
                 if(!details.open && activeQualificationContractor===Number(c.id)){
                     activeQualificationContractor=null;
@@ -139,6 +150,56 @@ const contractorPager = new BritePagination({
 async function load(){
     const d = await api('/api/contractors.php');
     contractorPager.setRecords(d.contractors);
+}
+
+async function loadOfferings(contractorId,mount){
+    mount.textContent='Loading service offerings…';
+    try{
+        const response=await api('/api/contractor_service_offerings.php?contractor_id='+encodeURIComponent(contractorId));
+        if(!mount.isConnected)return;
+        mount.replaceChildren();
+        for(const offering of response.offerings){
+            const form=document.createElement('form');
+            form.className='brite-directory-fields';
+            const name=document.createElement('strong');
+            name.textContent=offering.service_name+(Number(offering.service_active)?'':' (inactive)');
+            const offered=document.createElement('label');
+            const check=document.createElement('input');check.type='checkbox';check.checked=Number(offering.offered)===1;
+            offered.append(check,document.createTextNode(' Offers service'));
+            const pricing=document.createElement('select');
+            for(const model of ['flat','hourly']){
+                const opt=document.createElement('option');opt.value=model;opt.textContent=model==='flat'?'Flat rate':'Hourly rate';
+                pricing.append(opt);
+            }
+            pricing.value=offering.pricing_model;
+            const rate=document.createElement('input');rate.type='number';rate.min='0';rate.max='9999999999';rate.step='0.01';
+            rate.placeholder='Rate (optional)';rate.value=offering.rate??'';
+            const notes=document.createElement('input');notes.maxLength=500;notes.placeholder='Offering notes';
+            notes.value=offering.notes??'';
+            const save=document.createElement('button');save.type='submit';save.textContent='Save offering';
+            const status=document.createElement('span');status.setAttribute('role','status');
+            if(!window.BRITE_QUALIFICATION_CAN_EDIT){
+                for(const control of [check,pricing,rate,notes,save])control.disabled=true;
+            }
+            form.append(name,offered,pricing,rate,notes,save,status);
+            form.addEventListener('submit',async event=>{
+                event.preventDefault();save.disabled=true;status.textContent='Saving…';
+                try{
+                    await api('/api/contractor_service_offerings.php',{
+                        method:'PUT',headers:{'Content-Type':'application/json'},
+                        body:JSON.stringify({
+                            contractor_id:contractorId,service_id:Number(offering.service_id),
+                            offered:check.checked?1:0,pricing_model:pricing.value,rate:rate.value,notes:notes.value
+                        })
+                    });
+                    status.textContent='Offering saved';
+                }catch(error){status.textContent='Save failed: '+error.message;}
+                finally{save.disabled=false;}
+            });
+            mount.append(form);
+        }
+        if(!response.offerings.length)mount.textContent='No tenant services available.';
+    }catch(error){mount.textContent='Unable to load offerings: '+error.message;}
 }
 
 let activeQualificationContractor = null;
