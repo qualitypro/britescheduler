@@ -195,6 +195,11 @@ require __DIR__.'/partials/app_header.php';
     margin:12px 0;
 }
 
+.cycle69c-filters{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px;margin:12px 0;border:1px solid #cbd5e1;border-radius:8px}
+.cycle69c-filters label{display:flex;align-items:center;gap:6px;font-size:13px}
+.cycle69c-filters input[type="number"]{max-width:130px}
+.cycle69c-filters legend{font-weight:600}
+.cycle69c-filters p{width:100%;margin:0;font-size:12px}
 #recommendationsResults{
     display:grid;
     gap:10px;
@@ -1068,6 +1073,25 @@ require __DIR__.'/partials/app_header.php';
                 times to view recommendations.
             </p>
 
+            <fieldset id="cycle69cFilters" class="cycle69c-filters" disabled aria-label="Filter contractor recommendations">
+                <legend>Filter recommendations</legend>
+                <label>Status
+                    <select id="cycle69cStatus">
+                        <option value="all">All statuses</option>
+                        <option value="ready_for_review">Ready for review</option>
+                        <option value="manual_review">Manual review</option>
+                        <option value="restricted">Restricted</option>
+                    </select>
+                </label>
+                <label><input type="checkbox" id="cycle69cQualified"> Verified qualifications only</label>
+                <label><input type="checkbox" id="cycle69cOffered"> Confirmed service offering only</label>
+                <label><input type="checkbox" id="cycle69cAvailable"> Available and conflict-free only</label>
+                <label>Maximum contractor rate (USD)
+                    <input type="number" id="cycle69cMaxRate" min="0" step="0.01" placeholder="No maximum">
+                </label>
+                <button type="button" id="cycle69cReset">Reset filters</button>
+                <p id="cycle69cCount" role="status" aria-live="polite"></p>
+            </fieldset>
             <div id="recommendationsResults"></div>
 
             <p class="recommendations-help">
@@ -2067,6 +2091,54 @@ const recommendationsResults =
 
 let recommendationSequence = 0;
 let recommendationSignature = '';
+let cycle69cContractors = [];
+const cycle69cFields = document.getElementById('cycle69cFilters');
+const cycle69cStatus = document.getElementById('cycle69cStatus');
+const cycle69cQualified = document.getElementById('cycle69cQualified');
+const cycle69cOffered = document.getElementById('cycle69cOffered');
+const cycle69cAvailable = document.getElementById('cycle69cAvailable');
+const cycle69cMaxRate = document.getElementById('cycle69cMaxRate');
+const cycle69cCount = document.getElementById('cycle69cCount');
+
+function cycle69cApplyFilters(){
+    if(!recommendationSignature)return;
+    const maxText = cycle69cMaxRate.value.trim();
+    const maxRate = maxText === '' ? null : Number(maxText);
+    const filtered = cycle69cContractors.filter(contractor => {
+        if(cycle69cStatus.value !== 'all' &&
+           contractor.dispatch_explanation?.status !== cycle69cStatus.value)return false;
+        if(cycle69cQualified.checked && !contractor.service_qualified)return false;
+        if(cycle69cOffered.checked && contractor.service_offering?.status !== 'offered')return false;
+        if(cycle69cAvailable.checked &&
+           (!contractor.availability_ok || !contractor.conflict_free))return false;
+        if(maxRate !== null){
+            const rate = contractor.service_offering?.rate;
+            if(!Number.isFinite(maxRate) || maxRate < 0 ||
+               contractor.service_offering?.status !== 'offered' ||
+               rate === null || rate === undefined ||
+               !Number.isFinite(Number(rate)) || Number(rate) > maxRate)return false;
+        }
+        return true;
+    });
+    renderRecommendations(filtered);
+    cycle69cCount.textContent = filtered.length + ' of ' +
+        cycle69cContractors.length + ' recommendations shown.' +
+        (maxRate !== null ? ' Rates are compared as configured; hourly and flat rates are not equivalent.' : '');
+    if(!filtered.length && cycle69cContractors.length){
+        recommendationsStatus.textContent = 'No contractors match the selected filters. Adjust or reset the filters.';
+    }
+}
+for(const field of [cycle69cStatus,cycle69cQualified,cycle69cOffered,cycle69cAvailable,cycle69cMaxRate]){
+    field.addEventListener(field === cycle69cMaxRate ? 'input' : 'change',cycle69cApplyFilters);
+}
+document.getElementById('cycle69cReset').addEventListener('click',()=>{
+    cycle69cStatus.value='all';
+    cycle69cQualified.checked=false;
+    cycle69cOffered.checked=false;
+    cycle69cAvailable.checked=false;
+    cycle69cMaxRate.value='';
+    cycle69cApplyFilters();
+});
 
 function recommendationInputs(){
     const location = clientLocationId.value;
@@ -2093,6 +2165,9 @@ function recommendationKey(inputs){
 function invalidateRecommendations(){
     ++recommendationSequence;
     recommendationSignature = '';
+    cycle69cContractors = [];
+    cycle69cFields.disabled = true;
+    cycle69cCount.textContent = '';
     recommendationsResults.replaceChildren();
 
     const inputs = recommendationInputs();
@@ -2479,6 +2554,9 @@ recommendationsButton.addEventListener('click', async () => {
     const signature = recommendationKey(inputs);
 
     recommendationSignature = '';
+    cycle69cContractors = [];
+    cycle69cFields.disabled = true;
+    cycle69cCount.textContent = '';
     recommendationsResults.replaceChildren();
     recommendationsButton.disabled = true;
     recommendationsStatus.textContent = 'Loading recommendations...';
@@ -2511,7 +2589,9 @@ recommendationsButton.addEventListener('click', async () => {
         }
 
         recommendationSignature = signature;
-        renderRecommendations(data.contractors || []);
+        cycle69cContractors = Array.isArray(data.contractors) ? data.contractors : [];
+        cycle69cFields.disabled = false;
+        cycle69cApplyFilters();
 
     }catch(error){
         if(sequence === recommendationSequence){
