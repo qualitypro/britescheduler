@@ -35,6 +35,7 @@ $dashboardPath = match ($tenant['role']) {
 
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-app-shell.css'))?>">
+<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-value-pills.css'),ENT_QUOTES,'UTF-8')?>">
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-activity-hub.css'))?>">
 <link rel="stylesheet"
