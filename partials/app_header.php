@@ -340,6 +340,7 @@ My Locations
             <div>
                 <strong>Activity Hub</strong>
                 <p>Bookings and business activity</p>
+                <a href="<?=htmlspecialchars(app_url('/activity-hub.php'),ENT_QUOTES,'UTF-8')?>" style="font-size:.82rem;font-weight:700">Open full Activity Hub</a>
             </div>
 
             <button
