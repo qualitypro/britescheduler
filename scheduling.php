@@ -3346,7 +3346,18 @@ async function saveAppointmentFromWizard() {
         }
 
     } catch(e){
-        appointmentError.textContent=e.message;
+        if (e.message === 'This appointment is controlled by the marketplace' &&
+            Number(appointmentId.value) > 0) {
+            appointmentError.replaceChildren();
+            const link = document.createElement('a');
+            link.href = (window.BRITE_BASE || '/dashboard') +
+                '/bidding.php?appointment_id=' +
+                encodeURIComponent(appointmentId.value);
+            link.textContent = e.message + ' — View bids in Marketplace';
+            appointmentError.appendChild(link);
+        } else {
+            appointmentError.textContent = e.message;
+        }
     }
 }
 
