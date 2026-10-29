@@ -2366,7 +2366,34 @@ function renderRecommendations(contractors){
             : 'Not configured';
         addDetail(details, 'Contractor rate', rateLabel);
 
+        const dispatch = contractor.dispatch_explanation || {};
+        const dispatchLabels = {
+            restricted: 'Restricted',
+            manual_review: 'Manual review required',
+            ready_for_review: 'Ready for review'
+        };
+        addDetail(
+            details,
+            'Dispatch review',
+            dispatchLabels[dispatch.status] || 'Review required',
+            dispatch.status === 'ready_for_review' ? 'positive'
+                : dispatch.status === 'restricted' ? 'negative' : 'neutral'
+        );
+        const distance = ranking.distance_miles;
+        if(distance !== null && distance !== undefined &&
+           Number.isFinite(Number(distance))){
+            addDetail(details, 'Service-area distance',
+                Number(distance).toFixed(1) + ' miles (straight line)');
+        }
+
         card.appendChild(details);
+
+        for(const area of contractor.service_area_explanations || []){
+            recommendationText(card, 'recommendation-details', area);
+        }
+        for(const issue of dispatch.issues || []){
+            recommendationText(card, 'recommendation-details', 'Review: ' + issue);
+        }
 
         for(const explanation of ranking.explanations || []){
             recommendationText(
