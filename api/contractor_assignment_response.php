@@ -216,16 +216,15 @@ try {
         ? 'contractor_assignment_accepted'
         : 'contractor_assignment_declined';
 
-    $notificationTitle = $action === 'accept'
-        ? 'Contractor accepted assignment'
-        : 'Contractor declined assignment';
-
-    $notificationBody = sprintf(
-        'Contractor #%d %s appointment #%d.',
-        $contractorId,
+    $notificationTitle = sprintf(
+        'Contractor %s assignment Appointment #%d',
         $action === 'accept' ? 'accepted' : 'declined',
         $appointmentId
     );
+
+    $notificationBody = $action === 'accept'
+        ? 'The contractor accepted this appointment assignment.'
+        : 'The contractor declined this appointment assignment.';
 
     foreach ($ownerIds as $ownerId) {
         $notification->execute([
