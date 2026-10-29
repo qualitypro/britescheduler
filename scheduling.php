@@ -1877,6 +1877,7 @@ document.getElementById('openAppointmentWizardButton')
         if (BRITE_CALENDAR_READ_ONLY) return;
         resetForm();
         openAppointmentWizard();
+        window.briteCycle68c?.promptRestore();
     });
 
 
@@ -3044,6 +3045,7 @@ async function saveAppointmentFromWizard() {
             body:JSON.stringify(d)
         });
 
+        window.briteCycle68c?.clear();
         resetForm();
         closeAppointmentWizard();
         calendar.refetchEvents();
@@ -3058,6 +3060,14 @@ async function saveAppointmentFromWizard() {
                 const detail = document.createElement('span');
                 detail.textContent = ' Appointment #' + savedId + '.';
                 confirmation.append(detail);
+                const link = document.createElement('a');
+                const destination = new URL(window.location.href);
+                destination.searchParams.set('appointment_id', String(savedId));
+                destination.searchParams.delete('action');
+                link.href = destination.toString();
+                link.textContent = ' Open appointment details';
+                link.style.marginLeft = '12px';
+                confirmation.append(link);
             }
             confirmation.hidden = false;
             confirmation.focus();
@@ -3069,6 +3079,7 @@ async function saveAppointmentFromWizard() {
 }
 
 newButton.onclick=()=>{
+    window.briteCycle68c?.clear();
     resetForm();
     wizardShowStep(1);
 };
@@ -3472,6 +3483,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-datetime-picker.js'))?>"></script>
 
 <?php if ($canManageAppointments): ?>
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-wizard-draft.js'),ENT_QUOTES,'UTF-8')?>" defer></script>
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-wizard-pricing-preview.js'),ENT_QUOTES,'UTF-8')?>" defer></script>
 <?php endif; ?>
 <?php require __DIR__.'/partials/app_footer.php'; ?>
