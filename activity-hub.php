@@ -13,7 +13,7 @@ require __DIR__ . '/partials/app_header.php';
 <div class="brite-activity-toolbar" role="search" aria-label="Filter activity">
 <input id="activitySearch" type="search" placeholder="Search titles, messages, or IDs" aria-label="Search notifications">
 <select id="activityStatus" aria-label="Notification status"><option value="all">All statuses</option><option value="outstanding">Outstanding</option><option value="dismissed">Dismissed</option></select>
-<select id="activityType" aria-label="Notification category"><option value="all">All categories</option><option value="marketplace">Marketplace</option><option value="schedule">Scheduling</option><option value="warning">Attention</option><option value="general">General</option></select>
+<select id="activityType" aria-label="Notification category"><option value="all">All categories</option><option value="booking_requests">Booking requests</option><option value="marketplace">Marketplace</option><option value="schedule">Scheduling</option><option value="warning">Attention</option><option value="general">General</option></select>
 <button id="activityRefresh" type="button">Refresh</button>
 </div>
 <p id="activityMessage" role="status" aria-live="polite">Loading activity…</p>
@@ -29,11 +29,12 @@ const records=el('activityRecords'),message=el('activityMessage');
 let offset=0,items=[],hasMore=false,unread=0;
 const limit=500;
 function category(n){const t=String(n.type||'').toLowerCase();return /marketplace|bid|award/.test(t)?'marketplace':/cancel|fail|declin|reject|overdue|urgent/.test(t)?'warning':/appointment|booking|assign|schedul/.test(t)?'schedule':'general';}
+function isBookingRequest(n){const t=String(n.type||'').toLowerCase();return /booking_request|client_booking_request|appointment_request|booking_requested/.test(t);}
 function node(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=String(text);if(cls)e.className=cls;return e;}
 function render(){
 records.replaceChildren();
 const q=el('activitySearch').value.trim().toLowerCase(),st=el('activityStatus').value,ty=el('activityType').value;
-const filtered=items.filter(n=>(st==='all'||(st==='outstanding')===(n.read_at===null))&&(ty==='all'||category(n)===ty)&&(!q||[n.title,n.body,n.id,n.appointment_id].some(x=>String(x??'').toLowerCase().includes(q))));
+const filtered=items.filter(n=>(st==='all'||(st==='outstanding')===(n.read_at===null))&&(ty==='all'||(ty==='booking_requests'?isBookingRequest(n):category(n)===ty))&&(!q||[n.title,n.body,n.id,n.appointment_id].some(x=>String(x??'').toLowerCase().includes(q))));
 filtered.sort((a,b)=>(a.read_at===null?0:1)-(b.read_at===null?0:1));
 el('activityOutstanding').textContent='Outstanding: '+unread;
 el('activityLoaded').textContent='Showing: '+filtered.length+' of '+items.length+' loaded';
