@@ -177,10 +177,7 @@ Schedule
 
 <?php if(in_array($tenant['role'],['owner','admin','scheduler','accounting'],true)): ?>
 <div class="brite-nav-group-label">Management</div>
-<a href="<?=htmlspecialchars(app_url('/trends.php'),ENT_QUOTES,'UTF-8')?>">
-<span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19V5M3 19h18M6 15l5-5 4 3 5-8"/></svg></span>
-Trends
-</a>
+
 <a href="<?=htmlspecialchars(app_url('/clients.v2.php'))?>">
 <span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
 Clients
@@ -211,6 +208,13 @@ Availability
 <a href="<?=htmlspecialchars(app_url('/services.v2.php'))?>">
 <span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12a20 20 0 0 0 18 0"/></svg></span>
 Services
+</a>
+<?php endif; ?>
+
+<?php if(in_array($tenant['role'],['owner','admin','scheduler','accounting'],true)): ?>
+<a href="<?=htmlspecialchars(app_url('/trends.php'),ENT_QUOTES,'UTF-8')?>">
+<span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19V5M3 19h18M6 15l5-5 4 3 5-8"/></svg></span>
+Trends
 </a>
 <?php endif; ?>
 
