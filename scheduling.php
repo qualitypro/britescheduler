@@ -1112,6 +1112,7 @@ require __DIR__.'/partials/app_header.php';
             <div id="wizardReviewSummary"
                  aria-live="polite"></div>
             <section id="cycle68PricingPreview" aria-label="Contractor pricing preview" aria-live="polite"></section>
+            <section id="cycle69dDispatchReview" aria-label="Dispatch review" aria-live="polite"></section>
         </section>
 
         <div class="appointment-wizard-footer">
@@ -1467,6 +1468,104 @@ function wizardReviewDate(value) {
     return date;
 }
 
+// Cycle 69D: advisory dispatch review. No assignment is made here.
+function cycle69dSelected(){
+    return Array.from(contractorId.selectedOptions).map(option => ({
+        id: String(option.value),
+        name: option.textContent.trim()
+    }));
+}
+function cycle69dRender(data = null, warning = ''){
+    const panel = document.getElementById('cycle69dDispatchReview');
+    if(!panel)return;
+    panel.replaceChildren();
+    const heading = document.createElement('h3');
+    heading.textContent = 'Dispatch review';
+    panel.appendChild(heading);
+    const selected = cycle69dSelected();
+    const intro = document.createElement('p');
+    intro.textContent = selected.length
+        ? selected.length + ' contractor(s) selected for appointment submission.'
+        : 'No contractor selected. You can save without an assignment and review Marketplace options later.';
+    panel.appendChild(intro);
+    if(warning){
+        const note = document.createElement('p');
+        note.textContent = warning;
+        note.setAttribute('role','status');
+        panel.appendChild(note);
+    }
+    const contractors = Array.isArray(data?.contractors) ? data.contractors : [];
+    const byId = new Map(contractors.map(c => [String(c.contractor_id),c]));
+    const list = document.createElement('ul');
+    for(const item of selected){
+        const match = byId.get(item.id);
+        const li = document.createElement('li');
+        const dispatch = match?.dispatch_explanation;
+        const issues = dispatch?.issues || [];
+        li.textContent = item.name + ' — ' + (
+            !data ? 'Dispatch eligibility not refreshed'
+            : !match ? 'No geographic service-area match; manual review required'
+            : dispatch?.status === 'ready_for_review' ? 'Ready for review'
+            : dispatch?.status === 'restricted' ? 'Restricted'
+            : 'Manual review required'
+        ) + (issues.length ? ': ' + issues.join('; ') : '');
+        list.appendChild(li);
+    }
+    panel.appendChild(list);
+    const note = document.createElement('p');
+    note.textContent = 'Recommendations are advisory. Saving submits selected contractors through the existing appointment workflow.';
+    panel.appendChild(note);
+}
+async function cycle69dFreshReview(){
+    const selected = cycle69dSelected();
+    if(!selected.length){
+        cycle69dRender();
+        return true;
+    }
+    const inputs = recommendationInputs();
+    if(!inputs || !inputs.service_id){
+        cycle69dRender(null,'Saved location, service, and appointment times are needed for a full dispatch eligibility review.');
+        return window.confirm('A full dispatch review is unavailable. Continue using the existing scheduling validation?');
+    }
+    const query = new URLSearchParams({
+        location_id:inputs.location_id,
+        service_id:inputs.service_id,
+        starts_at:inputs.starts_at,
+        ends_at:inputs.ends_at
+    });
+    if(inputs.exclude_appointment_id){
+        query.set('exclude_appointment_id',inputs.exclude_appointment_id);
+    }
+    try{
+        const data = await api('/api/contractor_recommendations.php?' + query.toString());
+        if(!data || data.ok !== true || !Array.isArray(data.contractors)){
+            throw new Error('Invalid dispatch response');
+        }
+        // Do not proceed if selections or appointment parameters changed mid-request.
+        if(recommendationKey(recommendationInputs()) !== recommendationKey(inputs) ||
+           JSON.stringify(cycle69dSelected().map(c=>c.id)) !== JSON.stringify(selected.map(c=>c.id))){
+            cycle69dRender(null,'Appointment details changed during dispatch review. Review again.');
+            return false;
+        }
+        cycle69dRender(data);
+        const byId = new Map(data.contractors.map(c=>[String(c.contractor_id),c]));
+        const warnings = selected.filter(item=>{
+            const match = byId.get(item.id);
+            return !match || match.dispatch_explanation?.status !== 'ready_for_review';
+        });
+        if(warnings.length){
+            return window.confirm(
+                'Dispatch review requires attention for: ' +
+                warnings.map(item=>item.name).join(', ') +
+                '. Continue with existing scheduling validation and submit?'
+            );
+        }
+        return true;
+    }catch(error){
+        cycle69dRender(null,'Dispatch review unavailable: ' + error.message);
+        return window.confirm('Unable to refresh dispatch recommendations. Continue with existing scheduling validation?');
+    }
+}
 function wizardReview() {
     const summary = document.getElementById('wizardReviewSummary');
     if (!summary) return;
@@ -1814,7 +1913,7 @@ function wizardShowStep(number) {
     remove.hidden = !review || !editing;
     invoice.hidden = !review || !editing || !completed;
 
-    if (review) wizardReview();
+    if (review) { wizardReview(); cycle69dRender(); }
 
     if (wizardCurrentStep === 4 &&
         window.briteSyncDateTimePicker) {
@@ -3142,6 +3241,12 @@ async function saveAppointmentFromWizard() {
     }
 
     wizardShowStep(6);
+
+    if (!(await cycle69dFreshReview())) {
+        appointmentError.textContent =
+            'Dispatch review was not confirmed. No appointment was submitted.';
+        return;
+    }
 
     try {
 
