@@ -154,11 +154,38 @@ try {
         $excludeAppointmentId
     );
 
+    // Cycle 69A: tenant-scoped pricing enrichment; advisory only.
+    $offeringsByContractor = [];
+    if ($serviceId !== null) {
+        $offeringQuery = $pdo->prepare(
+            'SELECT contractor_id, offered, pricing_model, rate
+             FROM contractor_service_offerings
+             WHERE tenant_id=? AND service_id=?'
+        );
+        $offeringQuery->execute([$tenantId, $serviceId]);
+        foreach ($offeringQuery->fetchAll(PDO::FETCH_ASSOC) as $offering) {
+            $offeringsByContractor[(int)$offering['contractor_id']] = $offering;
+        }
+    }
+
     $reviewCount = 0;
     $verifiedCount = 0;
 
     foreach ($contractors as &$contractor) {
+        $offering = $offeringsByContractor[(int)$contractor['contractor_id']] ?? null;
+        $contractor['service_offering'] = [
+            'status' => $serviceId === null ? 'not_evaluated'
+                : ($offering === null ? 'not_configured'
+                : ((int)$offering['offered'] === 1 ? 'offered' : 'not_offered')),
+            'pricing_model' => $offering !== null && (int)$offering['offered'] === 1
+                ? $offering['pricing_model'] : null,
+            'rate' => $offering !== null && (int)$offering['offered'] === 1
+                && $offering['rate'] !== null ? (string)$offering['rate'] : null,
+        ];
         $reasons = [];
+        if ($serviceId !== null) {
+            $reasons[] = 'Service offering: ' . str_replace('_', ' ', $contractor['service_offering']['status']);
+        }
 
         if ($contractor['geographic_match']) {
             $reasons[] = 'Service location is covered';
