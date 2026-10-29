@@ -130,7 +130,29 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
 if ($_SERVER['REQUEST_METHOD']==='PUT') {
 
-    $id=(int)($d['id'] ?? 0);
+    $rawId=$d['id'] ?? null;
+    if (!is_scalar($rawId) || !ctype_digit((string)$rawId) || (int)$rawId<1) {
+        json_response(['error'=>'Invalid record ID'],422);
+    }
+    $id=(int)$rawId;
+    foreach (['first_name','last_name'] as $field) {
+        if (!isset($d[$field]) || !is_string($d[$field]) ||
+            trim($d[$field])==='' || strlen($d[$field])>255) {
+            json_response(['error'=>'Invalid '.$field],422);
+        }
+    }
+    if (!in_array($d['status'] ?? null,['active','inactive'],true)) {
+        json_response(['error'=>'Invalid status'],422);
+    }
+    if (isset($d['email']) && $d['email']!=='' &&
+        (!is_string($d['email']) || !filter_var($d['email'],FILTER_VALIDATE_EMAIL))) {
+        json_response(['error'=>'Invalid email'],422);
+    }
+    $exists=$pdo->prepare('SELECT id FROM contractors WHERE id=? AND tenant_id=?');
+    $exists->execute([$id,$tid]);
+    if (!$exists->fetchColumn()) {
+        json_response(['error'=>'Record not found'],404);
+    }
 
     $q=$pdo->prepare("
         UPDATE contractors
