@@ -86,10 +86,41 @@ try {
 
     $query->execute([$tenantId, $userId]);
 
+    /*
+     * Normalize presentation for both historical and new assignment decisions.
+     * Stored notification titles/bodies remain untouched for audit/history.
+     */
+    $notifications = $query->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($notifications as &$notification) {
+        $type = (string)$notification['type'];
+        if (!in_array($type, [
+            'contractor_assignment_accepted',
+            'contractor_assignment_declined'
+        ], true)) {
+            continue;
+        }
+
+        $appointmentId = (int)($notification['appointment_id'] ?? 0);
+        if ($appointmentId < 1) {
+            continue;
+        }
+
+        $accepted = $type === 'contractor_assignment_accepted';
+        $notification['title'] = sprintf(
+            'Contractor %s assignment Appointment #%d',
+            $accepted ? 'accepted' : 'declined',
+            $appointmentId
+        );
+        $notification['body'] = $accepted
+            ? 'The contractor accepted this appointment assignment.'
+            : 'The contractor declined this appointment assignment.';
+    }
+    unset($notification);
+
     json_response([
         'ok' => true,
         'unread_count' => (int)$count->fetchColumn(),
-        'notifications' => $query->fetchAll(PDO::FETCH_ASSOC),
+        'notifications' => $notifications,
         'limit' => $limit,
         'offset' => $offset
     ]);
