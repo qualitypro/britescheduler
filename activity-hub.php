@@ -46,6 +46,8 @@ const unreadItem=n.read_at===null,cat=category(n),article=node('article',undefin
 const header=node('header'),title=node('strong',n.title||'Notification'),meta=node('small',cat[0].toUpperCase()+cat.slice(1)+' · '+(unreadItem?'Outstanding':'Dismissed'));
 header.append(title,meta);
 const body=node('p',n.body||''),date=node('small',n.created_at?'Created: '+n.created_at+' UTC':'');
+const people=[n.client_name?'Client: '+n.client_name:null,n.contractor_name?'Contractor: '+n.contractor_name:null].filter(Boolean);
+const peopleLine=people.length?node('p',people.join(' · ')):null;
 const actions=node('div',undefined,'actions');
 const appointmentId=Number(n.appointment_id);
 if(Number.isSafeInteger(appointmentId)&&appointmentId>0){
@@ -63,7 +65,9 @@ n.read_at=new Date().toISOString();unread=Math.max(0,unread-1);render();
 }catch(err){dismiss.disabled=false;message.textContent=err.message;}
 });actions.append(dismiss);
 }
-article.append(header,body,date,actions);records.append(article);
+article.append(header,body);
+if(peopleLine)article.append(peopleLine);
+article.append(date,actions);records.append(article);
 }
 }
 async function load(){
