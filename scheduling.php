@@ -3070,7 +3070,6 @@ function calendarEventContent(info) {
         const contractorLine = document.createElement('div');
         contractorLine.className = 'brite-event-contractors';
         contractorLine.textContent = contractors.join(', ');
-        contractorLine.title = contractors.join(', ');
         root.appendChild(contractorLine);
     }
 
