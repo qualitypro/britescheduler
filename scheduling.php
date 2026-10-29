@@ -816,6 +816,7 @@ require __DIR__.'/partials/app_header.php';
         </button>
     </div>
 
+<div id="cycle68bConfirmation" class="card" role="status" tabindex="-1" hidden style="margin-bottom:12px"></div>
 <!-- Modal foundation; existing appointment form remains unchanged. -->
 <dialog id="appointmentDialog"
         class="appointment-dialog"
@@ -3046,6 +3047,21 @@ async function saveAppointmentFromWizard() {
         resetForm();
         closeAppointmentWizard();
         calendar.refetchEvents();
+        const savedId = Number(savedAppointment?.id || (editing ? d.id : 0));
+        const confirmation = document.getElementById('cycle68bConfirmation');
+        if (confirmation) {
+            confirmation.replaceChildren();
+            const message = document.createElement('strong');
+            message.textContent = editing ? 'Appointment updated successfully.' : 'Appointment created successfully.';
+            confirmation.append(message);
+            if (savedId > 0) {
+                const detail = document.createElement('span');
+                detail.textContent = ' Appointment #' + savedId + '.';
+                confirmation.append(detail);
+            }
+            confirmation.hidden = false;
+            confirmation.focus();
+        }
 
     } catch(e){
         appointmentError.textContent=e.message;
