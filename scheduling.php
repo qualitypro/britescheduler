@@ -3038,7 +3038,7 @@ async function saveAppointmentFromWizard() {
             delete d.id;
         }
 
-        await api('/api/appointments.php',{
+        const savedAppointment = await api('/api/appointments.php',{
             method:editing ? 'PUT' : 'POST',
             headers:{'Content-Type':'application/json'},
             body:JSON.stringify(d)
