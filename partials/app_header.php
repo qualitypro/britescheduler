@@ -146,6 +146,20 @@ document.addEventListener('DOMContentLoaded', function () {
 <?php endif; ?>
 
 
+
+<?php if(in_array($tenant['role'],['owner','admin','scheduler','accounting','contractor','client'],true)): ?>
+<a href="<?=htmlspecialchars(app_url('/activity-hub.php'),ENT_QUOTES,'UTF-8')?>"
+   <?=basename((string)($_SERVER['SCRIPT_NAME'] ?? '')) === 'activity-hub.php' ? 'aria-current="page"' : ''?>>
+<span class="brite-nav-icon" aria-hidden="true">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
+<path d="M10 21h4"/>
+</svg>
+</span>
+Activity Hub
+</a>
+<?php endif; ?>
+
 <?php if(in_array($tenant['role'],['owner','admin','scheduler','accounting'],true)): ?>
 <div class="brite-nav-group-label">Workspace</div>
 <a href="<?=htmlspecialchars(app_url('/dashboard.v2.php'))?>">
