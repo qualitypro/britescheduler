@@ -1086,6 +1086,7 @@ require __DIR__.'/partials/app_header.php';
                  aria-label="Review">
             <div id="wizardReviewSummary"
                  aria-live="polite"></div>
+            <section id="cycle68PricingPreview" aria-label="Contractor pricing preview" aria-live="polite"></section>
         </section>
 
         <div class="appointment-wizard-footer">
@@ -3454,4 +3455,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
 
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-datetime-picker.js'))?>"></script>
 
+<?php if ($canManageAppointments): ?>
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-wizard-pricing-preview.js'),ENT_QUOTES,'UTF-8')?>" defer></script>
+<?php endif; ?>
 <?php require __DIR__.'/partials/app_footer.php'; ?>
