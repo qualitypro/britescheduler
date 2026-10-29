@@ -166,6 +166,11 @@
             (category === 'marketplace' ? 'Marketplace' : category === 'schedule' ? 'Scheduling' : category === 'warning' ? 'Attention' : 'General') + ' · ' + (unread ? 'Outstanding' : 'Dismissed')
         );
 
+        const people = [notification.client_name ? 'Client: ' + notification.client_name : null,
+            notification.contractor_name ? 'Contractor: ' + notification.contractor_name : null]
+            .filter(Boolean).join(' · ');
+        const peopleLabel = people ? makeElement('p', 'brite-activity-hub-item-meta', people) : null;
+
         const actions = makeElement(
             'div',
             'brite-activity-hub-item-actions'
@@ -214,7 +219,9 @@
             actions.appendChild(button);
         }
 
-        item.append(title, body, meta);
+        item.append(title, body);
+        if (peopleLabel) item.appendChild(peopleLabel);
+        item.appendChild(meta);
 
         if (actions.childElementCount > 0) {
             item.appendChild(actions);
