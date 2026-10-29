@@ -51,8 +51,9 @@ function renderRecord(record,schema,type) {
   const form=document.createElement('form');
   form.className='brite-directory-form';
   form.innerHTML=`<div class="brite-directory-fields">${schema.fields.map(f=>fieldMarkup(f,record)).join('')}</div>
-  <div class="brite-directory-actions"><button type="submit">Save changes</button><button type="reset">Reset</button><span class="brite-directory-feedback" role="status" aria-live="polite"></span></div>`;
+  <div class="brite-directory-actions"><button type="submit">Save changes</button><button type="button" data-cancel-edit>Cancel</button><span class="brite-directory-feedback" role="status" aria-live="polite"></span></div>`;
   const feedback=form.querySelector('.brite-directory-feedback');
+  form.querySelector('[data-cancel-edit]').addEventListener('click',()=>{form.reset();feedback.textContent='';details.open=false;});
   form.addEventListener('submit',async event=>{
     event.preventDefault();
     const button=form.querySelector('[type="submit"]');
