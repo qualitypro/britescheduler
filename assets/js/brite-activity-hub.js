@@ -25,6 +25,18 @@
     let open = false;
     let loading = false;
     let initialized = false;
+    let notifications = [];
+    let view = 'outstanding';
+    const controls = document.createElement('div');
+    controls.className = 'brite-activity-hub-controls';
+    const outstandingButton = document.createElement('button');
+    outstandingButton.type = 'button';
+    outstandingButton.textContent = 'Outstanding';
+    const allButton = document.createElement('button');
+    allButton.type = 'button';
+    allButton.textContent = 'All';
+    controls.append(outstandingButton, allButton);
+    list.insertAdjacentElement('beforebegin', controls);
 
     const backdrop = document.createElement('button');
     backdrop.type = 'button';
@@ -116,19 +128,24 @@
 
         } catch (error) {
             button.disabled = false;
-            button.textContent = 'Mark as Read';
+            button.textContent = 'Dismiss';
 
-            showStatus('Unable to mark notification as read.');
+            showStatus('Unable to dismiss notification.');
             console.error('Activity Hub mark read:', error);
         }
     }
 
     function renderNotification(notification) {
         const unread = notification.read_at === null;
+        const type = String(notification.type || '').toLowerCase();
+        const category = /marketplace|bid|award/.test(type) ? 'marketplace'
+            : /cancel|fail|declin|reject|overdue|urgent/.test(type) ? 'warning'
+            : /appointment|booking|assign|schedul/.test(type) ? 'schedule'
+            : 'general';
 
         const item = makeElement(
             'article',
-            'brite-activity-hub-item' + (unread ? ' is-unread' : '')
+            'brite-activity-hub-item type-' + category + (unread ? ' is-unread' : '')
         );
 
         const title = makeElement(
@@ -146,7 +163,7 @@
         const meta = makeElement(
             'small',
             'brite-activity-hub-item-meta',
-            unread ? 'Unread' : 'Read'
+            (category === 'marketplace' ? 'Marketplace' : category === 'schedule' ? 'Scheduling' : category === 'warning' ? 'Attention' : 'General') + ' · ' + (unread ? 'Outstanding' : 'Dismissed')
         );
 
         const actions = makeElement(
@@ -185,7 +202,7 @@
             const button = makeElement(
                 'button',
                 '',
-                'Mark as Read'
+                'Dismiss'
             );
 
             button.type = 'button';
@@ -204,6 +221,29 @@
         }
 
         return item;
+    }
+
+    function renderList() {
+        outstandingButton.setAttribute('aria-pressed', String(view === 'outstanding'));
+        allButton.setAttribute('aria-pressed', String(view === 'all'));
+        const outstanding = notifications.filter(n => n.read_at === null);
+        const visible = (view === 'outstanding' ? outstanding : [...notifications].sort(
+            (a,b) => (a.read_at === null ? 0 : 1) - (b.read_at === null ? 0 : 1)
+        ));
+        outstandingButton.textContent = 'Outstanding (' + outstanding.length + ')';
+        allButton.textContent = 'All (' + notifications.length + ')';
+        const fragment = document.createDocumentFragment();
+        for (const notification of visible) {
+            fragment.appendChild(renderNotification(notification));
+        }
+        list.replaceChildren(fragment);
+        if (!visible.length) {
+            showStatus(view === 'outstanding'
+                ? 'All caught up. No outstanding notifications.'
+                : 'No notifications yet.');
+        } else {
+            status.hidden = true;
+        }
     }
 
     async function loadNotifications() {
@@ -232,19 +272,9 @@
 
             updateCount(data.unread_count);
 
-            const fragment = document.createDocumentFragment();
+            notifications = data.notifications;
+            renderList();
 
-            for (const notification of data.notifications) {
-                fragment.appendChild(renderNotification(notification));
-            }
-
-            list.replaceChildren(fragment);
-
-            if (data.notifications.length === 0) {
-                showStatus('No notifications yet.');
-            } else {
-                status.hidden = true;
-            }
 
         } catch (error) {
             showStatus('Unable to load notifications.');
@@ -265,6 +295,8 @@
         setOpen(false);
 
         toggle.addEventListener('click', () => setOpen(true));
+        outstandingButton.addEventListener('click', () => { view = 'outstanding'; renderList(); });
+        allButton.addEventListener('click', () => { view = 'all'; renderList(); });
 
         close.addEventListener('click', () => setOpen(false, true));
         backdrop.addEventListener('click', () => setOpen(false, true));
