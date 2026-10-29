@@ -52,17 +52,35 @@ try {
 
     $query = $pdo->prepare("
         SELECT
-            id,
-            appointment_id,
-            type,
-            title,
-            body,
-            read_at,
-            created_at
-        FROM notifications
-        WHERE tenant_id = ?
-          AND user_id = ?
-        ORDER BY created_at DESC, id DESC
+            n.id,
+            n.appointment_id,
+            n.type,
+            n.title,
+            n.body,
+            n.read_at,
+            n.created_at,
+            NULLIF(TRIM(CONCAT_WS(' ', cl.first_name, cl.last_name)), '') AS client_name,
+            (
+                SELECT GROUP_CONCAT(
+                    DISTINCT NULLIF(TRIM(CONCAT_WS(' ', co.first_name, co.last_name)), '')
+                    ORDER BY co.last_name, co.first_name SEPARATOR ', '
+                )
+                FROM appointment_contractors ac
+                JOIN contractors co
+                  ON co.id = ac.contractor_id
+                 AND co.tenant_id = n.tenant_id
+                WHERE ac.appointment_id = n.appointment_id
+            ) AS contractor_name
+        FROM notifications n
+        LEFT JOIN appointments a
+          ON a.id = n.appointment_id
+         AND a.tenant_id = n.tenant_id
+        LEFT JOIN clients cl
+          ON cl.id = a.client_id
+         AND cl.tenant_id = n.tenant_id
+        WHERE n.tenant_id = ?
+          AND n.user_id = ?
+        ORDER BY n.created_at DESC, n.id DESC
         LIMIT {$limit} OFFSET {$offset}
     ");
 
