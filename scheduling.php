@@ -1516,16 +1516,34 @@ function cycle69dRender(data = null, warning = ''){
     note.textContent = 'Recommendations are advisory. Saving submits selected contractors through the existing appointment workflow.';
     panel.appendChild(note);
 }
+// Cycle 70: guard asynchronous reviews and user confirmations against changed inputs.
+function cycle70DispatchSnapshot(){
+    return JSON.stringify({
+        inputs: recommendationInputs(),
+        selected: cycle69dSelected().map(item => item.id),
+        client: clientId.value,
+        appointment: appointmentId.value
+    });
+}
+function cycle70DispatchUnchanged(snapshot){
+    const unchanged = cycle70DispatchSnapshot() === snapshot;
+    if(!unchanged){
+        cycle69dRender(null,'Appointment or contractor selection changed during dispatch review. Review again.');
+    }
+    return unchanged;
+}
 async function cycle69dFreshReview(){
+    const snapshot = cycle70DispatchSnapshot();
     const selected = cycle69dSelected();
     if(!selected.length){
         cycle69dRender();
-        return true;
+        return cycle70DispatchUnchanged(snapshot);
     }
     const inputs = recommendationInputs();
     if(!inputs || !inputs.service_id){
         cycle69dRender(null,'Saved location, service, and appointment times are needed for a full dispatch eligibility review.');
-        return window.confirm('A full dispatch review is unavailable. Continue using the existing scheduling validation?');
+        const confirmed = window.confirm('A full dispatch review is unavailable. Continue using the existing scheduling validation?');
+        return confirmed && cycle70DispatchUnchanged(snapshot);
     }
     const query = new URLSearchParams({
         location_id:inputs.location_id,
@@ -1542,8 +1560,7 @@ async function cycle69dFreshReview(){
             throw new Error('Invalid dispatch response');
         }
         // Do not proceed if selections or appointment parameters changed mid-request.
-        if(recommendationKey(recommendationInputs()) !== recommendationKey(inputs) ||
-           JSON.stringify(cycle69dSelected().map(c=>c.id)) !== JSON.stringify(selected.map(c=>c.id))){
+        if(!cycle70DispatchUnchanged(snapshot)){
             cycle69dRender(null,'Appointment details changed during dispatch review. Review again.');
             return false;
         }
@@ -1554,16 +1571,18 @@ async function cycle69dFreshReview(){
             return !match || match.dispatch_explanation?.status !== 'ready_for_review';
         });
         if(warnings.length){
-            return window.confirm(
+            const confirmed = window.confirm(
                 'Dispatch review requires attention for: ' +
                 warnings.map(item=>item.name).join(', ') +
                 '. Continue with existing scheduling validation and submit?'
             );
+            return confirmed && cycle70DispatchUnchanged(snapshot);
         }
-        return true;
+        return cycle70DispatchUnchanged(snapshot);
     }catch(error){
         cycle69dRender(null,'Dispatch review unavailable: ' + error.message);
-        return window.confirm('Unable to refresh dispatch recommendations. Continue with existing scheduling validation?');
+        const confirmed = window.confirm('Unable to refresh dispatch recommendations. Continue with existing scheduling validation?');
+        return confirmed && cycle70DispatchUnchanged(snapshot);
     }
 }
 function wizardReview() {
@@ -3242,7 +3261,8 @@ async function saveAppointmentFromWizard() {
 
     wizardShowStep(6);
 
-    if (!(await cycle69dFreshReview())) {
+    const cycle70PreReview = cycle70DispatchSnapshot();
+    if (!(await cycle69dFreshReview()) || !cycle70DispatchUnchanged(cycle70PreReview)) {
         appointmentError.textContent =
             'Dispatch review was not confirmed. No appointment was submitted.';
         return;
