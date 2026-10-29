@@ -1496,6 +1496,15 @@ function cycle69dRender(data = null, warning = ''){
         ? selected.length + ' contractor(s) selected for appointment submission.'
         : 'No contractor selected. You can save without an assignment and review Marketplace options later.';
     panel.appendChild(intro);
+    if(!selected.length && Number(appointmentId.value) > 0){
+        const link = document.createElement('a');
+        link.href = (window.BRITE_BASE || '/dashboard') +
+            '/bidding.php?appointment_id=' +
+            encodeURIComponent(appointmentId.value);
+        link.textContent = 'View this appointment in Marketplace';
+        link.className = 'brite-dispatch-marketplace-link';
+        panel.appendChild(link);
+    }
     if(warning){
         const note = document.createElement('p');
         note.textContent = warning;
