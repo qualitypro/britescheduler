@@ -3567,7 +3567,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                         const names = appointmentContractorNames(a);
                         if (names.length) lines.push('Contractors: ' + names.join(', '));
                     }
-                    info.el.title = lines.join('\\n');
+                    info.el.title = lines.join('\n');
                     info.el.setAttribute('aria-label', lines.join('. '));
                 },
 
