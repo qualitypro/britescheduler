@@ -21,6 +21,14 @@ document.addEventListener('DOMContentLoaded', () => {
   preview.replaceChildren();
   const heading=document.createElement('h4');heading.textContent='Contractor pricing preview (advisory)';
   preview.append(heading);
+  if(serviceId){
+   try {
+    const catalog=await api('/api/services.php');
+    if(token!==generation)return;
+    const item=(catalog.services||[]).find(x=>Number(x.id)===serviceId);
+    if(item){const p=document.createElement('p');p.textContent='Tenant base service price: '+money(item.price);preview.append(p);}
+   }catch(error){const p=document.createElement('p');p.textContent='Base service price unavailable';preview.append(p);}
+  }
   if(!serviceId||!selectedContractors.length){
    const p=document.createElement('p');p.textContent='Select a service and contractor to compare configured rates.';preview.append(p);return;
   }
