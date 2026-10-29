@@ -8,7 +8,7 @@
 
 `PHP` · `MariaDB` · `JavaScript` · `HTML/CSS` · `Multi-Tenant Architecture`
 
-**Documentation version:** v1.0 · **Repository:** [qualitypro/britescheduler](https://github.com/qualitypro/britescheduler)
+**Documentation version:** v1.1 · **Repository:** [qualitypro/britescheduler](https://github.com/qualitypro/britescheduler)
 
 </div>
 
@@ -36,7 +36,7 @@
 
 A **tenant** represents a business or organization. Tenant-scoped data and role-based access help separate each organization's operational records. The server resolves tenant membership from the authenticated session rather than trusting a tenant identifier supplied by the browser.
 
-> **Project scope:** This README describes functionality evidenced by the repository inventory and development work through commit `82085d7` (October 2026). Some features are still evolving; consult the implementation and test environment before relying on them in production.
+> **Project scope:** This README describes functionality evidenced by the repository inventory and development work through commit `7d0399b` (October 2026). Some features are still evolving; consult the implementation and test environment before relying on them in production.
 
 ## ✨ Features
 
@@ -58,6 +58,19 @@ A **tenant** represents a business or organization. Tenant-scoped data and role-
 - Eligibility, matching, and ranking components supporting contractor selection.
 
 > **Qualification terminology:** A platform-verified service qualification records a tenant-authorized review. It does **not** independently certify a professional license or regulatory compliance.
+
+### 🧭 Smart Dispatch (Cycles 69A–69D)
+
+The scheduling wizard includes **read-only, advisory contractor recommendations** for owner, admin, and scheduler roles. The recommendation API (`api/contractor_recommendations.php`) requires a tenant-owned saved client location and valid appointment interval; an active service can be supplied to evaluate qualifications and offerings.
+
+- **69A — Service offering and pricing:** show whether a contractor offers the selected service and their configured hourly or flat rate. A missing offering is advisory and is not itself a new assignment prohibition.
+- **69B — Explainable eligibility and geography:** display ZIP/radius matches, straight-line distance from a configured radius center, availability/conflict information, and qualification/service-offering review issues.
+- **69C — Interactive filters:** filter recommendations by dispatch status, verified qualification, confirmed service offering, availability, and a maximum numeric rate. Filtering runs in the browser against the returned recommendation set and does **not** modify ranking or assignment eligibility. Hourly and flat-rate amounts are not directly comparable appointment estimates.
+- **69D — Appointment review integration:** show selected contractors in the final wizard step and request fresh advisory recommendations before save. Review warnings and failed refreshes require explicit user confirmation to continue; the existing scheduling conflict check and appointment API validation still apply. Saving an appointment with no contractor selected remains supported.
+
+**Important distinctions:** The eligibility engine only recommends active contractors with a matching configured service area; Marketplace bidding has separate rules and can include contractors outside normal coverage/availability. A recommendation score is **not** authorization to assign. The ranking uses qualification (up to 35 points), availability/conflicts (30), geographic match (20), and workload (up to 15). Geographic distance is straight-line, not travel distance. The recommendation endpoint never auto-assigns contractors.
+
+**Validation status:** Cycles 69A–69D have passed local source checks (PHP lint and source presence/merge verification). These checks do not establish authenticated browser, end-to-end, or security regression coverage; those are planned for Cycle 70.
 
 ### 🤝 Marketplace and bidding
 
@@ -180,6 +193,8 @@ The schema uses a `tenants` table, user records, tenant memberships, clients, co
 | `014`–`015` | User preferences and high-contrast defaults |
 | `016` | Contractor service pricing |
 | `017` | Appointment bidding marketplace |
+| `018` | Additional schema changes; inspect the actual migration before applying |
+| `019_contractor_service_offerings.sql` | Tenant-scoped contractor service offerings and hourly/flat-rate pricing |
 
 **Apply migrations in numeric order** using the project's supported migration workflow. Do not assume all migrations are safe to re-run on an existing database; back up the database first and check the migration history.
 
@@ -195,7 +210,8 @@ The `api/` directory groups HTTP endpoints by capability:
 | Appointments | `api/appointments.php`, `client_bookings.php`, `client_available_slots.php` |
 | Marketplace | `appointment_bid_listings.php`, `contractor_bids.php`, `appointment_bid_award.php`, `appointment_bid_activity.php` |
 | Client Marketplace | `marketplace_client_listings.php`, `marketplace_contractor_profile.php` |
-| Contractors | `contractors.php`, `contractor_availability.php`, `contractor_service_pricing.php`, `contractor_service_qualifications.php` |
+| Contractors | `contractors.php`, `contractor_availability.php`, `contractor_service_pricing.php`, `contractor_service_qualifications.php`, `contractor_service_offerings.php` |
+| Smart Dispatch | `contractor_recommendations.php`, `contractor_conflict_check.php` |
 | Geographic services | `client_locations.php`, `contractor_service_areas.php`, `service_locations_map.php` |
 | Finance | `invoices.php`, `payments.php` |
 | Notifications | `user_notifications.php`, `user_notification_read.php`, `owner_notifications.php` |
@@ -266,12 +282,15 @@ Development verification has included PHP syntax checks, Git diff/merge checks, 
 
 **Known testing gap:** Dedicated negative fixture tests for a *rejected-bid-only* relationship and a *declined-assignment-only* relationship remain outstanding. These authorization conditions are restricted in the implementation, but should be explicitly tested before treating the coverage as complete.
 
+Cycles 69A–69D were verified through Git fast-forward, PHP syntax checks, and source inspection in the local Fedora environment. **This is not equivalent to functional or security testing.** In particular, verify filtered cards, selected-contractor review, cancellation of warning confirmations, stale request handling, and the API's server-side assignment policy using authenticated tenant fixtures.
+
 A formal automated test runner, CI configuration, and reproducible full-suite command have not been established by the available documentation.
 
 ## 🗺️ Roadmap
 
 The following are **planned or potential improvements**, not claims of completed functionality:
 
+- **Cycle 70:** authenticated Smart Dispatch end-to-end tests, stale-data and confirmation-flow checks, cross-tenant regression tests, and verification that server-side assignment restrictions cannot be bypassed.
 - Broader end-to-end tests and reproducible CI checks.
 - Additional negative authorization fixtures for Marketplace access.
 - Further contractor discovery and geographic matching improvements.
@@ -292,6 +311,6 @@ This project is under active development. Before contributing, review existing c
 
 **Brite Scheduler** · Scheduling, service operations, and contractor marketplace
 
-*README v1.0 — approved October 2026*
+*README v1.1 — updated October 2026; source-audited through Cycle 69D*
 
 </div>
