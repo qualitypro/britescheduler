@@ -209,7 +209,41 @@ try {
             $reasons[] = 'Service qualification unverified or missing';
         }
 
-        $contractor['reasons'] = $reasons;
+        // Explain the matched ZIP/radius areas without exposing coordinates.
+        $areaDescriptions = [];
+        $nearestMiles = null;
+        foreach ($contractor['matching_areas'] ?? [] as $area) {
+            $label = trim((string)($area['label'] ?? ''));
+            $type = (string)($area['area_type'] ?? '');
+            $distance = $area['distance_miles'] ?? null;
+            if ($type === 'radius' && is_numeric($distance)) {
+                $miles = round((float)$distance, 1);
+                $nearestMiles = $nearestMiles === null ? $miles : min($nearestMiles, $miles);
+                $areaDescriptions[] = ($label !== '' ? $label . ': ' : '') . $miles . ' miles from service-area center';
+            } elseif ($type === 'zip') {
+                $areaDescriptions[] = ($label !== '' ? $label : 'ZIP service area') . ' (ZIP match)';
+            }
+        }
+        $contractor['service_area_explanations'] = array_slice($areaDescriptions, 0, 5);
+        $contractor['ranking']['distance_miles'] = $nearestMiles;
+
+        $reviewIssues = [];
+        if (!$contractor['availability_ok']) $reviewIssues[] = 'Outside configured availability';
+        if (!$contractor['conflict_free']) $reviewIssues[] = 'Overlapping appointment';
+        if ($contractor['qualification_status'] === 'rejected') $reviewIssues[] = 'Qualification rejected';
+        if ($serviceId !== null && $contractor['qualification_status'] === 'unverified') {
+            $reviewIssues[] = 'Qualification not verified';
+        }
+        if ($serviceId !== null && $contractor['service_offering']['status'] !== 'offered') {
+            $reviewIssues[] = 'Contractor has not confirmed this service offering';
+        }
+        $contractor['dispatch_explanation'] = [
+            'status' => !$contractor['eligible_for_review'] ? 'restricted'
+                : ($reviewIssues ? 'manual_review' : 'ready_for_review'),
+            'issues' => $reviewIssues,
+            'note' => 'Advisory only; assignment requires manual confirmation.'
+        ];
+        $contractor['reasons'] = array_merge($reasons, $areaDescriptions);
 
         if ($contractor['eligible_for_review']) {
             ++$reviewCount;
