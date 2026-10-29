@@ -38,6 +38,25 @@
             this.info.className = 'brite-pagination-info';
             this.info.setAttribute('aria-live', 'polite');
 
+            this.pageSizeLabel = document.createElement('label');
+            this.pageSizeLabel.className = 'brite-pagination-page-size';
+            this.pageSizeLabel.textContent = 'Rows per page ';
+            this.pageSizeSelect = document.createElement('select');
+            this.pageSizeSelect.setAttribute('aria-label', 'Rows per page');
+            [15, 30, 50].forEach(size => {
+                const option = document.createElement('option');
+                option.value = String(size);
+                option.textContent = String(size);
+                this.pageSizeSelect.appendChild(option);
+            });
+            this.pageSizeSelect.value = String(this.pageSize);
+            this.pageSizeSelect.addEventListener('change', () => {
+                this.pageSize = Number(this.pageSizeSelect.value);
+                this.page = 1;
+                this.update();
+            });
+            this.pageSizeLabel.appendChild(this.pageSizeSelect);
+
             this.buttons = document.createElement('div');
             this.buttons.style.cssText =
                 'display:flex;align-items:center;gap:6px';
@@ -78,7 +97,7 @@
                 this.last
             );
 
-            this.controls.append(this.info, this.buttons);
+            this.controls.append(this.info, this.pageSizeLabel, this.buttons);
             this.container.appendChild(this.controls);
 
             this.update();
@@ -149,6 +168,7 @@
 
             this.pageLabel.textContent =
                 `Page ${this.page} of ${this.totalPages()}`;
+            this.controls.setAttribute('aria-label', `Table pagination, ${total} records`);
 
             this.first.disabled = this.page === 1;
             this.previous.disabled = this.page === 1;
