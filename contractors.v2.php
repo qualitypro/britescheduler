@@ -63,7 +63,7 @@ const contractorPager = new BritePagination({
                 ['first_name','First name','text',true],['last_name','Last name','text',true],
                 ['business_name','Business','text'],['email','Email','email'],
                 ['phone','Phone','tel'],['hourly_rate','Hourly rate','number'],
-                ['skills','Skills','textarea'],['color','Color','text'],
+                ['skills','Skills','textarea'],['color','Team color','color'],
                 ['status','Status','status']
             ];
             const grid=document.createElement('div');
@@ -87,8 +87,19 @@ const contractorPager = new BritePagination({
                     if(type==='number'){input.min='0';input.step='0.01';}
                 }
                 input.name=name;input.id=id;input.required=!!required;
-                input.value=c[name]??'';
-                wrap.append(labelNode,input);grid.append(wrap);
+                if(type==='color'){
+                    const savedColor=String(c[name]??'').trim();
+                    input.value=/^#[0-9a-fA-F]{6}$/.test(savedColor)
+                        ? savedColor : '#2563eb';
+                    input.title='Color used to identify this contractor on the team schedule';
+                    const hint=document.createElement('small');
+                    hint.textContent='Choose a team identification color.';
+                    wrap.append(labelNode,input,hint);
+                }else{
+                    input.value=c[name]??'';
+                    wrap.append(labelNode,input);
+                }
+                grid.append(wrap);
             });
             const actions=document.createElement('div');
             actions.className='brite-directory-actions';
