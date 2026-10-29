@@ -32,11 +32,11 @@ require __DIR__.'/partials/app_header.php';
  <p id="trendStatusText" role="status" aria-live="polite">Loading trends…</p>
  <div class="trends-stats" id="trendStats"></div>
  <div class="trends-plot"><svg class="trends-chart" id="trendChart" viewBox="0 0 980 360" role="img" aria-label="Booking and scheduling trends chart"></svg></div>
- <p class="muted">X: service date · Y: number of records · Series: appointments, booking requests, assigned and unassigned appointments. Booking requests are a subset of appointments and should not be added to the appointment total.</p>
+ <p class="muted">X: service date · Y: number of records · Series: appointments, booking requests, assigned/unassigned appointments, and accepted/declined contractor assignments. Accepted and declined are current contractor assignment states, counted by appointment service date (not response date). A single appointment may have multiple contractor decisions; series should not be added together.</p>
 </section>
 <script>
 (()=>{
-const keys={appointments:['Appointments','#2563eb'],requests:['Booking requests','#d97706'],assigned:['Assigned','#059669'],unassigned:['Unassigned','#9333ea']};
+const keys={appointments:['Appointments','#2563eb'],requests:['Booking requests','#d97706'],assigned:['Assigned','#059669'],unassigned:['Unassigned','#9333ea'],accepted:['Accepted assignments','#0d9488'],declined:['Declined assignments','#dc2626']};
 const visible=new Set(Object.keys(keys));
 const $=id=>document.getElementById(id);
 const month=$('trendMonth'), status=$('trendStatus'), group=$('trendGroup'), style=$('trendStyle');
