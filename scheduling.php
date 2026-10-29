@@ -2343,6 +2343,29 @@ function renderRecommendations(contractors){
             Number(workload.jobs || 0) + ' jobs'
         );
 
+        const offering = contractor.service_offering || {};
+        const offeringLabel = {
+            offered: 'Offered',
+            not_offered: 'Not offered',
+            not_configured: 'Not configured',
+            not_evaluated: 'Select a service'
+        }[offering.status] || 'Unknown';
+        addDetail(
+            details,
+            'Service offering',
+            offeringLabel,
+            offering.status === 'offered' ? 'positive' : 'neutral'
+        );
+        const rate = Number(offering.rate);
+        const rateLabel = offering.status === 'offered' &&
+            offering.rate !== null && offering.rate !== undefined &&
+            Number.isFinite(rate)
+            ? new Intl.NumberFormat('en-US', {
+                style: 'currency', currency: 'USD'
+            }).format(rate) + (offering.pricing_model === 'hourly' ? ' / hour' : ' flat')
+            : 'Not configured';
+        addDetail(details, 'Contractor rate', rateLabel);
+
         card.appendChild(details);
 
         for(const explanation of ranking.explanations || []){
