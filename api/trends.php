@@ -16,7 +16,7 @@ $center = DateTimeImmutable::createFromFormat('!Y-m-d',$month.'-01',$tz);
 $begin = $center->modify('-1 month');
 $end = $center->modify('+2 months');
 $days = [];
-for($d=$begin;$d<$end;$d=$d->modify('+1 day')) $days[$d->format('Y-m-d')] = ['appointments'=>0,'requests'=>0,'assigned'=>0,'unassigned'=>0,'accepted'=>0,'declined'=>0];
+for($d=$begin;$d<$end;$d=$d->modify('+1 day')) $days[$d->format('Y-m-d')] = ['appointments'=>0,'requests'=>0,'assigned'=>0,'unassigned'=>0,'accepted'=>0,'declined'=>0,'gross_revenue'=>0];
 $pdo = Database::connection();
 try {
     $q=$pdo->prepare("SELECT DATE(a.starts_at) day, COUNT(*) total,
@@ -47,6 +47,25 @@ try {
       GROUP BY DATE(a.starts_at), ac.status");
     $q->execute([$tid,$begin->format('Y-m-d H:i:s'),$end->format('Y-m-d H:i:s'),$status,$status]);
     foreach($q as $r) if(isset($days[$r['day']])) $days[$r['day']][$r['decision']]=(int)$r['total'];
+    // Gross booked value: linked non-void invoice totals where present;
+    // otherwise the service's catalog price as an estimate. Each appointment
+    // contributes once, so invoiced bookings are not double-counted.
+    $q=$pdo->prepare("SELECT DATE(a.starts_at) day,
+      ROUND(SUM(CASE WHEN inv.appointment_id IS NOT NULL THEN inv.gross_total
+        ELSE COALESCE(s.price,0) END),2) gross_total
+      FROM appointments a
+      LEFT JOIN services s ON s.id=a.service_id AND s.tenant_id=a.tenant_id
+      LEFT JOIN (
+        SELECT appointment_id, tenant_id, SUM(total) gross_total
+        FROM invoices WHERE status <> 'void' AND appointment_id IS NOT NULL
+        GROUP BY tenant_id, appointment_id
+      ) inv ON inv.appointment_id=a.id AND inv.tenant_id=a.tenant_id
+      WHERE a.tenant_id=? AND a.starts_at>=? AND a.starts_at<?
+        AND a.status NOT IN ('cancelled','no_show')
+        AND (?='all' OR a.status=?)
+      GROUP BY DATE(a.starts_at)");
+    $q->execute([$tid,$begin->format('Y-m-d H:i:s'),$end->format('Y-m-d H:i:s'),$status,$status]);
+    foreach($q as $r) if(isset($days[$r['day']])) $days[$r['day']]['gross_revenue']=(float)$r['gross_total'];
     json_response(['ok'=>true,'month'=>$month,'start'=>$begin->format('Y-m-d'),
       'end_exclusive'=>$end->format('Y-m-d'),'timezone'=>$tz->getName(),
       'status'=>$status,'days'=>$days]);
