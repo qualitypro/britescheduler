@@ -93,7 +93,8 @@ const contractorPager = new BritePagination({
             const actions=document.createElement('div');
             actions.className='brite-directory-actions';
             const save=document.createElement('button');save.type='submit';save.textContent='Save changes';
-            const reset=document.createElement('button');reset.type='reset';reset.textContent='Reset';
+            const reset=document.createElement('button');reset.type='button';reset.textContent='Cancel';
+            reset.addEventListener('click',()=>{form.reset();feedback.textContent='';details.open=false;});
             const feedback=document.createElement('span');
             feedback.className='brite-directory-feedback';feedback.setAttribute('role','status');
             actions.append(save,reset,feedback);form.append(grid,actions);
