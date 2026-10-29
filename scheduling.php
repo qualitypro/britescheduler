@@ -1475,7 +1475,15 @@ function cycle69dSelected(){
         name: option.textContent.trim()
     }));
 }
+let cycle70bReviewCache = null;
 function cycle69dRender(data = null, warning = ''){
+    if(data && Array.isArray(data.contractors)){
+        cycle70bReviewCache = {snapshot: cycle70DispatchSnapshot(), data};
+    } else if(!warning && cycle70bReviewCache?.snapshot === cycle70DispatchSnapshot()){
+        data = cycle70bReviewCache.data;
+    } else if(cycle70bReviewCache?.snapshot !== cycle70DispatchSnapshot()){
+        cycle70bReviewCache = null;
+    }
     const panel = document.getElementById('cycle69dDispatchReview');
     if(!panel)return;
     panel.replaceChildren();
