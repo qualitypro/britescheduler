@@ -37,7 +37,7 @@
   if(c.portfolio_url){
    try{const u=new URL(c.portfolio_url);if(u.protocol==='https:'){const link=el('a','Visit portfolio website');link.href=u.href;link.target='_blank';link.rel='noopener noreferrer';detail.append(link);}}catch(_){}
   }
-  detail.append(el('p','Quote requests will be available in Cycle 71D.','muted'));
+  const quote=el('a','Request a quote from this contractor');quote.href=(window.BRITE_BASE||'')+'/client-quote-request.php?contractor_id='+encodeURIComponent(c.contractor_id);detail.append(quote);
   if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');
  }
  function render(){
@@ -49,7 +49,7 @@
    if(c.photos.length)card.append(photoGrid(c,1));
    const services=c.services.map(s=>s.name).slice(0,4).join(', ');
    if(services)card.append(el('p','Services: '+services));
-   const btn=el('button','View profile and photos');btn.type='button';btn.addEventListener('click',()=>show(c));card.append(btn);
+   const btn=el('button','View profile and photos');btn.type='button';btn.addEventListener('click',()=>show(c));card.append(btn);const quote=el('a','Request a quote');quote.href=(window.BRITE_BASE||'')+'/client-quote-request.php?contractor_id='+encodeURIComponent(c.contractor_id);quote.style.marginLeft='12px';card.append(quote);
    results.append(card);
   });
  }
