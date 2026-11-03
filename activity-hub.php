@@ -17,6 +17,13 @@ require __DIR__ . '/partials/app_header.php';
 <button id="activityRefresh" type="button">Refresh</button>
 </div>
 <p id="activityMessage" role="status" aria-live="polite">Loading activity…</p>
+<div class="brite-list-card-headings" id="activitySort" role="group" aria-label="Sort activity">
+<button type="button" class="brite-list-sort" data-sort="type">Type</button>
+<button type="button" class="brite-list-sort" data-sort="title">Record</button>
+<button type="button" class="brite-list-sort" data-sort="status">Status</button>
+<button type="button" class="brite-list-sort" data-sort="created_at">Created On</button>
+<button type="button" class="brite-list-sort" data-sort="updated_at">Last Edited</button>
+</div>
 <section id="activityRecords" aria-label="Notifications"></section>
 <div class="brite-activity-pagination"><button id="activityPrev" type="button">Previous</button><span id="activityPageLabel"></span><button id="activityNext" type="button">Next</button></div>
 </main>
@@ -28,6 +35,8 @@ const el=id=>document.getElementById(id);
 const records=el('activityRecords'),message=el('activityMessage');
 let offset=0,items=[],hasMore=false,unread=0;
 const limit=500;
+let activitySortField='created_at',activitySortDirection=-1;
+const activityCollator=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
 function category(n){const t=String(n.type||'').toLowerCase();return /marketplace|bid|award/.test(t)?'marketplace':/cancel|fail|declin|reject|overdue|urgent/.test(t)?'warning':/appointment|booking|assign|schedul/.test(t)?'schedule':'general';}
 function isBookingRequest(n){const t=String(n.type||'').toLowerCase();const title=String(n.title||'').trim().toLowerCase();return /booking_request|client_booking_request|appointment_request|booking_requested/.test(t)||(t==='appointment'&&title==='new client booking request');}
 function node(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=String(text);if(cls)e.className=cls;return e;}
@@ -35,7 +44,12 @@ function render(){
 records.replaceChildren();
 const q=el('activitySearch').value.trim().toLowerCase(),st=el('activityStatus').value,ty=el('activityType').value;
 const filtered=items.filter(n=>(st==='all'||(st==='outstanding')===(n.read_at===null))&&(ty==='all'||(ty==='booking_requests'?isBookingRequest(n):category(n)===ty))&&(!q||[n.title,n.body,n.id,n.appointment_id].some(x=>String(x??'').toLowerCase().includes(q))));
-filtered.sort((a,b)=>(a.read_at===null?0:1)-(b.read_at===null?0:1));
+filtered.sort((a,b)=>{
+ const field=activitySortField;
+ const val=n=>field==='type'?category(n):field==='status'?(n.read_at===null?'Outstanding':'Dismissed'):n[field];
+ const result=activityCollator.compare(String(val(a)??''),String(val(b)??''));
+ return activitySortDirection*result;
+});
 el('activityOutstanding').textContent='Outstanding: '+unread;
 el('activityLoaded').textContent='Showing: '+filtered.length+' of '+items.length+' loaded';
 el('activityPageLabel').textContent='History batch '+(Math.floor(offset/limit)+1);
@@ -45,8 +59,13 @@ message.textContent=filtered.length?'':(items.length?'No matches in this batch. 
 for(const n of filtered){
 const unreadItem=n.read_at===null,cat=category(n),article=node('article',undefined,'brite-activity-record '+cat+(unreadItem?' unread':''));
 const header=node('header'),title=node('strong',n.title||'Notification'),meta=node('small',cat[0].toUpperCase()+cat.slice(1)+' · '+(unreadItem?'Outstanding':'Dismissed'));
-header.append(title,meta);
-const body=node('p',n.body||''),date=node('small',n.created_at?'Created: '+n.created_at+' UTC':'');
+const icon=node('span',undefined,'brite-list-flat-icon');icon.setAttribute('role','img');icon.setAttribute('aria-label',cat+' activity');
+const paths={marketplace:'<path d="M4 7h16v14H4zM8 7V4h8v3"/>',schedule:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/>',warning:'<path d="M12 3 2 21h20zM12 9v5M12 18h.01"/>',general:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8"/>'};
+icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">'+(paths[cat]||paths.general)+'</svg>';
+header.append(icon,title,meta);
+const body=node('p',n.body||'');
+const readable=value=>{if(!value)return '';const raw=String(value),d=new Date(raw.includes('T')?raw:raw.replace(' ','T')+'Z');return Number.isNaN(d.getTime())?'':new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(d);};
+const date=node('small',[n.created_at?'Created on: '+readable(n.created_at):'',n.updated_at?'Last edited: '+readable(n.updated_at):''].filter(Boolean).join(' · '));
 const people=[n.client_name?'Client: '+n.client_name:null,n.contractor_name?'Contractor: '+n.contractor_name:null].filter(Boolean);
 const peopleLine=people.length?node('p',people.join(' · ')):null;
 const actions=node('div',undefined,'actions');
@@ -71,6 +90,16 @@ if(peopleLine)article.append(peopleLine);
 article.append(date,actions);records.append(article);
 }
 }
+document.querySelectorAll('#activitySort [data-sort]').forEach(button=>button.addEventListener('click',()=>{
+ const field=button.dataset.sort;
+ activitySortDirection=field===activitySortField?-activitySortDirection:1;activitySortField=field;
+ document.querySelectorAll('#activitySort [data-sort]').forEach(b=>{
+  const active=b.dataset.sort===field;
+  b.setAttribute('aria-pressed',String(active));
+  b.textContent=b.textContent.replace(/ [▲▼]$/,'')+(active?(activitySortDirection===1?' ▲':' ▼'):'');
+ });
+ render();
+}));
 async function load(){
 message.textContent='Loading notifications…';
 try{
