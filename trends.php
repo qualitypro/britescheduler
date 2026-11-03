@@ -46,7 +46,7 @@ require __DIR__.'/partials/app_header.php';
   <div><h3>Bookings</h3><p><strong>Appointments</strong> are scheduled visits. <strong>Booking requests</strong> are requests associated with those visits.</p></div>
   <div><h3>Assignment coverage</h3><p><strong>Assigned</strong> means at least one contractor is linked to the appointment. <strong>Unassigned</strong> means none is linked.</p></div>
   <div><h3>Contractor decisions</h3><p><strong>Accepted</strong> and <strong>declined</strong> reflect current contractor assignment decisions, shown on the appointment's service date—not the date someone responded.</p></div>
-  <div><h3>Gross booked value</h3><p>An estimate of booked work for the <strong>selected appointment series</strong>, based on non-void invoice totals where available or otherwise service list prices. Overlapping series count each appointment only once. Cancelled and no-show appointments are excluded. <strong>This is not money collected.</strong></p></div>
+  <div><h3>Gross booked value</h3><p>The total reflects selected appointment categories. <strong>Appointments</strong> means all eligible bookings; selecting a narrower category turns off that catch-all. Multiple narrower categories use a deduplicated union. The Gross booked value checkbox controls the chart line, not the summary total. Values use non-void invoices or service list prices; cancelled and no-show appointments are excluded. <strong>This is not money collected.</strong></p></div>
  </div>
  <p class="muted trends-explainer-note"><strong>Keep in mind:</strong> One appointment can have several contractor decisions. These lines describe different aspects of the same work, so don't add the series together.</p>
 </div>
@@ -54,16 +54,27 @@ require __DIR__.'/partials/app_header.php';
 <script>
 (()=>{
 const keys={appointments:['Appointments','#2563eb'],requests:['Booking requests','#d97706'],assigned:['Assigned','#059669'],unassigned:['Unassigned','#9333ea'],accepted:['Accepted assignments','#0d9488'],declined:['Declined assignments','#dc2626'],gross_revenue:['Gross booked value (USD)','#ca8a04']};
-const visible=new Set(Object.keys(keys));
+// Start with the all-bookings baseline; users opt into narrower series.
+const visible=new Set(['appointments','gross_revenue']);
 const $=id=>document.getElementById(id);
 const month=$('trendMonth'), status=$('trendStatus'), group=$('trendGroup'), style=$('trendStyle');
 const today=new Date();month.value=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
 let days={},revenueMasks={};
 const revenueBits={appointments:1,requests:2,assigned:4,unassigned:8,accepted:16,declined:32};
 function selectedRevenueMask(){return Object.entries(revenueBits).reduce((mask,[key,bit])=>visible.has(key)?mask|bit:mask,0);}
+function updateLegend(){for(const input of $('trendLegend').querySelectorAll('input[data-series]'))input.checked=visible.has(input.dataset.series);}
 for(const [key,[label,color]] of Object.entries(keys)){
  const wrapper=document.createElement('label'),input=document.createElement('input');
- input.type='checkbox';input.checked=true;input.addEventListener('change',()=>{input.checked?visible.add(key):visible.delete(key);render()});
+ input.type='checkbox';input.dataset.series=key;input.checked=visible.has(key);
+ input.addEventListener('change',()=>{
+  if(input.checked){
+   // Appointments is the catch-all; otherwise it masks every narrower selection.
+   if(key==='appointments')Object.keys(revenueBits).forEach(k=>{if(k!=='appointments')visible.delete(k);});
+   else if(key!=='gross_revenue')visible.delete('appointments');
+   visible.add(key);
+  }else visible.delete(key);
+  updateLegend();render();
+ });
  wrapper.append(input,document.createTextNode(label));wrapper.style.color=color;$('trendLegend').append(wrapper);
 }
 const svgNS='http://www.w3.org/2000/svg';
@@ -129,7 +140,7 @@ function render(){
  }
  $('trendStats').replaceChildren();
  for(const [key,[label,color]] of Object.entries(keys)){
-  if(!visible.has(key))continue;
+  if(!visible.has(key)&&key!=='gross_revenue')continue;
   const div=document.createElement('div');div.className='card';
   const title=document.createElement('span');title.textContent=label;
   const number=document.createElement('strong');number.style.color=color;
