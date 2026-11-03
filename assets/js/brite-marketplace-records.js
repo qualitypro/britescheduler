@@ -29,7 +29,8 @@
     };
     function recordIcon(status, title) {
         const value = (status + ' ' + title).toLowerCase();
-        const key = Object.keys(symbols).find(name => name !== 'default' && new RegExp('\\\\b' + name + '\\\\b').test(value)) || 'default';
+        const words = value.split(/[^a-z]+/).filter(Boolean);
+        const key = Object.keys(symbols).find(name => name !== 'default' && words.includes(name)) || 'default';
         const span = document.createElement('span');
         span.className = 'brite-marketplace-record-icon';
         span.dataset.kind = key;
