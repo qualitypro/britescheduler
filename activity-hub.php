@@ -18,7 +18,6 @@ require __DIR__ . '/partials/app_header.php';
 </div>
 <p id="activityMessage" role="status" aria-live="polite">Loading activity…</p>
 <div class="brite-list-card-headings" id="activitySort" role="group" aria-label="Sort activity">
-<button type="button" class="brite-list-sort" data-sort="type">Type</button>
 <button type="button" class="brite-list-sort" data-sort="title">Record</button>
 <button type="button" class="brite-list-sort" data-sort="status">Status</button>
 <button type="button" class="brite-list-sort" data-sort="created_at">Created On</button>
@@ -46,7 +45,7 @@ const q=el('activitySearch').value.trim().toLowerCase(),st=el('activityStatus').
 const filtered=items.filter(n=>(st==='all'||(st==='outstanding')===(n.read_at===null))&&(ty==='all'||(ty==='booking_requests'?isBookingRequest(n):category(n)===ty))&&(!q||[n.title,n.body,n.id,n.appointment_id].some(x=>String(x??'').toLowerCase().includes(q))));
 filtered.sort((a,b)=>{
  const field=activitySortField;
- const val=n=>field==='type'?category(n):field==='status'?(n.read_at===null?'Outstanding':'Dismissed'):n[field];
+ const val=n=>field==='status'?(n.read_at===null?'Outstanding':'Dismissed'):n[field];
  const result=activityCollator.compare(String(val(a)??''),String(val(b)??''));
  return activitySortDirection*result;
 });
