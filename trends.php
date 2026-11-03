@@ -21,7 +21,7 @@ require __DIR__.'/partials/app_header.php';
 <h1>Booking & Scheduling Trends</h1>
 <p class="muted">A rolling three-month window: previous month, selected month, and following month. Dates reflect scheduled service dates in the tenant calendar.</p>
 <section class="card" aria-label="Trend filters">
- <div class="trends-controls">
+ <div class="trends-controls" data-brite-pills="off">
  <label>Center month <input type="month" id="trendMonth" min="2020-01" max="2099-12"></label>
  <label>Appointment status <select id="trendStatus"><option value="all">All statuses</option><option>tentative</option><option>scheduled</option><option>confirmed</option><option>in_progress</option><option>completed</option><option>cancelled</option><option>no_show</option></select></label>
  <label>Time grouping <select id="trendGroup"><option value="day">Daily</option><option value="week">Weekly</option><option value="month">Monthly</option></select></label>
