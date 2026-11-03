@@ -25,8 +25,17 @@
    .replace(/\b(Id|Url|Zip|Api|Utc)\b/g,word=>({Id:'ID',Url:'URL',Zip:'ZIP',Api:'API',Utc:'UTC'})[word]);
  }
  function label(el) {
-  const text=el.labels && el.labels.length ? el.labels[0].textContent.trim() : '';
-  return humanizeLabel(el.dataset.britePillLabel || text || el.getAttribute('aria-label') || el.name || el.id || 'Value');
+  // A label wrapping a <select> includes every option in textContent.
+  // Read only the label's own text, excluding nested controls/options.
+  const labelElement=el.labels && el.labels.length ? el.labels[0] : null;
+  const text=labelElement ? [...labelElement.childNodes]
+   .filter(node=>node.nodeType===Node.TEXT_NODE)
+   .map(node=>node.textContent).join(' ').trim() : '';
+  const named=labelElement?.querySelector('strong,.brite-field-label');
+  const explicit=labelElement?.getAttribute('aria-label') || '';
+  return humanizeLabel(el.dataset.britePillLabel || text ||
+   (named ? named.textContent.trim() : '') || explicit ||
+   el.getAttribute('aria-label') || el.name || el.id || 'Value');
  }
  function value(el) {
   if (el.tagName==='SELECT') return el.value && el.selectedOptions.length ? [...el.selectedOptions].filter(o=>o.value).map(o=>o.textContent.trim()).join(', ') : '';
