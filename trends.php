@@ -46,7 +46,7 @@ require __DIR__.'/partials/app_header.php';
   <div><h3>Bookings</h3><p><strong>Appointments</strong> are scheduled visits. <strong>Booking requests</strong> are requests associated with those visits.</p></div>
   <div><h3>Assignment coverage</h3><p><strong>Assigned</strong> means at least one contractor is linked to the appointment. <strong>Unassigned</strong> means none is linked.</p></div>
   <div><h3>Contractor decisions</h3><p><strong>Accepted</strong> and <strong>declined</strong> reflect current contractor assignment decisions, shown on the appointment's service date—not the date someone responded.</p></div>
-  <div><h3>Gross booked value</h3><p>An estimate of the value of scheduled work, based on non-void invoice totals where available or otherwise service list prices. Cancelled and no-show appointments are excluded. <strong>This is not money collected.</strong></p></div>
+  <div><h3>Gross booked value</h3><p>An estimate of booked work for the <strong>selected appointment series</strong>, based on non-void invoice totals where available or otherwise service list prices. Overlapping series count each appointment only once. Cancelled and no-show appointments are excluded. <strong>This is not money collected.</strong></p></div>
  </div>
  <p class="muted trends-explainer-note"><strong>Keep in mind:</strong> One appointment can have several contractor decisions. These lines describe different aspects of the same work, so don't add the series together.</p>
 </div>
@@ -58,7 +58,9 @@ const visible=new Set(Object.keys(keys));
 const $=id=>document.getElementById(id);
 const month=$('trendMonth'), status=$('trendStatus'), group=$('trendGroup'), style=$('trendStyle');
 const today=new Date();month.value=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
-let days={};
+let days={},revenueMasks={};
+const revenueBits={appointments:1,requests:2,assigned:4,unassigned:8,accepted:16,declined:32};
+function selectedRevenueMask(){return Object.entries(revenueBits).reduce((mask,[key,bit])=>visible.has(key)?mask|bit:mask,0);}
 for(const [key,[label,color]] of Object.entries(keys)){
  const wrapper=document.createElement('label'),input=document.createElement('input');
  input.type='checkbox';input.checked=true;input.addEventListener('change',()=>{input.checked?visible.add(key):visible.delete(key);render()});
@@ -74,7 +76,11 @@ function buckets(){
   if(group.value==='month')key=day.slice(0,7);
   if(group.value==='week'){const weekday=date.getUTCDay();date.setUTCDate(date.getUTCDate()-((weekday+6)%7));key=date.toISOString().slice(0,10);}
   if(!result.has(key))result.set(key,Object.fromEntries(Object.keys(keys).map(k=>[k,0])));
-  for(const k of Object.keys(keys))result.get(key)[k]+=Number(values[k]||0);
+  for(const k of Object.keys(keys))if(k!=='gross_revenue')result.get(key)[k]+=Number(values[k]||0);
+  const selection=selectedRevenueMask();
+  for(const [mask,amount] of Object.entries(revenueMasks[day]||{})){
+   if((Number(mask)&selection)!==0)result.get(key).gross_revenue+=Number(amount||0);
+  }
  }
  return [...result].sort((a,b)=>a[0].localeCompare(b[0]));
 }
@@ -123,6 +129,7 @@ function render(){
  }
  $('trendStats').replaceChildren();
  for(const [key,[label,color]] of Object.entries(keys)){
+  if(!visible.has(key))continue;
   const div=document.createElement('div');div.className='card';
   const title=document.createElement('span');title.textContent=label;
   const number=document.createElement('strong');number.style.color=color;
@@ -135,7 +142,7 @@ async function load(){
  $('trendStatusText').textContent='Loading…';
  try{
   const d=await api('/api/trends.php?month='+encodeURIComponent(month.value)+'&status='+encodeURIComponent(status.value));
-  days=d.days;$('trendStatusText').textContent='Showing '+d.start+' through '+Object.keys(days).at(-1)+' · '+d.timezone;
+  days=d.days;revenueMasks=d.revenue_by_series_mask||{};$('trendStatusText').textContent='Showing '+d.start+' through '+Object.keys(days).at(-1)+' · '+d.timezone;
   render();
  }catch(e){$('trendStatusText').textContent='Unable to load trends: '+e.message;$('trendChart').replaceChildren();}
 }
