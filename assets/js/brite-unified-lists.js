@@ -32,12 +32,18 @@
    const body=table.tBodies[0];
    const headers=[...table.tHead.querySelectorAll('th')];
    if(!headers.length||headers.some(h=>h.colSpan>1||h.rowSpan>1))return;
-   if(table.querySelector('[role="grid"],[data-sort],.sortable')||table.closest('.brite-pagination'))return;
+   if(table.querySelector('[role="grid"],[data-sort],.sortable')||table.closest('.brite-pagination')||table.parentElement?.querySelector('.brite-pagination,.dataTables_paginate,[data-pagination]')||table.closest('[data-brite-pagination-managed]'))return;
    table.dataset.briteListEnhanced='true';
    const group=kind(table);
    const type=document.createElement('th');type.textContent='Type';type.scope='col';type.className='brite-list-type-heading';
    table.tHead.rows[0].prepend(type);
    const original=[...body.rows];
+   if(original.some(row=>[...row.cells].some(cell=>cell.colSpan>1||cell.rowSpan>1)))return;
+   const dateColumns=headers.map((h,i)=>/^(created on|created at|last edited|updated at|modified at)$/i.test(normalize(h.textContent))?i:-1).filter(i=>i>=0);
+   original.forEach(row=>dateColumns.forEach(i=>{
+     const cell=row.cells[i],formatted=stamp(cell.textContent);
+     if(formatted){cell.title=normalize(cell.textContent)+' UTC';cell.textContent=formatted;}
+   }));
    original.forEach(row=>{
      const cell=document.createElement('td');cell.className='brite-list-icon-cell';
      const icon=document.createElement('span');icon.className='brite-list-flat-icon';icon.dataset.kind=group;
