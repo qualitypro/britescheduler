@@ -17,8 +17,8 @@ CREATE TABLE contractor_quote_requests (
  KEY idx_cqr_contractor(tenant_id,contractor_id,status,created_at),
  CONSTRAINT fk_cqr_client FOREIGN KEY(tenant_id,client_id) REFERENCES clients(tenant_id,id) ON DELETE CASCADE,
  CONSTRAINT fk_cqr_contractor FOREIGN KEY(tenant_id,contractor_id) REFERENCES contractors(tenant_id,id) ON DELETE CASCADE,
- CONSTRAINT fk_cqr_location FOREIGN KEY(tenant_id,client_location_id) REFERENCES client_locations(tenant_id,id) ON DELETE RESTRICT,
- CONSTRAINT fk_cqr_service FOREIGN KEY(tenant_id,service_id) REFERENCES services(tenant_id,id) ON DELETE RESTRICT
+ CONSTRAINT fk_cqr_location FOREIGN KEY(client_location_id) REFERENCES client_locations(id) ON DELETE RESTRICT,
+ CONSTRAINT fk_cqr_service FOREIGN KEY(service_id) REFERENCES services(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE contractor_quote_request_photos (
  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
