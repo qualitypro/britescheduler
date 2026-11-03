@@ -5,7 +5,13 @@ $qualificationCanEdit = in_array((string)Auth::tenant()['role'], ['owner','admin
  $pageTitle='Contractors';require __DIR__.'/partials/app_header.php';?>
 <link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-directory-accordion.css'),ENT_QUOTES,'UTF-8')?>">
 <h1>Contractors</h1><p class="muted">Expand a contractor to edit their profile and manage service qualifications.</p><div class="card"><form id="f"><div class="row"><input name="first_name" placeholder="First name" required><input name="last_name" placeholder="Last name" required><input name="business_name" placeholder="Business"><input name="email" type="email" placeholder="Email"><input name="phone" placeholder="Phone"><input name="hourly_rate" type="number" step=".01" placeholder="Hourly rate"><button>Add contractor</button></div></form></div>
-<section class="brite-directory-list" id="rows" aria-label="Contractor records" style="margin-top:18px"></section><div id="contractorPagination"></div>
+<div class="brite-list-card-headings" id="contractorSort" role="group" aria-label="Sort contractors">
+<button type="button" class="brite-list-sort" data-sort="type">Type</button>
+<button type="button" class="brite-list-sort" data-sort="name">Contractor</button>
+<button type="button" class="brite-list-sort" data-sort="status">Status</button>
+<button type="button" class="brite-list-sort" data-sort="created_at">Created On</button>
+<button type="button" class="brite-list-sort" data-sort="updated_at">Last Edited</button>
+</div><section class="brite-directory-list" id="rows" aria-label="Contractor records" style="margin-top:18px"></section><div id="contractorPagination"></div>
 
 <div class="card" id="qualificationPanel"
      style="margin-top:18px;display:none">
@@ -52,6 +58,13 @@ const contractorPager = new BritePagination({
             const subtitle=document.createElement('small');
             subtitle.textContent=[c.business_name,c.email,c.phone].filter(Boolean).join(' · ');
             main.append(title,subtitle);
+            const fmt=value=>{if(!value)return '';const raw=String(value);const date=new Date(raw.includes('T')?raw:raw.replace(' ','T')+'Z');return Number.isNaN(date.getTime())?'':new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(date);};
+            const dates=document.createElement('small');dates.className='brite-record-timestamps';
+            dates.textContent=[c.created_at?'Created on: '+fmt(c.created_at):'',c.updated_at?'Last edited: '+fmt(c.updated_at):''].filter(Boolean).join(' · ');
+            if(dates.textContent)main.append(dates);
+            const icon=document.createElement('span');icon.className='brite-list-flat-icon';icon.setAttribute('role','img');icon.setAttribute('aria-label','Contractor');
+            icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16v14H4zM8 7V4h8v3M4 12h16"/></svg>';
+            summary.append(icon);
             const state=document.createElement('span');
             state.className='brite-directory-state';
             state.textContent=c.status||'Unknown';
@@ -158,9 +171,30 @@ const contractorPager = new BritePagination({
     }
 });
 
+let contractorRecords=[],contractorSortField='name',contractorSortDirection=1;
+function sortContractors(){
+ const collator=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
+ const sorted=contractorRecords.slice().sort((a,b)=>{
+  const field=contractorSortField;
+  const value=c=>field==='type'?'contractor':field==='name'?[c.first_name,c.last_name].join(' '):c[field];
+  return contractorSortDirection*collator.compare(String(value(a)??''),String(value(b)??''));
+ });
+ contractorPager.setRecords(sorted,true);
+ document.querySelectorAll('#contractorSort [data-sort]').forEach(button=>{
+  const active=button.dataset.sort===contractorSortField;
+  button.setAttribute('aria-pressed',String(active));
+  button.textContent=button.textContent.replace(/ [▲▼]$/,'')+(active?(contractorSortDirection===1?' ▲':' ▼'):'');
+ });
+}
+document.querySelectorAll('#contractorSort [data-sort]').forEach(button=>button.addEventListener('click',()=>{
+ const field=button.dataset.sort;
+ contractorSortDirection=contractorSortField===field?-contractorSortDirection:1;
+ contractorSortField=field;sortContractors();
+}));
 async function load(){
-    const d = await api('/api/contractors.php');
-    contractorPager.setRecords(d.contractors);
+ const d=await api('/api/contractors.php');
+ contractorRecords=Array.isArray(d.contractors)?d.contractors:[];
+ sortContractors();
 }
 
 async function loadOfferings(contractorId,mount){
