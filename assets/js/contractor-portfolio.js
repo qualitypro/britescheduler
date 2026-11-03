@@ -50,7 +50,7 @@
    }
    await load();
   } catch(e){say(e.message);}
-  finally {input.value='';input.disabled=false;await load().catch(e=>say(e.message));}
+  finally {input.value='';await load().catch(e=>{input.disabled=false;say(e.message);});}
  });
  load().catch(e=>say(e.message));
 })();
