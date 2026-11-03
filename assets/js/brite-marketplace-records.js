@@ -27,10 +27,14 @@
         cancelled: '<circle cx="12" cy="12" r="9"/><path d="m8 8 8 8m0-8-8 8"/>',
         default: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'
     };
-    function recordIcon(status, title) {
+    function iconKind(status, title) {
         const value = (status + ' ' + title).toLowerCase();
         const words = value.split(/[^a-z]+/).filter(Boolean);
         const key = Object.keys(symbols).find(name => name !== 'default' && words.includes(name)) || 'default';
+        return key;
+    }
+    function recordIcon(status, title) {
+        const key = iconKind(status, title);
         const span = document.createElement('span');
         span.className = 'brite-marketplace-record-icon';
         span.dataset.kind = key;
@@ -75,7 +79,8 @@
                 description.textContent = meta.join('  ·  ');
                 main.appendChild(description);
             }
-            summary.appendChild(recordIcon(status, title));
+            const icon = recordIcon(status, title);
+            summary.appendChild(icon);
             summary.appendChild(main);
             if (status) {
                 const statusNode = document.createElement('span');
@@ -108,6 +113,8 @@
     const collator = new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
     const textOf = (row,selector) => normalize(row.querySelector(selector)?.textContent || '');
     function recordType(row) {
+        const iconType=row.querySelector('.brite-marketplace-record-icon')?.dataset.kind;
+        if(iconType) return iconType;
         const title=textOf(row,'.brite-marketplace-record-title').toLowerCase();
         const content=textOf(row,'.brite-marketplace-record-sheet').toLowerCase();
         if (/notification|alert|message/.test(title)) return 'Notification';
@@ -139,19 +146,6 @@
         const ordered=matching.map((row,index)=>({row,index})).sort((a,b)=>
             st.direction*collator.compare(fieldValue(a.row,st.field),fieldValue(b.row,st.field))||a.index-b.index
         );
-        // Hide rather than detach records, preserving active forms and event handlers.
-        const total=ordered.length;
-        const pageSize=Number(st.size.value);
-        const pages=Math.max(1,Math.ceil(total/pageSize));
-        st.page=Math.min(st.page,pages);
-        const visible=new Set(ordered.slice((st.page-1)*pageSize,st.page*pageSize).map(x=>x.row));
-        const ranks=new Map(ordered.map((entry,index)=>[entry.row,index]));
-        rows.forEach(row=>{row.hidden=!visible.has(row);row.style.order=String(ranks.get(row)??rows.length);});
-        // CSS display overrides hidden in some layouts; mark for explicit hiding.
-        st.summary.textContent=total ? 'Showing '+((st.page-1)*pageSize+1)+'–'+Math.min(st.page*pageSize,total)+' of '+total+' records' : 'No matching records';
-        st.pageLabel.textContent='Page '+st.page+' of '+pages;
-        st.previous.disabled=st.page<=1;
-        st.next.disabled=st.page>=pages;
         st.headers.querySelectorAll('button').forEach(button=>{
             const active=button.dataset.sortField===st.field;
             button.setAttribute('aria-pressed',String(active));
@@ -168,21 +162,12 @@
         toolbar.className='brite-marketplace-list-tools';
         const type=document.createElement('select');
         type.setAttribute('aria-label','Filter by record or notification type');
-        const size=document.createElement('select');
-        size.setAttribute('aria-label','Records per page');
-        [10,25,50,100].forEach(n=>size.add(new Option(n+' per page',String(n))));
-        size.value='10';
-        const summary=document.createElement('span');
-        summary.setAttribute('role','status');
-        const previous=document.createElement('button');
-        previous.type='button';previous.textContent='Previous';
-        const pageLabel=document.createElement('span');
-        const next=document.createElement('button');
-        next.type='button';next.textContent='Next';
-        toolbar.append(type,size,summary,previous,pageLabel,next);
-        const st={field:'record',direction:1,page:1,headers,type,size,summary,previous,next,pageLabel};
+        toolbar.append(type);
+        const pagerHost=document.createElement('div');
+        pagerHost.className='brite-marketplace-pagination';
+        const st={field:'record',direction:1,headers,type,pager:null};
         listState.set(root,st);
-        for(const [field,title] of [['record','Record'],['details','Details'],['type','Type / Notification'],['status','Status']]){
+        for(const [field,title] of [['type','Type'],['record','Record'],['details','Details'],['status','Status']]){
             const button=document.createElement('button');
             button.type='button';
             button.className='brite-marketplace-sort-heading';
@@ -191,15 +176,22 @@
             button.setAttribute('aria-label','Sort by '+title);
             button.addEventListener('click',()=>{
                 st.direction=st.field===field?-st.direction:1;
-                st.field=field;st.page=1;draw(root);
+                st.field=field;st.pager.goTo(1);draw(root);
             });
             headers.append(button);
         }
-        type.addEventListener('change',()=>{st.page=1;draw(root);});
-        size.addEventListener('change',()=>{st.page=1;draw(root);});
-        previous.addEventListener('click',()=>{st.page=Math.max(1,st.page-1);draw(root);});
-        next.addEventListener('click',()=>{st.page++;draw(root);});
+        type.addEventListener('change',()=>{st.pager.goTo(1);draw(root);});
         root.before(headers,toolbar);
+        root.after(pagerHost);
+        st.pager=new BritePagination({
+            container:pagerHost,
+            render(pageRows){
+                const visible=new Set(pageRows);
+                [...root.children].filter(el=>el.classList?.contains('brite-marketplace-record-host')).forEach(row=>{
+                    row.hidden=!visible.has(row);
+                });
+            }
+        });
         draw(root);
     }
     roots.forEach(root=>{
