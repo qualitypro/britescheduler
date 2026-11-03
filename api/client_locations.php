@@ -27,7 +27,7 @@ if (!$allClients) {
     if (!$q->fetchColumn()) json_response(['error'=>'Client not found'],404);
 }
 if ($method === 'GET') {
-    $sql='SELECT l.id,l.client_id,l.label,l.address1,l.address2,l.city,l.state,l.postal_code,l.service_instructions,l.latitude,l.longitude,l.geocoding_status,l.geocoding_attempted_at,l.geocoding_resolved_at,l.is_primary,CONCAT(c.first_name,\' \',c.last_name) AS client_name FROM client_locations l JOIN clients c ON c.id=l.client_id AND c.tenant_id=l.tenant_id WHERE l.tenant_id=?';
+    $sql='SELECT l.id,l.client_id,l.label,l.address1,l.address2,l.city,l.state,l.postal_code,l.service_instructions,l.latitude,l.longitude,l.geocoding_status,l.geocoding_attempted_at,l.geocoding_resolved_at,l.is_primary,l.created_at,l.updated_at,CONCAT(c.first_name,\' \',c.last_name) AS client_name FROM client_locations l JOIN clients c ON c.id=l.client_id AND c.tenant_id=l.tenant_id WHERE l.tenant_id=?';
     if (!$allClients) $sql.=' AND l.client_id=?';
     $sql.=' ORDER BY c.last_name,c.first_name,l.is_primary DESC,l.label,l.id';
     $q=$pdo->prepare($sql);
