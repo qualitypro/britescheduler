@@ -18,7 +18,7 @@
   return (text || el.getAttribute('aria-label') || el.name || el.id || 'Value').replace(/[:*]+$/,'').trim();
  }
  function value(el) {
-  if (el.tagName==='SELECT') return el.selectedOptions.length ? [...el.selectedOptions].map(o=>o.textContent.trim()).join(', ') : '';
+  if (el.tagName==='SELECT') return el.value && el.selectedOptions.length ? [...el.selectedOptions].filter(o=>o.value).map(o=>o.textContent.trim()).join(', ') : '';
   return el.value.trim();
  }
  function clear(el) {
@@ -29,11 +29,14 @@
  }
  function capture(el) {
   if (!eligible(el) || !el.isConnected || !value(el)) { clear(el); return; }
+  if (el._britePill && el._britePill.dataset.value===el.value && el._britePill.dataset.label===value(el)) return;
   if (el._britePill) el._britePill.remove();
   const pill=document.createElement('span');
   pill.className='brite-value-pill';
   const kind=el.tagName==='SELECT'?'choice':el.type==='number'?'number':el.type==='date'?'date':'text';
   pill.dataset.kind=kind;
+  pill.dataset.value=el.value;
+  pill.dataset.label=value(el);
   const text=document.createElement('span');
   text.className='brite-value-pill-label';
   text.textContent=label(el)+': '+value(el);
@@ -54,9 +57,9 @@
  // Initialize existing values and fields added by client-side rendering.
  // Never collapse the active input while the user is typing.
  function initialize(root) {
-  if (root instanceof Element && root.matches(selector) && root !== document.activeElement && !root._britePill) capture(root);
+  if (root instanceof Element && root.matches(selector) && root !== document.activeElement && true) capture(root);
   if (root.querySelectorAll) root.querySelectorAll(selector).forEach(el=>{
-   if (el !== document.activeElement && !el._britePill) capture(el);
+   if (el !== document.activeElement && true) capture(el);
   });
  }
  function start() {
@@ -70,6 +73,11 @@
  }
  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded',start,{once:true});
  else start();
+ window.briteRefreshValuePills=initialize;
+ document.addEventListener('input',event=>{
+  const el=event.target;
+  if (el instanceof HTMLElement && el._britePill && el.classList.contains('brite-pill-input-hidden')) capture(el);
+ },true);
  document.addEventListener('focusout',event=>{
   const el=event.target;
   if (el instanceof HTMLElement && eligible(el)) capture(el);
