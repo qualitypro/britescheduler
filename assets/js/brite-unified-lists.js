@@ -115,8 +115,8 @@
        root.id==='inviteRecords'?'notification':'contractor';
      const group=category?.startsWith('client')?'client':category?.startsWith('contractor')?'contractor':category||'default';
      const heading=document.createElement('div');heading.className='brite-list-card-headings';
-     // Client cards already display their information; no extra heading or sort row.
-     const fields=group==='client' ? [] : [['record','Record'],['status','Status'],['created','Created On'],['edited','Last Edited']];
+     // Clients only need Created On and Last Edited sorting headings.
+     const fields=group==='client' ? [['created','Created On'],['edited','Last Edited']] : [['record','Record'],['status','Status'],['created','Created On'],['edited','Last Edited']];
      const state={field:'record',direction:1,cards:[],pager:null};
      cardLists.set(root,state);
      fields.forEach(([field,label])=>{
@@ -130,9 +130,7 @@
      });
      const top=document.createElement('div');top.className='brite-list-page-top';
      const bottom=document.createElement('div');bottom.className='brite-list-page-bottom';
-     if(group==='client')root.before(top);
-     else root.before(top,heading);
-     root.after(bottom);
+     root.before(top,heading);root.after(bottom);
      const pager=new BritePagination({container:bottom,render(rows){
        const visible=new Set(rows);
        state.cards.forEach(row=>{row.hidden=!visible.has(row);});
@@ -175,7 +173,7 @@
        state.cards=incoming;
        state.cards.forEach(decorate);
        const sorted=state.cards.map((card,index)=>({card,index}));
-       if(group!=='client')sorted.sort((a,b)=>{
+       sorted.sort((a,b)=>{
          const av=value(a.card,state.field),bv=value(b.card,state.field);
          return state.direction*(typeof av==='number'&&typeof bv==='number'?av-bv:collator.compare(av,bv))||a.index-b.index;
        });
