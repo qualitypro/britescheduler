@@ -49,6 +49,14 @@ A **tenant** represents a business or organization. Tenant-scoped data and role-
 - Booking request idempotency to reduce accidental duplicate submissions.
 - Client and contractor dashboards tailored to their workflows.
 
+### 🪪 Cycle 71A — Contractor profile builder
+
+Contractors can edit their own professional headline, biography, specialties, years of experience, and HTTPS portfolio URL from `contractor-profile.php` (linked from the contractor dashboard). The `api/my_contractor_profile.php` GET/PUT endpoint resolves the active contractor from the authenticated tenant/user session, validates inputs, and requires CSRF protection for updates. No user-supplied contractor ID is accepted for profile edits.
+
+Apply **`migrations/020_contractor_profiles.sql` once** before opening the editor. It adds a separate tenant-scoped profile table without changing existing contractor rows. The existing `api/marketplace_contractor_profile.php` adds these fields only **after** its existing appointment/bid/assignment authorization check; email and phone remain excluded. The initial release uses the existing account identity, not image uploads.
+
+**Validation status:** PHP and JavaScript syntax checks have been added to the source smoke workflow. Authenticated multi-tenant browser/API testing and migration execution on the local MariaDB instance remain outstanding.
+
 ### 🛠️ Contractor management
 
 - Contractor records, profiles, and skills.
