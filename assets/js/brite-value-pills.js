@@ -5,12 +5,13 @@
  'use strict';
  const selector='input, select, textarea';
  function eligible(el) {
-  if (!el.matches(selector) || !el.form || el.disabled || el.readOnly ||
+  if (!el.matches(selector) || el.disabled || el.readOnly ||
       el.closest('[data-brite-pills="off"]') || el.dataset.britePills==='off') return false;
   const type=(el.type||'').toLowerCase();
   if (['hidden','password','file','checkbox','radio','submit','button','reset','image','search','color','range'].includes(type)) return false;
   if (el.matches('[autocomplete="one-time-code"],[autocomplete="cc-number"],[autocomplete="cc-csc"]')) return false;
-  return !!(el.name || el.id);
+  if (el.closest('[contenteditable="true"]')) return false;
+  return !!(el.name || el.id || el.getAttribute('aria-label'));
  }
  function label(el) {
   const text=el.labels && el.labels.length ? el.labels[0].textContent.trim() : '';
@@ -50,6 +51,25 @@
   el._britePill=pill;
   el.classList.add('brite-pill-input-hidden');
  }
+ // Initialize existing values and fields added by client-side rendering.
+ // Never collapse the active input while the user is typing.
+ function initialize(root) {
+  if (root instanceof Element && root.matches(selector) && root !== document.activeElement && !root._britePill) capture(root);
+  if (root.querySelectorAll) root.querySelectorAll(selector).forEach(el=>{
+   if (el !== document.activeElement && !el._britePill) capture(el);
+  });
+ }
+ function start() {
+  initialize(document);
+  const observer=new MutationObserver(records=>{
+   for (const record of records) for (const node of record.addedNodes) {
+    if (node instanceof Element && !node.closest('.brite-value-pill')) initialize(node);
+   }
+  });
+  observer.observe(document.body,{childList:true,subtree:true});
+ }
+ if (document.readyState==='loading') document.addEventListener('DOMContentLoaded',start,{once:true});
+ else start();
  document.addEventListener('focusout',event=>{
   const el=event.target;
   if (el instanceof HTMLElement && eligible(el)) capture(el);
