@@ -48,10 +48,16 @@ require __DIR__.'/partials/app_header.php';
 </div>
 
 <div class="card" style="margin-top:18px">
+    <div class="brite-list-card-headings" id="serviceSort" role="group" aria-label="Sort services">
+<button type="button" class="brite-list-sort" data-sort="name">Service</button>
+<button type="button" class="brite-list-sort" data-sort="duration_minutes">Duration</button>
+<button type="button" class="brite-list-sort" data-sort="price">Price</button>
+<button type="button" class="brite-list-sort" data-sort="active">Status</button>
+</div>
     <table>
         <thead>
         <tr>
-            <th>Service</th>
+            <th>Type</th><th>Service</th>
             <th>Duration</th>
             <th>Price</th>
             <th>Status</th>
@@ -77,7 +83,7 @@ function esc(s){
 let openId=null, allServices=[];
 function serviceDetail(s){
  const id=Number(s.id);
- return '<tr><td colspan="4"><form class="edit-service" data-id="'+id+'">'+
+ return '<tr><td colspan="5"><form class="edit-service" data-id="'+id+'">'+
  '<label>Name <input name="name" required maxlength="255" value="'+esc(s.name)+'"></label> '+
  '<label>Duration <input name="duration_minutes" type="number" min="1" max="10080" required value="'+Number(s.duration_minutes)+'"></label> '+
  '<label>Price <input name="price" type="number" min="0" step=".01" required value="'+Number(s.price).toFixed(2)+'"></label> '+
@@ -85,7 +91,26 @@ function serviceDetail(s){
  '<label>Description <textarea name="description">'+esc(s.description||'')+'</textarea></label>'+
  '<p class="danger" role="alert"></p><button type="submit">Save</button> <button type="button" data-cancel>Cancel</button></form></td></tr>';
 }
-function refreshServiceRows(){servicePager.setRecords(allServices);}
+let serviceSortField='name',serviceSortDirection=1;
+function refreshServiceRows(){
+ const compare=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
+ const sorted=allServices.slice().sort((a,b)=>{
+  const field=serviceSortField,av=a[field],bv=b[field];
+  const result=['duration_minutes','price','active'].includes(field)?Number(av||0)-Number(bv||0):compare.compare(String(av??''),String(bv??''));
+  return serviceSortDirection*result;
+ });
+ servicePager.setRecords(sorted);
+ document.querySelectorAll('#serviceSort [data-sort]').forEach(button=>{
+  const active=button.dataset.sort===serviceSortField;
+  button.setAttribute('aria-pressed',String(active));
+  button.textContent=button.textContent.replace(/ [▲▼]$/,'')+(active?(serviceSortDirection===1?' ▲':' ▼'):'');
+ });
+}
+document.querySelectorAll('#serviceSort [data-sort]').forEach(button=>button.addEventListener('click',()=>{
+ const field=button.dataset.sort;
+ serviceSortDirection=field===serviceSortField?-serviceSortDirection:1;
+ serviceSortField=field;servicePager.goTo(1);refreshServiceRows();
+}));
 serviceRows.addEventListener('click',e=>{
  const open=e.target.closest('[data-open]'), cancel=e.target.closest('[data-cancel]');
  if(open && !e.target.closest('button,a,input,textarea,select,label')){const id=Number(open.dataset.open);openId=openId===id?null:id;}
@@ -117,6 +142,7 @@ const servicePager = new BritePagination({
         serviceRows.innerHTML = services.length
             ? services.map(s => `
                 <tr data-open="${Number(s.id)}" tabindex="0" role="button" aria-expanded="${openId===Number(s.id)}" aria-label="Edit ${esc(s.name)}" style="cursor:pointer">
+                    <td><span class="brite-list-flat-icon" role="img" aria-label="Service"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m4 16 7-7 4 4-7 7H4zM13 7l4-4 4 4-4 4"/></svg></span></td>
                     <td>
                         <strong>${esc(s.name)}</strong>
                         <div class="muted">${esc(s.description)}</div>
