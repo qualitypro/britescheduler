@@ -117,6 +117,7 @@
      const heading=document.createElement('div');heading.className='brite-list-card-headings';
      // Clients only need Created On and Last Edited sorting headings.
      const fields=group==='client' ? [['created','Created On'],['edited','Last Edited']] : [['record','Record'],['status','Status'],['created','Created On'],['edited','Last Edited']];
+     if(group==='client')heading.classList.add('brite-list-client-headings');
      const state={field:'record',direction:1,cards:[],pager:null};
      cardLists.set(root,state);
      fields.forEach(([field,label])=>{
