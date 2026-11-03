@@ -162,7 +162,7 @@ const locationPager = new BritePagination({
               <summary class="brite-directory-summary">
                 <span class="brite-directory-summary-main">${allClientsMode()?`<span><strong>Client Name:</strong> ${escapeHtml(clientName(x))}</span>`:''}<strong>Location: ${escapeHtml(x.label)}</strong>
                 <small>${escapeHtml([x.address1,x.city,x.state,x.postal_code].filter(Boolean).join(', '))}</small></span>
-                <span class="brite-directory-state">${Number(x.is_primary)?'Primary':'Location'}</span>
+                <span class="brite-directory-state">${Number(x.is_primary)?'Primary':'Secondary'}</span>
               </summary>
               <div class="brite-directory-form">
                 <p><strong>Client Name:</strong> ${escapeHtml(clientName(x))}</p>
