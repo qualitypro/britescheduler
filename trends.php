@@ -17,6 +17,13 @@ require __DIR__.'/partials/app_header.php';
 .trends-stats strong{display:block;font-size:1.6rem}
 .trends-plot{overflow-x:auto}
 .trends-plot svg{min-width:600px}
+.trends-explainer{margin-top:18px;padding:16px;border:1px solid var(--brite-border,#cbd5e1);border-radius:12px;background:var(--brite-surface,#fff)}
+.trends-explainer h2{font-size:1.05rem;margin:0 0 10px}
+.trends-explainer h3{font-size:.95rem;margin:0 0 5px}
+.trends-explainer p{margin:0;line-height:1.55}
+.trends-explainer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:14px 0}
+.trends-explainer-grid>div{padding:12px;border-radius:9px;background:var(--brite-surface-muted,#f1f5f9)}
+.trends-explainer-note{font-size:.9rem}
 </style>
 <h1>Booking & Scheduling Trends</h1>
 <p class="muted">A rolling three-month window: previous month, selected month, and following month. Dates reflect scheduled service dates in the tenant calendar.</p>
@@ -32,7 +39,17 @@ require __DIR__.'/partials/app_header.php';
  <p id="trendStatusText" role="status" aria-live="polite">Loading trends…</p>
  <div class="trends-stats" id="trendStats"></div>
  <div class="trends-plot"><svg class="trends-chart" id="trendChart" viewBox="0 0 980 360" role="img" aria-label="Booking and scheduling trends chart"></svg></div>
- <p class="muted">X: service date · Y: number of records · Series: appointments, booking requests, assigned/unassigned appointments, and accepted/declined contractor assignments. Accepted and declined are current contractor assignment states, counted by appointment service date (not response date). A single appointment may have multiple contractor decisions; series should not be added together. Gross booked value uses non-void invoice totals when linked to appointments, otherwise service list prices as estimates; it excludes cancelled and no-show appointments. It is not cash collected. Gold series uses its own dollar scale.</p>
+ <div class="trends-explainer" aria-label="How to read this chart">
+ <h2>How to read this chart</h2>
+ <p>The bottom axis shows <strong>service dates</strong>. The left axis shows <strong>how many records</strong> fall on each date. The gold revenue series uses the <strong>dollar scale on the right</strong>.</p>
+ <div class="trends-explainer-grid">
+  <div><h3>Bookings</h3><p><strong>Appointments</strong> are scheduled visits. <strong>Booking requests</strong> are requests associated with those visits.</p></div>
+  <div><h3>Assignment coverage</h3><p><strong>Assigned</strong> means at least one contractor is linked to the appointment. <strong>Unassigned</strong> means none is linked.</p></div>
+  <div><h3>Contractor decisions</h3><p><strong>Accepted</strong> and <strong>declined</strong> reflect current contractor assignment decisions, shown on the appointment's service date—not the date someone responded.</p></div>
+  <div><h3>Gross booked value</h3><p>An estimate of the value of scheduled work, based on non-void invoice totals where available or otherwise service list prices. Cancelled and no-show appointments are excluded. <strong>This is not money collected.</strong></p></div>
+ </div>
+ <p class="muted trends-explainer-note"><strong>Keep in mind:</strong> One appointment can have several contractor decisions. These lines describe different aspects of the same work, so don't add the series together.</p>
+</div>
 </section>
 <script>
 (()=>{
