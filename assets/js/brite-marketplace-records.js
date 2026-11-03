@@ -146,6 +146,9 @@
         const ordered=matching.map((row,index)=>({row,index})).sort((a,b)=>
             st.direction*collator.compare(fieldValue(a.row,st.field),fieldValue(b.row,st.field))||a.index-b.index
         );
+        const ranks=new Map(ordered.map((entry,index)=>[entry.row,index]));
+        rows.forEach(row=>{row.style.order=String(ranks.get(row)??rows.length);});
+        st.pager.setRecords(ordered.map(entry=>entry.row));
         st.headers.querySelectorAll('button').forEach(button=>{
             const active=button.dataset.sortField===st.field;
             button.setAttribute('aria-pressed',String(active));
