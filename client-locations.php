@@ -147,6 +147,21 @@ addLocation.addEventListener('click',()=>{
   if(allClientsMode()){say('Select a client to add a location.');clientSelect.focus();return;}
   clearForm();activeLocationId=null;editor.hidden=false;form.scrollIntoView({behavior:'smooth'});
 });
+function formatRecordStamp(value) {
+    if (!value) return '';
+    const raw=String(value).trim();
+    const iso=/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(raw)
+        ? raw.replace(' ','T')+'Z' : raw;
+    const date=new Date(iso);
+    return Number.isNaN(date.getTime()) ? '' :
+        new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(date);
+}
+function recordTimestampMarkup(x) {
+    const created=formatRecordStamp(x.created_at);
+    const edited=formatRecordStamp(x.updated_at);
+    return [created ? 'Created on: '+created : '',edited ? 'Last edited: '+edited : '']
+        .filter(Boolean).map(text=>escapeHtml(text)).join(' · ');
+}
 const locationPager = new BritePagination({
     container: document.getElementById('locationPagination'),
     render(pageLocations) {
@@ -161,8 +176,8 @@ const locationPager = new BritePagination({
             return `<details class="brite-directory-record" data-location-id="${id}" title="${escapeHtml(locationTooltip(x))}">
               <summary class="brite-directory-summary">
                 <span class="brite-directory-summary-main">${allClientsMode()?`<span><strong>Client Name:</strong> ${escapeHtml(clientName(x))}</span>`:''}<strong>Location: ${escapeHtml(x.label)}</strong>
-                <small>${escapeHtml([x.address1,x.city,x.state,x.postal_code].filter(Boolean).join(', '))}</small></span>
-                <span class="brite-directory-state">${Number(x.is_primary)?'Primary':'Secondary'}</span>
+                <small>${escapeHtml([x.address1,x.city,x.state,x.postal_code].filter(Boolean).join(', '))}</small><small class="brite-record-timestamps">${recordTimestampMarkup(x)}</small></span>
+                <span class="brite-directory-state">${Number(x.is_primary)?'Primary':'Location'}</span>
               </summary>
               <div class="brite-directory-form">
                 <p><strong>Client Name:</strong> ${escapeHtml(clientName(x))}</p>
