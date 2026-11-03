@@ -8,7 +8,7 @@
 
 `PHP` · `MariaDB` · `JavaScript` · `HTML/CSS` · `Multi-Tenant Architecture`
 
-**Documentation version:** v1.1 · **Repository:** [qualitypro/britescheduler](https://github.com/qualitypro/britescheduler)
+**Documentation version:** v1.2 · **Repository:** [qualitypro/britescheduler](https://github.com/qualitypro/britescheduler)
 
 </div>
 
@@ -36,7 +36,7 @@
 
 A **tenant** represents a business or organization. Tenant-scoped data and role-based access help separate each organization's operational records. The server resolves tenant membership from the authenticated session rather than trusting a tenant identifier supplied by the browser.
 
-> **Project scope:** This README describes functionality evidenced by the repository inventory and development work through commit `7d0399b` (October 2026). Some features are still evolving; consult the implementation and test environment before relying on them in production.
+> **Project scope:** This README reflects reviewed implementation files on `main` as of November 3, 2026, including the recent UI, Activity Hub, and Trends changes. Feature descriptions refer to source implementation, not a production certification. Some workflows still require authenticated browser and regression testing.
 
 ## ✨ Features
 
@@ -89,6 +89,27 @@ The scheduling wizard includes **read-only, advisory contractor recommendations*
 - Geocoding cache, status tracking, and retry diagnostics.
 - Contractor service areas based on postal codes or geographic radius.
 - Service-location map views and service-area matching components.
+
+### 🖥️ Application shell, directories, and accessibility
+
+- Shared role-aware application header and sidebar, with a **notification indicator beside the signed-in user details** instead of a bottom-corner floating Activity Hub bubble.
+- **Activity Hub drawer** with outstanding/all views, unread counts, dismissal controls, and appointment review links where supported by the notification type. The full Activity Hub page remains available.
+- **Contextual tooltips** for navigation links, buttons, sorting controls, and expandable details, shown on pointer hover or keyboard focus. Known actions have specific descriptions; other labeled controls use generated fallbacks. These have not been individually audited across every page.
+- **Progressive value pills** summarize selected or entered form values while preserving the underlying controls and submissions. Users can reopen the editor; screens can opt out using `data-brite-pills="off"`. Dropdown labels exclude their option lists.
+- **Sortable, paginated lists** and expandable directory records where supported. The Contractors directory exposes Contractor, Created On, Last Edited, and Status sortable headings, with Status last. The Clients directory includes client name, email, created/edited timestamps, and status.
+- Persisted UI preferences include palette, calendar view, week start, time format, reduced motion, high contrast, and in-app notifications. Migration `015` defaults new high-contrast preference records to enabled without overriding existing preferences.
+
+### 📈 Booking and scheduling trends
+
+The `trends.php` workspace and `api/trends.php` provide a **rolling three-month window** (previous, selected, and following month) with appointment-status filtering, daily/weekly/monthly aggregation, and line/bar chart views.
+
+- Selectable series: appointments, booking requests, assigned/unassigned appointments, accepted/declined contractor assignments, and **Gross Booked Value (USD)**.
+- Gross Booked Value is recalculated from the **union of selected appointment categories** using server-provided per-day membership masks; appointments shared by several categories contribute only once.
+- The **Appointments** checkbox represents the all-bookings baseline and is mutually exclusive with narrower appointment categories. The Gross Booked Value checkbox controls chart visibility; its summary metric remains visible.
+- Booked value uses non-void linked invoice totals where available, otherwise catalog service prices. Cancelled and no-show appointments contribute no booked value. **This is an estimate/booking metric, not collected cash or recognized revenue.**
+- Assignment decision counts reflect current assignment states on the appointment's service date, not historical decision timestamps.
+
+**Validation caveat:** Source implementation and syntax checks do not establish that every revenue filter combination has been reconciled against a live tenant database. Verify selected-series totals and overlapping-category deduplication with representative fixtures before using these figures for financial decisions.
 
 ### 💼 Business operations and billing
 
@@ -166,6 +187,10 @@ britescheduler/
 ├── setup/               # Initial owner/bootstrap utilities
 ├── .env.example         # Environment variable template
 ├── README-BRITE-V2.md   # Earlier architecture/setup notes
+├── trends.php           # Booking/scheduling charts and booked value
+├── activity-hub.php     # Full notification activity view
+├── contractors.v2.php   # Contractor directory and qualifications
+├── contractor-service-areas.php # ZIP/radius coverage and matching
 ├── bidding.php          # Marketplace interface
 ├── scheduling.php       # Scheduling interface
 ├── client-dashboard.php # Client workspace
@@ -216,6 +241,7 @@ The `api/` directory groups HTTP endpoints by capability:
 | Finance | `invoices.php`, `payments.php` |
 | Notifications | `user_notifications.php`, `user_notification_read.php`, `owner_notifications.php` |
 | Preferences | `user_preferences.php` |
+| Trends | `trends.php` (rolling booking/assignment series and revenue membership masks) |
 
 This is a **directory guide, not a complete public API contract**. HTTP methods, request bodies, response schemas, and permissions should be checked in each endpoint before integration. Authentication is session-based; do not assume these are anonymous/public APIs.
 
@@ -278,7 +304,7 @@ Geocoding and initial-admin settings may be referenced by additional PHP environ
 
 ## 🧪 Testing and validation
 
-Development verification has included PHP syntax checks, Git diff/merge checks, browser integration checks, and authorization regression tests. In the Marketplace development cycle, an existing-fixture regression passed **11/11 checks** covering authorized client profile access, unauthorized client/tenant access, and eligible bid visibility.
+Development verification has included PHP syntax checks, Git diff/merge checks, browser integration checks, and authorization regression tests. Recent shared UI changes include JavaScript syntax validation but have **not** received a documented full cross-role, cross-browser interaction audit. In the Marketplace development cycle, an existing-fixture regression passed **11/11 checks** covering authorized client profile access, unauthorized client/tenant access, and eligible bid visibility.
 
 **Known testing gap:** Dedicated negative fixture tests for a *rejected-bid-only* relationship and a *declined-assignment-only* relationship remain outstanding. These authorization conditions are restricted in the implementation, but should be explicitly tested before treating the coverage as complete.
 
@@ -291,6 +317,8 @@ A formal automated test runner, CI configuration, and reproducible full-suite co
 The following are **planned or potential improvements**, not claims of completed functionality:
 
 - **Cycle 70:** authenticated Smart Dispatch end-to-end tests, stale-data and confirmation-flow checks, cross-tenant regression tests, and verification that server-side assignment restrictions cannot be bypassed.
+- Cross-role browser checks for header notifications, tooltip descriptions, keyboard accessibility, directory sorting, and value-pill form behavior.
+- Live-data reconciliation tests for Trends selected-series booked value, invoice fallbacks, and overlapping membership categories.
 - Broader end-to-end tests and reproducible CI checks.
 - Additional negative authorization fixtures for Marketplace access.
 - Further contractor discovery and geographic matching improvements.
