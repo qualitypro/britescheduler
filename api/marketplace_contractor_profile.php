@@ -173,6 +173,14 @@ foreach ($servicesQuery->fetchAll(PDO::FETCH_ASSOC) as $service) {
     ];
 }
 
+// Fetch only after the existing appointment/bid authorization gate.
+$publicQuery = $pdo->prepare(
+    'SELECT headline, biography, specialties, years_experience, portfolio_url
+     FROM contractor_profiles WHERE tenant_id=? AND contractor_id=? LIMIT 1'
+);
+$publicQuery->execute([$tenantId, (int)$profile['contractor_id']]);
+$publicDetails = $publicQuery->fetch(PDO::FETCH_ASSOC) ?: [];
+
 /*
  * Public-facing profile response.
  * Email and phone are intentionally excluded.
@@ -185,6 +193,11 @@ json_response([
         'last_name' => $profile['last_name'],
         'business_name' => $profile['business_name'],
         'skills' => $profile['skills'],
+        'headline' => $publicDetails['headline'] ?? '',
+        'biography' => $publicDetails['biography'] ?? '',
+        'specialties' => $publicDetails['specialties'] ?? '',
+        'years_experience' => isset($publicDetails['years_experience']) ? (int)$publicDetails['years_experience'] : null,
+        'portfolio_url' => $publicDetails['portfolio_url'] ?? null,
         'services' => $services,
         'hourly_rate' => $profile['hourly_rate'],
         'status' => $profile['status']
