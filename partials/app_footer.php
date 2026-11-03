@@ -8,5 +8,8 @@
     ENT_QUOTES,
     'UTF-8'
 )?>"></script>
+<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-unified-lists.css'),ENT_QUOTES,'UTF-8')?>">
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-pagination.js'),ENT_QUOTES,'UTF-8')?>"></script>
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-unified-lists.js'),ENT_QUOTES,'UTF-8')?>"></script>
 </body>
 </html>
