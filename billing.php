@@ -246,6 +246,33 @@ const cancelPayment =
 let invoices = [];
 let payments = [];
 
+let billingSort={invoice:{field:'invoice_number',direction:1},payment:{field:'paid_at',direction:-1}};
+function sortBilling(records,kind){
+ const {field,direction}=billingSort[kind],collator=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
+ return records.slice().sort((a,b)=>{
+  const av=a[field],bv=b[field];
+  const numeric=['total','amount_paid','balance_due','amount'].includes(field);
+  const result=numeric?Number(av||0)-Number(bv||0):collator.compare(String(av??''),String(bv??''));
+  return direction*result;
+ });
+}
+function installBillingSort(table,kind,fields){
+ if(!table)return;
+ const headers=[...table.querySelectorAll('thead th')];
+ headers.forEach((th,index)=>{
+  const field=fields[index];if(!field||field==='action')return;
+  const label=th.textContent.trim(),button=document.createElement('button');
+  button.type='button';button.className='brite-list-sort';button.textContent=label;
+  th.replaceChildren(button);
+  button.addEventListener('click',()=>{
+   const state=billingSort[kind];state.direction=state.field===field?-state.direction:1;state.field=field;
+   const pager=kind==='invoice'?invoicePager:paymentPager;
+   pager.setRecords(sortBilling(kind==='invoice'?invoices:payments,kind),true);
+   headers.forEach(h=>h.removeAttribute('aria-sort'));
+   th.setAttribute('aria-sort',state.direction===1?'ascending':'descending');
+  });
+ });
+}
 function money(value){
     return '$' + Number(value || 0).toFixed(2);
 }
@@ -356,7 +383,7 @@ function renderInvoices(pageInvoices){
 
             return `
                 <tr>
-                    <td>${escapeHtml(x.invoice_number)}</td>
+                    <td><span class="brite-list-flat-icon" role="img" aria-label="Invoice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg></span> ${escapeHtml(x.invoice_number)}</td>
                     <td>${escapeHtml(x.client_name)}</td>
                     <td>${escapeHtml(x.appointment_title || '')}</td>
                     <td>${escapeHtml(statusLabel(x.status))}</td>
@@ -438,6 +465,8 @@ function renderMetrics(){
     ).textContent=money(successfulPayments);
 }
 
+installBillingSort(document.getElementById('invoiceRows')?.closest('table'),'invoice',['invoice_number','client_name','appointment_id','status','total','amount_paid','balance_due','due_date','action']);
+installBillingSort(document.getElementById('paymentRows')?.closest('table'),'payment',['invoice_number','client_name','amount','method','status','paid_at','provider_reference']);
 async function loadBilling(){
 
     billingError.textContent='';
@@ -456,8 +485,8 @@ async function loadBilling(){
         payments =
             paymentData.payments || [];
 
-        invoicePager.setRecords(invoices);
-        paymentPager.setRecords(payments);
+        invoicePager.setRecords(sortBilling(invoices,'invoice'));
+        paymentPager.setRecords(sortBilling(payments,'payment'));
         renderMetrics();
 
     }catch(e){
