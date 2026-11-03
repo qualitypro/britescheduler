@@ -362,3 +362,12 @@ This project is under active development. Before contributing, review existing c
 *README v1.2 — updated November 2026; source smoke-check workflow added*
 
 </div>
+
+
+### Cycle 71B — Contractor portfolio photos (deployment required)
+- Run `migrations/021_contractor_portfolio_photos.sql` once after migration 020.
+- Set `BRITE_PRIVATE_UPLOAD_DIR` in server configuration to an **absolute, writable directory outside the Apache document root** (for example `/home/digital/brite-private-uploads`). The directory must be writable by the PHP/Apache process, with private permissions. Do not commit its contents or configuration secrets.
+- Requires PHP GD extension and `file_uploads=On`; PHP `upload_max_filesize` and `post_max_size` must allow 5 MB uploads.
+- Contractor profile page allows 20 JPEG/PNG images, 5 MB each, with authenticated tenant-scoped image access and deletion. Original metadata is stripped by decoding and re-encoding the image. Photo ordering and cover selection are future enhancements.
+- Only contractor users may upload/delete their own images. Client, owner, and admin image viewing requires an authenticated role within the same tenant; contractor image viewing is restricted to their own portfolio. A client directory and quote requests are not yet part of this milestone.
+- Do not deploy until the private directory is configured; uploads fail closed otherwise.
