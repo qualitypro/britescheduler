@@ -22,7 +22,8 @@ command -v "$NODE_BIN" >/dev/null || { echo "ERROR: Node.js unavailable: $NODE_B
 # Limit to maintained entry points and shared frontend scripts; this does not
 # execute endpoints, connect to a database, or imply security test coverage.
 php_files=(
-  app/bootstrap.php app/DispatchRequest.php tests/dispatch_request_test.php
+  app/bootstrap.php app/DispatchRequest.php
+  contractor-profile.php api/my_contractor_profile.php api/marketplace_contractor_profile.php tests/dispatch_request_test.php
   partials/app_header.php partials/app_footer.php
   scheduling.php contractors.v2.php contractor-service-areas.php
   trends.php activity-hub.php
@@ -31,7 +32,7 @@ php_files=(
   api/marketplace_client_listings.php api/client_locations.php
 )
 js_files=(
-  assets/js/brite-app-shell.js assets/js/brite-activity-hub.js
+  assets/js/contractor-profile.js assets/js/brite-app-shell.js assets/js/brite-activity-hub.js
   assets/js/brite-tooltips.js assets/js/brite-value-pills.js
   assets/js/brite-unified-lists.js assets/js/brite-pagination.js
 )
