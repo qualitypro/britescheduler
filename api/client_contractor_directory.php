@@ -24,7 +24,7 @@ $args=[$tid];
 if ($id) {$conditions[]='c.id=?';$args[]=$id;}
 if ($search!=='') {
  $conditions[]="(c.business_name LIKE ? OR c.first_name LIKE ? OR c.last_name LIKE ? OR p.headline LIKE ? OR p.specialties LIKE ? OR c.skills LIKE ?)";
- $like='%'.str_replace(['!','%','_'],['!!','!%','!_'],$search).'%';
+ $like='%'.$search.'%';
  for($i=0;$i<6;$i++) $args[]=$like;
 }
 if ($service) {
