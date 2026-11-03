@@ -329,6 +329,29 @@ My Locations
         </div>
 
         <div class="brite-topbar-actions">
+            <!-- Notifications live beside the signed-in user's identity. -->
+    <button
+        type="button"
+        id="briteActivityHubToggle"
+        class="brite-activity-hub-toggle"
+        aria-label="Open activity hub"
+        aria-controls="briteActivityHub"
+        aria-expanded="false"
+        hidden>
+        <svg
+            aria-hidden="true"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M3 12h4l3-7 4 14 3-7h4"/>
+        </svg>
+        <span id="briteActivityHubToggleCount">0</span>
+    </button>
             <div class="brite-account">
                 <div class="brite-avatar" aria-hidden="true">
                     <?=htmlspecialchars(strtoupper(substr($user['first_name'],0,1).substr($user['last_name'],0,1)))?>
@@ -394,27 +417,5 @@ My Locations
         </div>
     </aside>
 
-    <button
-        type="button"
-        id="briteActivityHubToggle"
-        class="brite-activity-hub-toggle"
-        aria-label="Open activity hub"
-        aria-controls="briteActivityHub"
-        aria-expanded="false"
-        hidden>
-        <svg
-            aria-hidden="true"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round">
-            <path d="M3 12h4l3-7 4 14 3-7h4"/>
-        </svg>
-        <span id="briteActivityHubToggleCount">0</span>
-    </button>
 
 <main class="brite-content" id="briteMainContent" tabindex="-1">
