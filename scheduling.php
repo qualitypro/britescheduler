@@ -1076,7 +1076,7 @@ require __DIR__.'/partials/app_header.php';
             <fieldset id="cycle69cFilters" class="cycle69c-filters" disabled aria-label="Filter contractor recommendations">
                 <legend>Filter recommendations</legend>
                 <label>Status
-                    <select id="cycle69cStatus">
+                    <select id="cycle69cStatus" data-brite-pills="off">
                         <option value="all">All statuses</option>
                         <option value="ready_for_review">Ready for review</option>
                         <option value="manual_review">Manual review</option>
