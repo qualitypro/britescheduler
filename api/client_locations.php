@@ -19,13 +19,19 @@ if ($role === 'client') {
     $q->execute([$tid,(int)$user['id']]);
     $clientId=(int)($q->fetchColumn() ?: 0);
 }
-if ($clientId < 1) json_response(['error'=>'Client not found'],404);
-$q=$pdo->prepare('SELECT id FROM clients WHERE id=? AND tenant_id=?');
-$q->execute([$clientId,$tid]);
-if (!$q->fetchColumn()) json_response(['error'=>'Client not found'],404);
+$allClients = $method === 'GET' && $role === 'owner' && (string)($d['client_id'] ?? '') === 'all';
+if ($clientId < 1 && !$allClients) json_response(['error'=>'Client not found'],404);
+if (!$allClients) {
+    $q=$pdo->prepare('SELECT id FROM clients WHERE id=? AND tenant_id=?');
+    $q->execute([$clientId,$tid]);
+    if (!$q->fetchColumn()) json_response(['error'=>'Client not found'],404);
+}
 if ($method === 'GET') {
-    $q=$pdo->prepare('SELECT id,client_id,label,address1,address2,city,state,postal_code,service_instructions,latitude,longitude,geocoding_status,geocoding_attempted_at,geocoding_resolved_at,is_primary FROM client_locations WHERE tenant_id=? AND client_id=? ORDER BY is_primary DESC,label,id');
-    $q->execute([$tid,$clientId]);
+    $sql='SELECT l.id,l.client_id,l.label,l.address1,l.address2,l.city,l.state,l.postal_code,l.service_instructions,l.latitude,l.longitude,l.geocoding_status,l.geocoding_attempted_at,l.geocoding_resolved_at,l.is_primary,CONCAT(c.first_name,\' \',c.last_name) AS client_name FROM client_locations l JOIN clients c ON c.id=l.client_id AND c.tenant_id=l.tenant_id WHERE l.tenant_id=?';
+    if (!$allClients) $sql.=' AND l.client_id=?';
+    $sql.=' ORDER BY c.last_name,c.first_name,l.is_primary DESC,l.label,l.id';
+    $q=$pdo->prepare($sql);
+    $q->execute($allClients?[$tid]:[$tid,$clientId]);
     $locations = $q->fetchAll(PDO::FETCH_ASSOC);
 
     // Determine retry availability using the database UTC clock.
