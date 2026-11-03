@@ -7,9 +7,9 @@ $qualificationCanEdit = in_array((string)Auth::tenant()['role'], ['owner','admin
 <h1>Contractors</h1><p class="muted">Expand a contractor to edit their profile and manage service qualifications.</p><div class="card"><form id="f"><div class="row"><input name="first_name" placeholder="First name" required><input name="last_name" placeholder="Last name" required><input name="business_name" placeholder="Business"><input name="email" type="email" placeholder="Email"><input name="phone" placeholder="Phone"><input name="hourly_rate" type="number" step=".01" placeholder="Hourly rate"><button>Add contractor</button></div></form></div>
 <div class="brite-list-card-headings" id="contractorSort" role="group" aria-label="Sort contractors">
 <button type="button" class="brite-list-sort" data-sort="name">Contractor</button>
-<button type="button" class="brite-list-sort" data-sort="status">Status</button>
 <button type="button" class="brite-list-sort" data-sort="created_at">Created On</button>
 <button type="button" class="brite-list-sort" data-sort="updated_at">Last Edited</button>
+<button type="button" class="brite-list-sort" data-sort="status">Status</button>
 </div><section class="brite-directory-list" id="rows" aria-label="Contractor records" style="margin-top:18px"></section><div id="contractorPagination"></div>
 
 <div class="card" id="qualificationPanel"
