@@ -168,3 +168,23 @@
 .brite-marketplace .brite-marketplace-record-icon[data-kind="cancelled"] {color:#991b1b;background:#fee2e2}
 .brite-marketplace .brite-marketplace-record-icon[data-kind="unlisted"] {color:#475569;background:#e2e8f0}
 @media(max-width:640px){.brite-marketplace .brite-marketplace-record-icon{width:2.15rem;height:2.15rem;flex-basis:2.15rem}}
+
+/* Sortable Marketplace list headers. */
+.brite-marketplace .brite-marketplace-sort-headers {
+ display:grid;grid-template-columns:2fr 2fr 1fr;gap:.75rem;
+ padding:.65rem 1rem;margin-top:.75rem;
+ border:1px solid var(--brite-border,#dce3ec);border-bottom:0;
+ border-radius:12px 12px 0 0;background:var(--brite-surface-muted,#f1f5f9);
+}
+.brite-marketplace .brite-marketplace-sort-headers + .bidding-projects {border-radius:0 0 12px 12px}
+.brite-marketplace .brite-marketplace-sort-heading {
+ border:0;background:transparent;color:var(--brite-text,#0f172a);
+ font:inherit;font-size:.85rem;font-weight:700;text-align:left;
+ cursor:pointer;padding:.4rem .25rem;min-height:36px;
+}
+.brite-marketplace .brite-marketplace-sort-heading:hover {text-decoration:underline}
+.brite-marketplace .brite-marketplace-sort-heading[aria-pressed="true"] {color:var(--brite-indigo,#4f46e5)}
+@media(max-width:640px){
+ .brite-marketplace .brite-marketplace-sort-headers {gap:.25rem;padding:.45rem .65rem}
+ .brite-marketplace .brite-marketplace-sort-heading {font-size:.76rem}
+}
