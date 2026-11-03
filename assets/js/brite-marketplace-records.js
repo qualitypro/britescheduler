@@ -103,72 +103,117 @@
         });
     }
 
-    // Sort only the currently rendered records. Re-rendered API results are
-    // sorted again without changing marketplace permissions or server filters.
-    const sortState = new WeakMap();
-    function sortRows(root) {
-        const setting = sortState.get(root);
-        if (!setting) return;
-        const rows = [...root.children].filter(el => el.classList?.contains('brite-marketplace-record-host'));
-        const fieldText = (row, field) => {
-            const summary = row.querySelector('.brite-marketplace-record-summary');
-            const selector = {
-                record: '.brite-marketplace-record-title',
-                details: '.brite-marketplace-record-meta',
-                status: '.brite-marketplace-record-state'
-            }[field];
-            return normalize(summary?.querySelector(selector)?.textContent).toLowerCase();
-        };
-        const collator = new Intl.Collator(undefined, {numeric:true, sensitivity:'base'});
-        const ordered = rows.map((row, index) => ({row,index})).sort((a,b) =>
-            setting.direction * collator.compare(fieldText(a.row,setting.field),fieldText(b.row,setting.field)) || a.index-b.index
-        );
-        // Avoid unnecessary DOM moves and observer notifications.
-        if (ordered.every((entry,index) => entry.row===rows[index])) return;
-        root.append(...ordered.map(entry=>entry.row));
+    // Per-list sorting, type filtering and pagination. API-rendered rows remain intact.
+    const listState = new WeakMap();
+    const collator = new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
+    const textOf = (row,selector) => normalize(row.querySelector(selector)?.textContent || '');
+    function recordType(row) {
+        const title=textOf(row,'.brite-marketplace-record-title').toLowerCase();
+        const content=textOf(row,'.brite-marketplace-record-sheet').toLowerCase();
+        if (/notification|alert|message/.test(title)) return 'Notification';
+        if (/booking request/.test(title)) return 'Booking Request';
+        if (/bid|proposal/.test(title)) return 'Bid';
+        if (/assignment/.test(title)) return 'Assignment';
+        if (/listing/.test(title)) return 'Listing';
+        if (/appointment/.test(title)) return 'Appointment';
+        if (/notification|alert/.test(content) && !/appointment|listing|bid/.test(title)) return 'Notification';
+        return 'Other';
     }
-    function addSortHeaders(root) {
-        if (sortState.has(root)) return;
-        sortState.set(root,{field:'record',direction:1});
-        const bar=document.createElement('div');
-        bar.className='brite-marketplace-sort-headers';
-        bar.setAttribute('role','group');
-        bar.setAttribute('aria-label','Sort Marketplace records');
-        for (const [field,title] of [['record','Record'],['details','Details'],['status','Status']]) {
+    function fieldValue(row,field) {
+        if(field==='type') return recordType(row);
+        return textOf(row,({
+            record:'.brite-marketplace-record-title',
+            details:'.brite-marketplace-record-meta',
+            status:'.brite-marketplace-record-state'
+        })[field] || '.brite-marketplace-record-title');
+    }
+    function draw(root) {
+        const st=listState.get(root);
+        if(!st) return;
+        const rows=[...root.children].filter(el=>el.classList?.contains('brite-marketplace-record-host'));
+        const types=[...new Set(rows.map(recordType))].sort(collator.compare);
+        const prior=st.type.value;
+        st.type.replaceChildren(new Option('All record types','all'),...types.map(type=>new Option(type,type)));
+        st.type.value=types.includes(prior)?prior:'all';
+        const matching=rows.filter(row=>st.type.value==='all'||recordType(row)===st.type.value);
+        const ordered=matching.map((row,index)=>({row,index})).sort((a,b)=>
+            st.direction*collator.compare(fieldValue(a.row,st.field),fieldValue(b.row,st.field))||a.index-b.index
+        );
+        // Hide rather than detach records, preserving active forms and event handlers.
+        const total=ordered.length;
+        const pageSize=Number(st.size.value);
+        const pages=Math.max(1,Math.ceil(total/pageSize));
+        st.page=Math.min(st.page,pages);
+        const visible=new Set(ordered.slice((st.page-1)*pageSize,st.page*pageSize).map(x=>x.row));
+        rows.forEach(row=>{row.hidden=!visible.has(row);});
+        // CSS display overrides hidden in some layouts; mark for explicit hiding.
+        st.summary.textContent=total ? 'Showing '+((st.page-1)*pageSize+1)+'–'+Math.min(st.page*pageSize,total)+' of '+total+' records' : 'No matching records';
+        st.pageLabel.textContent='Page '+st.page+' of '+pages;
+        st.previous.disabled=st.page<=1;
+        st.next.disabled=st.page>=pages;
+        st.headers.querySelectorAll('button').forEach(button=>{
+            const active=button.dataset.sortField===st.field;
+            button.setAttribute('aria-pressed',String(active));
+            button.textContent=button.dataset.label+(active?(st.direction===1?' ▲':' ▼'):'');
+        });
+    }
+    function setup(root) {
+        if(listState.has(root)) return;
+        const headers=document.createElement('div');
+        headers.className='brite-marketplace-sort-headers';
+        headers.setAttribute('role','group');
+        headers.setAttribute('aria-label','Sort Marketplace records');
+        const toolbar=document.createElement('div');
+        toolbar.className='brite-marketplace-list-tools';
+        const type=document.createElement('select');
+        type.setAttribute('aria-label','Filter by record or notification type');
+        const size=document.createElement('select');
+        size.setAttribute('aria-label','Records per page');
+        [10,25,50,100].forEach(n=>size.add(new Option(n+' per page',String(n))));
+        size.value='10';
+        const summary=document.createElement('span');
+        summary.setAttribute('role','status');
+        const previous=document.createElement('button');
+        previous.type='button';previous.textContent='Previous';
+        const pageLabel=document.createElement('span');
+        const next=document.createElement('button');
+        next.type='button';next.textContent='Next';
+        toolbar.append(type,size,summary,previous,pageLabel,next);
+        const st={field:'record',direction:1,page:1,headers,type,size,summary,previous,next,pageLabel};
+        listState.set(root,st);
+        for(const [field,title] of [['record','Record'],['details','Details'],['type','Type / Notification'],['status','Status']]){
             const button=document.createElement('button');
             button.type='button';
             button.className='brite-marketplace-sort-heading';
             button.dataset.sortField=field;
-            button.textContent=title;
+            button.dataset.label=title;
             button.setAttribute('aria-label','Sort by '+title);
             button.addEventListener('click',()=>{
-                const current=sortState.get(root);
-                const direction=current.field===field ? -current.direction : 1;
-                sortState.set(root,{field,direction});
-                bar.querySelectorAll('button').forEach(item=>{
-                    const active=item.dataset.sortField===field;
-                    item.setAttribute('aria-pressed',String(active));
-                    item.textContent=item.dataset.sortField.charAt(0).toUpperCase()+item.dataset.sortField.slice(1)+(active?(direction===1?' ▲':' ▼'):'');
-                });
-                sortRows(root);
+                st.direction=st.field===field?-st.direction:1;
+                st.field=field;st.page=1;draw(root);
             });
-            button.setAttribute('aria-pressed',String(field==='record'));
-            if(field==='record') button.textContent+=' ▲';
-            bar.appendChild(button);
+            headers.append(button);
         }
-        root.parentNode.insertBefore(bar,root);
+        type.addEventListener('change',()=>{st.page=1;draw(root);});
+        size.addEventListener('change',()=>{st.page=1;draw(root);});
+        previous.addEventListener('click',()=>{st.page=Math.max(1,st.page-1);draw(root);});
+        next.addEventListener('click',()=>{st.page++;draw(root);});
+        root.before(headers,toolbar);
+        draw(root);
     }
-
-    roots.forEach(root => {
-        addSortHeaders(root);
-        let queued = false;
-        const observer = new MutationObserver(() => {
-            if (queued) return;
-            queued = true;
-            queueMicrotask(() => { queued = false; upgrade(root); sortRows(root); });
+    roots.forEach(root=>{
+        setup(root);
+        let queued=false;
+        const observer=new MutationObserver(records=>{
+            // Ignore changes to attributes and inner details; API refreshes replace rows.
+            if(!records.some(record=>[...record.addedNodes,...record.removedNodes].some(node=>
+                node instanceof HTMLElement && node.classList.contains('bidding-project')))) return;
+            if(queued) return;
+            queued=true;
+            queueMicrotask(()=>{queued=false;upgrade(root);draw(root);});
         });
-        observer.observe(root, {childList: true});
+        observer.observe(root,{childList:true});
         upgrade(root);
-        sortRows(root);
+        draw(root);
     });
 })();
