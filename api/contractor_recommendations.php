@@ -11,6 +11,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/app/bootstrap.php';
 require_once dirname(__DIR__) . '/app/ContractorEligibilityEngine.php';
 require_once dirname(__DIR__) . '/app/ContractorRankingEngine.php';
+require_once dirname(__DIR__) . '/app/DispatchRequest.php';
 
 Auth::requireUser();
 $tenant = Auth::tenant();
@@ -27,54 +28,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
     json_response(['error' => 'Method not allowed'], 405);
 }
 
-/**
- * Strict positive integer query parameter.
- */
-function recommendation_id(mixed $value): ?int
-{
-    if (!is_string($value) && !is_int($value)) {
-        return null;
-    }
-
-    $id = filter_var(
-        $value,
-        FILTER_VALIDATE_INT,
-        ['options' => ['min_range' => 1]]
-    );
-
-    return $id === false ? null : $id;
-}
-
-/**
- * Accept a local datetime without ambiguous timezone conversion.
- */
-function recommendation_datetime(mixed $value): ?string
-{
-    if (!is_string($value)) {
-        return null;
-    }
-
-    $value = trim($value);
-
-    foreach (['!Y-m-d H:i:s', '!Y-m-d\TH:i:s', '!Y-m-d\TH:i'] as $format) {
-        $dt = DateTimeImmutable::createFromFormat($format, $value);
-
-        if ($dt && $dt->format(substr($format, 1)) === $value) {
-            return $dt->format('Y-m-d H:i:s');
-        }
-    }
-
-    return null;
-}
-
-$locationId = recommendation_id($_GET['location_id'] ?? null);
-$startsAt = recommendation_datetime($_GET['starts_at'] ?? null);
-$endsAt = recommendation_datetime($_GET['ends_at'] ?? null);
+$locationId = DispatchRequest::positiveId($_GET['location_id'] ?? null);
+$startsAt = DispatchRequest::localDatetime($_GET['starts_at'] ?? null);
+$endsAt = DispatchRequest::localDatetime($_GET['ends_at'] ?? null);
 
 $serviceId = null;
 
 if (array_key_exists('service_id', $_GET)) {
-    $serviceId = recommendation_id($_GET['service_id']);
+    $serviceId = DispatchRequest::positiveId($_GET['service_id']);
 
     if ($serviceId === null) {
         json_response(['error' => 'Invalid service ID'], 422);
@@ -84,7 +45,7 @@ if (array_key_exists('service_id', $_GET)) {
 $excludeAppointmentId = null;
 
 if (array_key_exists('exclude_appointment_id', $_GET)) {
-    $excludeAppointmentId = recommendation_id(
+    $excludeAppointmentId = DispatchRequest::positiveId(
         $_GET['exclude_appointment_id']
     );
 
@@ -97,7 +58,7 @@ if ($locationId === null) {
     json_response(['error' => 'Valid location ID required'], 422);
 }
 
-if ($startsAt === null || $endsAt === null) {
+if (!DispatchRequest::validInterval($startsAt, $endsAt)) {
     json_response(['error' => 'Valid appointment times required'], 422);
 }
 
