@@ -53,7 +53,8 @@
         hub.hidden = !open;
         hub.setAttribute('aria-hidden', String(!open));
 
-        toggle.hidden = open;
+        // Keep the header notification button in place while the drawer is open.
+        toggle.hidden = false;
         backdrop.hidden = !open;
         toggle.setAttribute('aria-expanded', String(open));
         toggle.setAttribute(
@@ -85,7 +86,7 @@
 
         toggle.setAttribute(
             'aria-label',
-            'Open activity hub, ' + safeCount + ' unread notifications'
+            (open ? 'Close' : 'Open') + ' activity hub, ' + safeCount + ' unread notifications'
         );
     }
 
@@ -301,7 +302,7 @@
 
         setOpen(false);
 
-        toggle.addEventListener('click', () => setOpen(true));
+        toggle.addEventListener('click', () => setOpen(!open));
         outstandingButton.addEventListener('click', () => { view = 'outstanding'; renderList(); });
         allButton.addEventListener('click', () => { view = 'all'; renderList(); });
 
