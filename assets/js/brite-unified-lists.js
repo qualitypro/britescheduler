@@ -115,11 +115,14 @@
        root.id==='inviteRecords'?'notification':'contractor';
      const group=category?.startsWith('client')?'client':category?.startsWith('contractor')?'contractor':category||'default';
      const heading=document.createElement('div');heading.className='brite-list-card-headings';
-     // Clients only need Created On and Last Edited sorting headings.
-     const fields=group==='client' ? [['created','Created On'],['edited','Last Edited']] : [['record','Record'],['status','Status'],['created','Created On'],['edited','Last Edited']];
+     // First client column is an intentionally blank, non-sortable icon heading.
+     const fields=group==='client' ? [['record','Client Name'],['email','Email'],['created','Created On'],['edited','Last Edited'],['status','Status']] : [['record','Record'],['status','Status'],['created','Created On'],['edited','Last Edited']];
      if(group==='client')heading.classList.add('brite-list-client-headings');
      const state={field:'record',direction:1,cards:[],pager:null};
      cardLists.set(root,state);
+     if(group==='client'){
+       const blank=document.createElement('span');blank.className='brite-list-icon-heading';blank.setAttribute('aria-hidden','true');heading.append(blank);
+     }
      fields.forEach(([field,label])=>{
        const button=document.createElement('button');button.type='button';button.className='brite-list-sort';
        button.textContent=label;button.dataset.field=field;
@@ -159,8 +162,14 @@
      }
      function value(card,field){
        if(field==='type')return group;
+       if(field==='email')return normalize(card.dataset.clientEmail);
        if(field==='status')return normalize(card.querySelector('.brite-directory-state')?.textContent);
        if(field==='created'||field==='edited'){
+         if(group==='client'){
+           const raw=field==='created'?card.dataset.clientCreated:card.dataset.clientEdited;
+           const parsed=raw?Date.parse(/^\d{4}-\d\d-\d\d \d\d:\d\d/.test(raw)?raw.replace(' ','T')+'Z':raw):NaN;
+           return Number.isFinite(parsed)?parsed:-1;
+         }
          const t=card.querySelector('.brite-record-timestamps')?.textContent||'';
          const match=t.match(new RegExp((field==='created'?'Created on':'Last edited')+':\\s*(.*?)(?=\\s*·\\s*|$)','i'));
          const parsed=match?Date.parse(match[1]):NaN;
