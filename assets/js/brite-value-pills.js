@@ -13,9 +13,18 @@
   if (el.closest('[contenteditable="true"]')) return false;
   return !!(el.name || el.id || el.getAttribute('aria-label'));
  }
+ function humanizeLabel(raw) {
+  const cleaned=String(raw || 'Value')
+   .replace(/([a-z0-9])([A-Z])/g,'$1 $2')
+   .replace(/[_-]+/g,' ')
+   .replace(/\\s+/g,' ')
+   .replace(/[:*\\s]+$/g,'')
+   .trim();
+  return (cleaned || 'Value').replace(/\\b[a-z]/g,letter=>letter.toUpperCase());
+ }
  function label(el) {
   const text=el.labels && el.labels.length ? el.labels[0].textContent.trim() : '';
-  return (text || el.getAttribute('aria-label') || el.name || el.id || 'Value').replace(/[:*]+$/,'').trim();
+  return humanizeLabel(text || el.getAttribute('aria-label') || el.name || el.id || 'Value');
  }
  function value(el) {
   if (el.tagName==='SELECT') return el.value && el.selectedOptions.length ? [...el.selectedOptions].filter(o=>o.value).map(o=>o.textContent.trim()).join(', ') : '';
