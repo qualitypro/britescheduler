@@ -312,7 +312,7 @@ Cycles 69A–69D were verified through Git fast-forward, PHP syntax checks, and 
 
 ### Automated source smoke checks (roadmap milestone)
 
-The repository includes `scripts/ci-smoke.sh` and `.github/workflows/source-smoke.yml`. The workflow runs on pushes to `main`, pull requests, and manual dispatch using PHP 8.2 and Node.js 22. It syntax-checks a maintained set of PHP entry points/API endpoints and shared JavaScript files.
+The repository includes `scripts/ci-smoke.sh` and `.github/workflows/source-smoke.yml`. The workflow runs on pushes to `main`, pull requests, and manual dispatch using PHP 8.2 and Node.js 22. It syntax-checks a maintained set of PHP entry points/API endpoints and shared JavaScript files, and runs dependency-free Smart Dispatch request validation unit tests (`tests/dispatch_request_test.php`).
 
 Run the same checks locally from the repository root:
 
@@ -328,7 +328,7 @@ To use the local LAMPP PHP binary: `PHP_BIN=/opt/lampp/bin/php bash scripts/ci-s
 
 The following are **planned or potential improvements**, not claims of completed functionality:
 
-- **Cycle 70:** authenticated Smart Dispatch end-to-end tests, stale-data and confirmation-flow checks, cross-tenant regression tests, and verification that server-side assignment restrictions cannot be bypassed.
+- **Cycle 70 remaining:** authenticated Smart Dispatch end-to-end tests, stale-data and confirmation-flow checks, cross-tenant regression tests, and verification that server-side assignment restrictions cannot be bypassed. The first unit-test slice (strict IDs, local datetimes, valid same-day intervals) is implemented and wired into CI.
 - Cross-role browser checks for header notifications, tooltip descriptions, keyboard accessibility, directory sorting, and value-pill form behavior.
 - Live-data reconciliation tests for Trends selected-series booked value, invoice fallbacks, and overlapping membership categories.
 - Extend the initial CI syntax smoke checks with database-backed integration tests, browser automation, and security regressions.
