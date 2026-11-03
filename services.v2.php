@@ -57,7 +57,7 @@ require __DIR__.'/partials/app_header.php';
     <table>
         <thead>
         <tr>
-            <th>Type</th><th>Service</th>
+            <th>Service</th>
             <th>Duration</th>
             <th>Price</th>
             <th>Status</th>
@@ -83,7 +83,7 @@ function esc(s){
 let openId=null, allServices=[];
 function serviceDetail(s){
  const id=Number(s.id);
- return '<tr><td colspan="5"><form class="edit-service" data-id="'+id+'">'+
+ return '<tr><td colspan="4"><form class="edit-service" data-id="'+id+'">'+
  '<label>Name <input name="name" required maxlength="255" value="'+esc(s.name)+'"></label> '+
  '<label>Duration <input name="duration_minutes" type="number" min="1" max="10080" required value="'+Number(s.duration_minutes)+'"></label> '+
  '<label>Price <input name="price" type="number" min="0" step=".01" required value="'+Number(s.price).toFixed(2)+'"></label> '+
@@ -142,8 +142,8 @@ const servicePager = new BritePagination({
         serviceRows.innerHTML = services.length
             ? services.map(s => `
                 <tr data-open="${Number(s.id)}" tabindex="0" role="button" aria-expanded="${openId===Number(s.id)}" aria-label="Edit ${esc(s.name)}" style="cursor:pointer">
-                    <td><span class="brite-list-flat-icon" role="img" aria-label="Service"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m4 16 7-7 4 4-7 7H4zM13 7l4-4 4 4-4 4"/></svg></span></td>
                     <td>
+                        <span class="brite-list-flat-icon" role="img" aria-label="Service"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m4 16 7-7 4 4-7 7H4zM13 7l4-4 4 4-4 4"/></svg></span>
                         <strong>${esc(s.name)}</strong>
                         <div class="muted">${esc(s.description)}</div>
                     </td>
@@ -152,7 +152,7 @@ const servicePager = new BritePagination({
                     <td>${Number(s.active) ? 'Active' : 'Inactive'}</td>
                 </tr>
                 ${openId===Number(s.id)?serviceDetail(s):''}` ).join('')
-            : '<tr><td colspan="5">No services found.</td></tr>';
+            : '<tr><td colspan="4">No services found.</td></tr>';
     }
 });
 
