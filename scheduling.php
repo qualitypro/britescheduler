@@ -2012,6 +2012,8 @@ function openAppointmentWizard(){
     }
 
     appointmentDialog.showModal();
+    // Appointment fields are populated programmatically; refresh their displayed pills.
+    if (window.briteRefreshValuePills) window.briteRefreshValuePills(appointmentDialog);
 }
 
 function closeAppointmentWizard(){
