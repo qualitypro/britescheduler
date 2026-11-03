@@ -188,3 +188,26 @@
  .brite-marketplace .brite-marketplace-sort-headers {gap:.25rem;padding:.45rem .65rem}
  .brite-marketplace .brite-marketplace-sort-heading {font-size:.76rem}
 }
+
+/* Paginated Marketplace records and record/notification type controls. */
+.brite-marketplace .bidding-projects > .bidding-project[hidden] {display:none !important}
+.brite-marketplace .brite-marketplace-sort-headers {grid-template-columns:1.5fr 1.5fr 1.5fr 1fr}
+.brite-marketplace .brite-marketplace-list-tools {
+ display:flex;align-items:center;flex-wrap:wrap;gap:.65rem;
+ padding:.65rem 1rem;border:1px solid var(--brite-border,#dce3ec);
+ border-bottom:0;background:var(--brite-surface,#fff)
+}
+.brite-marketplace .brite-marketplace-list-tools select,
+.brite-marketplace .brite-marketplace-list-tools button {
+ min-height:36px;border:1px solid var(--brite-border-strong,#cbd5e1);
+ border-radius:8px;background:var(--brite-surface,#fff);color:var(--brite-text,#0f172a);
+ padding:.35rem .65rem;font:inherit
+}
+.brite-marketplace .brite-marketplace-list-tools button {cursor:pointer}
+.brite-marketplace .brite-marketplace-list-tools button:disabled {opacity:.45;cursor:default}
+.brite-marketplace .brite-marketplace-list-tools [role="status"] {margin-right:auto;font-size:.85rem}
+.brite-marketplace .brite-marketplace-list-tools span {font-size:.85rem}
+@media(max-width:640px){
+ .brite-marketplace .brite-marketplace-sort-headers {grid-template-columns:1fr 1fr;gap:.25rem}
+ .brite-marketplace .brite-marketplace-list-tools select {flex:1 1 140px}
+}
