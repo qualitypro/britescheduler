@@ -100,8 +100,97 @@
    });
    redraw();
  }
+
+ // Accordion directories are not HTML tables. Enhance their record summaries too.
+ // Do not take over lists already managed by a server/client paginator.
+ const cardLists=new WeakMap();
+ function enhanceCards(root){
+   if(cardLists.has(root)||root.closest('.brite-marketplace,[data-brite-list="off"]'))return;
+   if(root.id==='rows'&&document.getElementById('contractorPagination'))return;
+   if(root.id==='staffRecords'||root.id==='inviteRecords'||root.hasAttribute('data-directory-list')){
+     const cards=[...root.children].filter(el=>el.matches('details.brite-directory-record'));
+     if(!cards.length)return;
+     const category=root.hasAttribute('data-directory-list')?root.closest('[data-directory]')?.dataset.directory:
+       root.id==='inviteRecords'?'notification':'contractor';
+     const group=category?.startsWith('client')?'client':category?.startsWith('contractor')?'contractor':category||'default';
+     const heading=document.createElement('div');heading.className='brite-list-card-headings';
+     const fields=[['type','Type'],['record','Record'],['status','Status'],['created','Created On'],['edited','Last Edited']];
+     const state={field:'record',direction:1,cards:[],pager:null};
+     cardLists.set(root,state);
+     fields.forEach(([field,label])=>{
+       const button=document.createElement('button');button.type='button';button.className='brite-list-sort';
+       button.textContent=label;button.dataset.field=field;
+       button.addEventListener('click',()=>{
+         state.direction=state.field===field?-state.direction:1;state.field=field;
+         state.pager.goTo(1);refresh();
+       });
+       heading.append(button);
+     });
+     const top=document.createElement('div');top.className='brite-list-page-top';
+     const bottom=document.createElement('div');bottom.className='brite-list-page-bottom';
+     root.before(top,heading);root.after(bottom);
+     const pager=new BritePagination({container:bottom,render(rows){
+       const visible=new Set(rows);
+       state.cards.forEach(row=>{row.hidden=!visible.has(row);});
+     }});
+     state.pager=pager;
+     const topPager=new BritePagination({container:top,render(){}});
+     const originalUpdate=pager.update.bind(pager);
+     function mirror(){
+       topPager.pageSize=pager.pageSize;topPager.pageSizeSelect.value=String(pager.pageSize);
+       topPager.records=pager.records.slice();topPager.page=pager.page;topPager.update();
+     }
+     pager.update=()=>{originalUpdate();mirror();};
+     topPager.goTo=page=>pager.goTo(page);
+     topPager.pageSizeSelect.addEventListener('change',()=>{
+       pager.pageSize=topPager.pageSize;pager.pageSizeSelect.value=String(pager.pageSize);
+       pager.page=1;pager.update();
+     });
+     function decorate(card){
+       const summary=card.querySelector(':scope > summary');
+       if(!summary||summary.querySelector('.brite-list-flat-icon'))return;
+       const icon=document.createElement('span');icon.className='brite-list-flat-icon';
+       icon.dataset.kind=group;icon.setAttribute('role','img');icon.setAttribute('aria-label',group+' record');
+       icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(iconPaths[group]||iconPaths.default)+'</svg>';
+       summary.prepend(icon);
+     }
+     function value(card,field){
+       if(field==='type')return group;
+       if(field==='status')return normalize(card.querySelector('.brite-directory-state')?.textContent);
+       if(field==='created'||field==='edited'){
+         const t=card.querySelector('.brite-record-timestamps')?.textContent||'';
+         const match=t.match(new RegExp((field==='created'?'Created on':'Last edited')+':\\s*(.*?)(?=\\s*·\\s*|$)','i'));
+         const parsed=match?Date.parse(match[1]):NaN;
+         return Number.isFinite(parsed)?parsed:-1;
+       }
+       return normalize(card.querySelector('summary strong')?.textContent||card.querySelector('summary')?.textContent);
+     }
+     function refresh(){
+       state.cards=[...root.children].filter(el=>el.matches('details.brite-directory-record'));
+       state.cards.forEach(decorate);
+       const sorted=state.cards.map((card,index)=>({card,index})).sort((a,b)=>{
+         const av=value(a.card,state.field),bv=value(b.card,state.field);
+         return state.direction*(typeof av==='number'&&typeof bv==='number'?av-bv:collator.compare(av,bv))||a.index-b.index;
+       });
+       sorted.forEach(({card})=>root.append(card));
+       pager.setRecords(sorted.map(x=>x.card));
+       heading.querySelectorAll('button').forEach(button=>{
+         const active=button.dataset.field===state.field;
+         button.setAttribute('aria-pressed',String(active));
+         button.textContent=fields.find(f=>f[0]===button.dataset.field)[1]+(active?(state.direction===1?' ▲':' ▼'):'');
+       });
+     }
+     state.refresh=refresh;
+     refresh();
+   }
+ }
+
+ function cardListsForRefresh(){
+   document.querySelectorAll('main [data-directory-list], main #staffRecords, main #inviteRecords').forEach(root=>cardLists.get(root)?.refresh?.());
+ }
  function scan(){
    if(typeof BritePagination!=='function')return;
+   document.querySelectorAll('main [data-directory-list], main #staffRecords, main #inviteRecords').forEach(enhanceCards);
    document.querySelectorAll('main table:not([data-brite-list-enhanced])').forEach(table=>{
      if(table.tBodies.length&&table.tBodies[0].rows.length)init(table);
    });
@@ -111,9 +200,9 @@
  // Dynamic tables are initialized when first populated; do not alter existing row events.
  let scheduled=false;
  const observer=new MutationObserver(records=>{
-   if(!records.some(r=>[...r.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('table,tbody,tr')||n.querySelector?.('table')))))return;
+   if(!records.some(r=>[...r.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('table,tbody,tr,.brite-directory-record')||n.querySelector?.('table,.brite-directory-record')))))return;
    if(scheduled)return;scheduled=true;
-   queueMicrotask(()=>{scheduled=false;scan();});
+   queueMicrotask(()=>{scheduled=false;scan();cardListsForRefresh();});
  });
  observer.observe(document.documentElement,{childList:true,subtree:true});
 })();
