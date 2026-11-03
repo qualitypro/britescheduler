@@ -149,3 +149,22 @@
 @media(prefers-reduced-motion:reduce) {
     .brite-marketplace .brite-marketplace-record-chevron {transition:none}
 }
+
+/* Marketplace record-type flat icons: consistent across owner, contractor and client lists. */
+.brite-marketplace .brite-marketplace-record-icon {
+    display:inline-flex;align-items:center;justify-content:center;
+    width:2.5rem;height:2.5rem;flex:0 0 2.5rem;border-radius:10px;
+    color:#1d4ed8;background:#dbeafe;
+}
+.brite-marketplace .brite-marketplace-record-icon svg {width:1.35rem;height:1.35rem;display:block}
+.brite-marketplace .brite-marketplace-record-icon[data-kind="awarded"],
+.brite-marketplace .brite-marketplace-record-icon[data-kind="accepted"],
+.brite-marketplace .brite-marketplace-record-icon[data-kind="selected"] {color:#166534;background:#dcfce7}
+.brite-marketplace .brite-marketplace-record-icon[data-kind="shortlisted"] {color:#92400e;background:#fef3c7}
+.brite-marketplace .brite-marketplace-record-icon[data-kind="pending"] {color:#6d28d9;background:#ede9fe}
+.brite-marketplace .brite-marketplace-record-icon[data-kind="withdrawn"],
+.brite-marketplace .brite-marketplace-record-icon[data-kind="rejected"],
+.brite-marketplace .brite-marketplace-record-icon[data-kind="declined"],
+.brite-marketplace .brite-marketplace-record-icon[data-kind="cancelled"] {color:#991b1b;background:#fee2e2}
+.brite-marketplace .brite-marketplace-record-icon[data-kind="unlisted"] {color:#475569;background:#e2e8f0}
+@media(max-width:640px){.brite-marketplace .brite-marketplace-record-icon{width:2.15rem;height:2.15rem;flex-basis:2.15rem}}
