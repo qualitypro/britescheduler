@@ -40,7 +40,7 @@ const keys={appointments:['Appointments','#2563eb'],requests:['Booking requests'
 const visible=new Set(Object.keys(keys));
 const $=id=>document.getElementById(id);
 const month=$('trendMonth'), status=$('trendStatus'), group=$('trendGroup'), style=$('trendStyle');
-month.value=new Date().toLocaleDateString('en-CA',{year:'numeric',month:'2-digit'}).slice(0,7);
+const today=new Date();month.value=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
 let days={};
 for(const [key,[label,color]] of Object.entries(keys)){
  const wrapper=document.createElement('label'),input=document.createElement('input');
