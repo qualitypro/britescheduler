@@ -22,7 +22,7 @@ command -v "$NODE_BIN" >/dev/null || { echo "ERROR: Node.js unavailable: $NODE_B
 # Limit to maintained entry points and shared frontend scripts; this does not
 # execute endpoints, connect to a database, or imply security test coverage.
 php_files=(
-  app/bootstrap.php
+  app/bootstrap.php app/DispatchRequest.php tests/dispatch_request_test.php
   partials/app_header.php partials/app_footer.php
   scheduling.php contractors.v2.php contractor-service-areas.php
   trends.php activity-hub.php
@@ -42,5 +42,7 @@ done
 for path in "${js_files[@]}"; do
   if [[ -f "$path" ]]; then check js "$path"; else echo "FAIL missing JS: $path"; failures=$((failures+1)); fi
 done
-echo "=== Result: $checked checked; $failures failures ==="
+echo "=== Smart Dispatch unit tests ==="
+if "$PHP_BIN" tests/dispatch_request_test.php; then echo "PASS: dispatch request tests"; else failures=$((failures+1)); fi
+echo "=== Result: $checked source files checked; $failures failures ==="
 [[ "$failures" -eq 0 ]]
