@@ -33,12 +33,12 @@
    const headers=[...table.tHead.querySelectorAll('th')];
    if(!headers.length||headers.some(h=>h.colSpan>1||h.rowSpan>1))return;
    if(table.querySelector('[role="grid"],[data-sort],.sortable')||table.closest('.brite-pagination')||table.parentElement?.querySelector('.brite-pagination,.dataTables_paginate,[data-pagination]')||table.closest('[data-brite-pagination-managed]'))return;
-   table.dataset.briteListEnhanced='true';
    const group=kind(table);
    const type=document.createElement('th');type.textContent='Type';type.scope='col';type.className='brite-list-type-heading';
    table.tHead.rows[0].prepend(type);
    const original=[...body.rows];
    if(original.some(row=>[...row.cells].some(cell=>cell.colSpan>1||cell.rowSpan>1)))return;
+   table.dataset.briteListEnhanced='true';
    const dateColumns=headers.map((h,i)=>/^(created on|created at|last edited|updated at|modified at)$/i.test(normalize(h.textContent))?i:-1).filter(i=>i>=0);
    original.forEach(row=>dateColumns.forEach(i=>{
      const cell=row.cells[i],formatted=stamp(cell.textContent);
@@ -122,7 +122,7 @@
        button.textContent=label;button.dataset.field=field;
        button.addEventListener('click',()=>{
          state.direction=state.field===field?-state.direction:1;state.field=field;
-         state.pager.goTo(1);refresh();
+         state.ready=false;state.pager.goTo(1);refresh();
        });
        heading.append(button);
      });
@@ -166,7 +166,9 @@
        return normalize(card.querySelector('summary strong')?.textContent||card.querySelector('summary')?.textContent);
      }
      function refresh(){
-       state.cards=[...root.children].filter(el=>el.matches('details.brite-directory-record'));
+       const incoming=[...root.children].filter(el=>el.matches('details.brite-directory-record'));
+       if(state.cards.length===incoming.length&&incoming.every(card=>state.cards.includes(card))&&state.ready)return;
+       state.cards=incoming;
        state.cards.forEach(decorate);
        const sorted=state.cards.map((card,index)=>({card,index})).sort((a,b)=>{
          const av=value(a.card,state.field),bv=value(b.card,state.field);
@@ -174,6 +176,7 @@
        });
        sorted.forEach(({card})=>root.append(card));
        pager.setRecords(sorted.map(x=>x.card));
+       state.ready=true;
        heading.querySelectorAll('button').forEach(button=>{
          const active=button.dataset.field===state.field;
          button.setAttribute('aria-pressed',String(active));
