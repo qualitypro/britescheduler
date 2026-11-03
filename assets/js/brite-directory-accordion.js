@@ -7,7 +7,7 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;',
 const displayStamp = value => {
   if(!value) return '';
   const raw=String(value).trim();
-  const iso=/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}/.test(raw)
+  const iso=/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(raw)
     ? raw.replace(' ','T')+'Z' : raw;
   const date=new Date(iso);
   return Number.isNaN(date.getTime())?'':new Intl.DateTimeFormat(undefined,{
