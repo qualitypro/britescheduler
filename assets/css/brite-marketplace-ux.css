@@ -229,3 +229,13 @@
  }
  .brite-marketplace .brite-marketplace-sort-heading {font-size:.7rem}
 }
+
+/* Shared pagination navigation appears above and below Marketplace records. */
+.brite-marketplace .brite-marketplace-pagination-top .brite-pagination {
+ margin-top:.5rem !important;
+ margin-bottom:.65rem;
+ padding:.5rem .75rem;
+ border:1px solid var(--brite-border,#dce3ec);
+ border-radius:10px;
+ background:var(--brite-surface,#fff);
+}
