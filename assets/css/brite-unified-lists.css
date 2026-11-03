@@ -19,3 +19,11 @@
 .brite-directory-summary>.brite-list-flat-icon{flex:0 0 36px;margin-right:10px}
 .brite-directory-record[hidden]{display:none!important}
 @media(max-width:760px){.brite-list-card-headings{grid-template-columns:55px minmax(0,1fr) 85px;gap:6px}.brite-list-card-headings .brite-list-sort:nth-child(n+4){display:none}}
+
+/* Specialized list layouts retain their own data-source pagination. */
+#serviceSort{grid-template-columns:repeat(4,minmax(0,1fr));}
+#contractorSort,#activitySort{grid-template-columns:70px minmax(140px,2fr) minmax(95px,1fr) minmax(145px,1.25fr) minmax(145px,1.25fr);}
+#activitySort .brite-list-sort,#contractorSort .brite-list-sort,#serviceSort .brite-list-sort{min-height:34px}
+.brite-activity-record header .brite-list-flat-icon{flex-shrink:0}
+.brite-activity-record header strong{flex:1}
+@media(max-width:760px){#serviceSort{grid-template-columns:repeat(4,minmax(0,1fr));}#contractorSort,#activitySort{grid-template-columns:54px minmax(0,1fr) 85px;}#contractorSort .brite-list-sort:nth-child(n+4),#activitySort .brite-list-sort:nth-child(n+4){display:none}}
