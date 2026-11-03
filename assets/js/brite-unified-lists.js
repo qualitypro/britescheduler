@@ -34,8 +34,6 @@
    if(!headers.length||headers.some(h=>h.colSpan>1||h.rowSpan>1))return;
    if(table.querySelector('[role="grid"],[data-sort],.sortable')||table.closest('.brite-pagination')||table.parentElement?.querySelector('.brite-pagination,.dataTables_paginate,[data-pagination]')||table.closest('[data-brite-pagination-managed]'))return;
    const group=kind(table);
-   const type=document.createElement('th');type.textContent='Type';type.scope='col';type.className='brite-list-type-heading';
-   table.tHead.rows[0].prepend(type);
    const original=[...body.rows];
    if(original.some(row=>[...row.cells].some(cell=>cell.colSpan>1||cell.rowSpan>1)))return;
    table.dataset.briteListEnhanced='true';
@@ -49,7 +47,10 @@
      const icon=document.createElement('span');icon.className='brite-list-flat-icon';icon.dataset.kind=group;
      icon.setAttribute('role','img');icon.setAttribute('aria-label',group==='default'?'Record':group);
      icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+iconPaths[group]+'</svg>';
-     cell.append(icon);row.prepend(cell);
+     cell.append(icon);
+     const first=row.cells[0];
+     if(first)first.prepend(icon);
+     else row.append(cell);
    });
    const controls=document.createElement('div');controls.className='brite-list-toolbar';
    const top=document.createElement('div');top.className='brite-list-page-top';
@@ -75,11 +76,11 @@
      pager.page=1;pager.update();
    });
    let field=0,direction=1;
-   const sortable=[type,...headers];
+   const sortable=headers;
    function redraw(){
      const sorted=original.map((row,index)=>({row,index})).sort((a,b)=>{
-       const aText=field===0?group:normalize(a.row.cells[field]?.textContent);
-       const bText=field===0?group:normalize(b.row.cells[field]?.textContent);
+       const aText=normalize(a.row.cells[field]?.textContent);
+       const bText=normalize(b.row.cells[field]?.textContent);
        return direction*collator.compare(aText,bText)||a.index-b.index;
      });
      sorted.forEach(({row})=>body.append(row));
@@ -114,7 +115,7 @@
        root.id==='inviteRecords'?'notification':'contractor';
      const group=category?.startsWith('client')?'client':category?.startsWith('contractor')?'contractor':category||'default';
      const heading=document.createElement('div');heading.className='brite-list-card-headings';
-     const fields=[['type','Type'],['record','Record'],['status','Status'],['created','Created On'],['edited','Last Edited']];
+     const fields=[['record','Record'],['status','Status'],['created','Created On'],['edited','Last Edited']];
      const state={field:'record',direction:1,cards:[],pager:null};
      cardLists.set(root,state);
      fields.forEach(([field,label])=>{
