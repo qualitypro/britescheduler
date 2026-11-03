@@ -66,9 +66,34 @@ try {
       GROUP BY DATE(a.starts_at)");
     $q->execute([$tid,$begin->format('Y-m-d H:i:s'),$end->format('Y-m-d H:i:s'),$status,$status]);
     foreach($q as $r) if(isset($days[$r['day']])) $days[$r['day']]['gross_revenue']=(float)$r['gross_total'];
+    // Revenue by appointment membership mask. This allows the browser to calculate
+    // the union of selected series without counting the same appointment twice.
+    // Bits: appointments=1, requests=2, assigned=4, unassigned=8,
+    // accepted=16, declined=32. Cancelled/no-show have zero booked value.
+    $revenueMasks = [];
+    $q=$pdo->prepare("SELECT DATE(a.starts_at) day,
+      (1
+       + CASE WHEN EXISTS(SELECT 1 FROM client_booking_requests br WHERE br.appointment_id=a.id AND br.tenant_id=a.tenant_id) THEN 2 ELSE 0 END
+       + CASE WHEN EXISTS(SELECT 1 FROM appointment_contractors ac WHERE ac.appointment_id=a.id) THEN 4 ELSE 8 END
+       + CASE WHEN EXISTS(SELECT 1 FROM appointment_contractors ac WHERE ac.appointment_id=a.id AND ac.status='accepted') THEN 16 ELSE 0 END
+       + CASE WHEN EXISTS(SELECT 1 FROM appointment_contractors ac WHERE ac.appointment_id=a.id AND ac.status='declined') THEN 32 ELSE 0 END) series_mask,
+      ROUND(SUM(CASE WHEN inv.appointment_id IS NOT NULL THEN inv.gross_total ELSE COALESCE(s.price,0) END),2) amount
+      FROM appointments a
+      LEFT JOIN services s ON s.id=a.service_id AND s.tenant_id=a.tenant_id
+      LEFT JOIN (SELECT appointment_id,tenant_id,SUM(total) gross_total FROM invoices
+        WHERE status <> 'void' AND appointment_id IS NOT NULL GROUP BY tenant_id,appointment_id) inv
+        ON inv.appointment_id=a.id AND inv.tenant_id=a.tenant_id
+      WHERE a.tenant_id=? AND a.starts_at>=? AND a.starts_at<?
+        AND a.status NOT IN ('cancelled','no_show') AND (?='all' OR a.status=?)
+      GROUP BY DATE(a.starts_at),series_mask");
+    $q->execute([$tid,$begin->format('Y-m-d H:i:s'),$end->format('Y-m-d H:i:s'),$status,$status]);
+    foreach($q as $r) {
+      $day=(string)$r['day'];
+      if(isset($days[$day])) $revenueMasks[$day][(string)$r['series_mask']]=(float)$r['amount'];
+    }
     json_response(['ok'=>true,'month'=>$month,'start'=>$begin->format('Y-m-d'),
       'end_exclusive'=>$end->format('Y-m-d'),'timezone'=>$tz->getName(),
-      'status'=>$status,'days'=>$days]);
+      'status'=>$status,'days'=>$days,'revenue_by_series_mask'=>$revenueMasks]);
 } catch(Throwable $e) {
     error_log('Trends: '.$e->getMessage());
     json_response(['error'=>'Unable to load trends'],500);
