@@ -45,7 +45,7 @@
   'Open activity hub':'Open your recent notifications.',
   'Collapse activity hub':'Close the notification panel.'
  };
- const clean=value=>String(value||'').replace(/\\s+/g,' ').trim().replace(/ [▲▼]$/,'');
+ const clean=value=>String(value||'').replace(/\s+/g,' ').trim().replace(/ [▲▼]$/,'');
  const selector='a[href],button,[role="button"],[role="menuitem"],summary,input[type="submit"],input[type="button"]';
  let active=null,tip=null,owner=null;
  function labelFor(el){
@@ -53,25 +53,26 @@
  }
  function description(el){
   if(el.dataset.tooltip)return clean(el.dataset.tooltip);
+  if(el.matches('.brite-brand'))return 'Return to your dashboard.';
   const label=labelFor(el);
   if(!label)return '';
-  const direct=descriptions[label]||descriptions[label.replace(/\\s*\\(\\d+\\)$/,'')];
+  const direct=descriptions[label]||descriptions[label.replace(/\s*\(\d+\)$/,'')];
   if(direct)return direct;
   if(el.matches('.brite-list-sort,[data-sort]')||/^sort by /i.test(label))return 'Sort the list by '+label.replace(/^sort by /i,'').replace(/ [▲▼]$/,'')+'. Select again to reverse the order.';
   if(el.matches('.brite-sidebar-nav a'))return 'Open '+label+' in your workspace.';
   if(el.matches('summary'))return 'Expand or collapse '+label.toLowerCase()+' details.';
-  if(/^edit\\b/i.test(label))return 'Edit '+label.replace(/^edit\\s*/i,'').toLowerCase()+' details.';
-  if(/^delete\\b|^remove\\b/i.test(label))return 'Remove the selected item. Review any confirmation before continuing.';
-  if(/^save\\b/i.test(label))return 'Save your current changes.';
-  if(/^add\\b|^new\\b|^create\\b/i.test(label))return 'Open or create '+label.replace(/^(add|new|create)\\s*/i,'').toLowerCase()+'.';
-  if(/^view\\b|^open\\b|^show\\b/i.test(label))return 'Open '+label.replace(/^(view|open|show)\\s*/i,'').toLowerCase()+' details.';
-  if(/^filter\\b/i.test(label))return 'Filter the displayed results.';
-  if(/^search\\b/i.test(label))return 'Search the current records.';
-  if(/^refresh\\b|^reload\\b/i.test(label))return 'Reload the latest information.';
-  if(/^submit\\b/i.test(label))return 'Submit the information in this form.';
-  if(/^back\\b/i.test(label))return 'Return to the previous step or screen.';
-  if(/^next\\b/i.test(label))return 'Continue to the next step or page.';
-  if(/^previous\\b/i.test(label))return 'Return to the previous step or page.';
+  if(/^edit\b/i.test(label))return 'Edit '+label.replace(/^edit\s*/i,'').toLowerCase()+' details.';
+  if(/^delete\b|^remove\b/i.test(label))return 'Remove the selected item. Review any confirmation before continuing.';
+  if(/^save\b/i.test(label))return 'Save your current changes.';
+  if(/^add\b|^new\b|^create\b/i.test(label))return 'Open or create '+label.replace(/^(add|new|create)\s*/i,'').toLowerCase()+'.';
+  if(/^view\b|^open\b|^show\b/i.test(label))return 'Open '+label.replace(/^(view|open|show)\s*/i,'').toLowerCase()+' details.';
+  if(/^filter\b/i.test(label))return 'Filter the displayed results.';
+  if(/^search\b/i.test(label))return 'Search the current records.';
+  if(/^refresh\b|^reload\b/i.test(label))return 'Reload the latest information.';
+  if(/^submit\b/i.test(label))return 'Submit the information in this form.';
+  if(/^back\b/i.test(label))return 'Return to the previous step or screen.';
+  if(/^next\b/i.test(label))return 'Continue to the next step or page.';
+  if(/^previous\b/i.test(label))return 'Return to the previous step or page.';
   if(el.matches('a[href]'))return 'Open '+label+'.';
   if(el.matches('button,input[type="submit"],input[type="button"]'))return label+' — activate this action.';
   return '';
