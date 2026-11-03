@@ -111,6 +111,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <aside class="brite-sidebar" id="briteSidebar" aria-label="Main navigation">
     <a class="brite-brand"
+       aria-label="Brite Scheduler dashboard"
+       data-tooltip="Return to your dashboard."
        href="<?=htmlspecialchars(app_url($dashboardPath),ENT_QUOTES,'UTF-8')?>">
         <span class="brite-brand-mark" aria-hidden="true">B</span>
         <span>Brite Scheduler</span>
