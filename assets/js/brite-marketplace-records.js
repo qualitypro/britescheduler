@@ -145,7 +145,8 @@
         const pages=Math.max(1,Math.ceil(total/pageSize));
         st.page=Math.min(st.page,pages);
         const visible=new Set(ordered.slice((st.page-1)*pageSize,st.page*pageSize).map(x=>x.row));
-        rows.forEach(row=>{row.hidden=!visible.has(row);});
+        const ranks=new Map(ordered.map((entry,index)=>[entry.row,index]));
+        rows.forEach(row=>{row.hidden=!visible.has(row);row.style.order=String(ranks.get(row)??rows.length);});
         // CSS display overrides hidden in some layouts; mark for explicit hiding.
         st.summary.textContent=total ? 'Showing '+((st.page-1)*pageSize+1)+'–'+Math.min(st.page*pageSize,total)+' of '+total+' records' : 'No matching records';
         st.pageLabel.textContent='Page '+st.page+' of '+pages;
