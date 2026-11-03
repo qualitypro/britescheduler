@@ -63,31 +63,44 @@ function buckets(){
 }
 function render(){
  const data=buckets(),svg=$('trendChart');svg.replaceChildren();
- const width=980,height=360,left=56,right=20,top=20,bottom=54,w=width-left-right,h=height-top-bottom;
- const max=Math.max(1,...data.flatMap(([,v])=>[...visible].filter(k=>k!=='gross_revenue').map(k=>v[k])));
- const revenueMax=Math.max(1,...data.map(([,v])=>v.gross_revenue));
- const y=v=>top+h-(v/max)*h;
- const yr=v=>top+h-(v/revenueMax)*h;
+ const width=980,height=360,left=60,right=85,top=20,bottom=54,w=width-left-right,h=height-top-bottom;
+ const max=Math.max(1,...data.flatMap(([,v])=>[...visible].filter(k=>k!=='gross_revenue').map(k=>Number(v[k]||0))));
+ const revenueMax=Math.max(1,...data.map(([,v])=>Number(v.gross_revenue||0)));
+ const y=v=>top+h-(Number(v||0)/max)*h;
+ const yr=v=>top+h-(Number(v||0)/revenueMax)*h;
  for(let i=0;i<=4;i++){
   const val=max*i/4,py=y(val);
   svg.append(node('line',{x1:left,y1:py,x2:width-right,y2:py,stroke:'currentColor','stroke-opacity':'.17'}));
   svg.append(node('text',{x:left-8,y:py+4,'text-anchor':'end',fill:'currentColor','font-size':12},Number(val.toFixed(1))));
+  if(visible.has('gross_revenue')){
+   const amount=revenueMax*i/4;
+   svg.append(node('text',{x:width-right+6,y:yr(amount)+4,fill:'#ca8a04','font-size':11},'$'+Math.round(amount).toLocaleString()));
+  }
  }
- if(visible.has('gross_revenue'))for(let i=0;i<=4;i++){const val=revenueMax*i/4;svg.append(node('text',{x:width-right+3,y:yr(val)+4,'text-anchor':'end',fill:'#ca8a04','font-size':11},'
+ const step=data.length>1?w/(data.length-1):0;
  const tick=Math.max(1,Math.ceil(data.length/9));
- data.forEach(([label],i)=>{if(i%tick===0||i===data.length-1)svg.append(node('text',{x:left+i*step,y:height-23,'text-anchor':'middle',fill:'currentColor','font-size':11},label.slice(5)))});
+ data.forEach(([label],i)=>{
+  if(i%tick===0||i===data.length-1)svg.append(node('text',{x:left+i*step,y:height-23,'text-anchor':'middle',fill:'currentColor','font-size':11},label.slice(5)));
+ });
  for(const key of visible){
-  const [name,color]=keys[key];
-  const axis=key==='gross_revenue'?yr:y;
+  const [name,color]=keys[key],axis=key==='gross_revenue'?yr:y;
   if(style.value==='line'){
    const pts=data.map(([,v],i)=>(left+i*step)+','+axis(v[key])).join(' ');
    svg.append(node('polyline',{points:pts,fill:'none',stroke:color,'stroke-width':2.5,'stroke-linejoin':'round'}));
-   data.forEach(([label,v],i)=>{const dot=node('circle',{cx:left+i*step,cy:y(v[key]),r:data.length>35?2:4,fill:color});dot.append(node('title',{},label+' · '+name+': '+(key==='gross_revenue'?'));svg.append(dot)});
-  } else {
-   const selected=[...visible],idx=selected.indexOf(key),bw=Math.min(24,w/Math.max(1,data.length)/Math.max(1,selected.length));
-   data.forEach(([label,v],i)=>{const x=left+(i+.5)*w/data.length+(idx-selected.length/2)*bw;
-    const bar=node('rect',{x,y:y(v[key]),width:Math.max(1,bw-1),height:Math.max(0,top+h-y(v[key])),fill:color});
-    bar.append(node('title',{},label+' · '+name+': '+v[key]));svg.append(bar);
+   data.forEach(([label,v],i)=>{
+    const dot=node('circle',{cx:left+i*step,cy:axis(v[key]),r:data.length>35?2:4,fill:color});
+    dot.append(node('title',{},label+' · '+name+': '+(key==='gross_revenue'?'$'+Number(v[key]||0).toFixed(2):v[key])));
+    svg.append(dot);
+   });
+  }else{
+   const selected=[...visible],idx=selected.indexOf(key);
+   const bw=Math.min(24,w/Math.max(1,data.length)/Math.max(1,selected.length));
+   data.forEach(([label,v],i)=>{
+    const x=left+(i+.5)*w/Math.max(1,data.length)+(idx-selected.length/2)*bw;
+    const py=axis(v[key]);
+    const bar=node('rect',{x,y:py,width:Math.max(1,bw-1),height:Math.max(0,top+h-py),fill:color});
+    bar.append(node('title',{},label+' · '+name+': '+(key==='gross_revenue'?'$'+Number(v[key]||0).toFixed(2):v[key])));
+    svg.append(bar);
    });
   }
  }
@@ -95,7 +108,8 @@ function render(){
  for(const [key,[label,color]] of Object.entries(keys)){
   const div=document.createElement('div');div.className='card';
   const title=document.createElement('span');title.textContent=label;
-  const number=document.createElement('strong');number.style.color=color;const total=data.reduce((n,[,v])=>n+v[key],0);
+  const number=document.createElement('strong');number.style.color=color;
+  const total=data.reduce((n,[,v])=>n+Number(v[key]||0),0);
   number.textContent=key==='gross_revenue'?total.toLocaleString('en-US',{style:'currency',currency:'USD'}):total.toLocaleString();
   div.append(title,number);$('trendStats').append(div);
  }
