@@ -28,7 +28,7 @@ require __DIR__.'/partials/app_header.php';
 <?php endforeach; ?>
 </select>
 <p id="message" role="status"></p>
-<div id="locations" class="brite-directory-list"></div>
+<div id="locationColumns" class="muted" hidden><strong>Client Name · Location · Address · Status</strong></div><div id="locations" class="brite-directory-list"></div>
 <div id="locationPagination"></div><button type="button" id="addLocation">Add location</button>
 <div style="margin-top:20px">
 <h2>Service Location Map</h2>
@@ -95,12 +95,13 @@ function refreshMap(){
 
         L.marker([lat,lng])
             .bindPopup(
-                '<strong>'+escapeHtml(x.label)+'</strong><p>'+
+                '<strong>'+escapeHtml(clientName(x))+' — '+escapeHtml(x.label)+'</strong><p>'+
                 escapeHtml(
                     [x.address1,x.city,x.state,x.postal_code]
                     .filter(Boolean).join(', ')
                 )+'</p>'
             )
+            .bindTooltip(escapeHtml(clientName(x)+' — '+x.label))
             .addTo(locationMarkers);
     }
 
@@ -204,6 +205,7 @@ async function refresh(resetPage = false){
            selectedClient !== clientSelect.value) return;
 
         locations = j.locations;
+        document.getElementById('locationColumns').hidden=!allClientsMode();
         refreshMap();
         locationPager.setRecords(locations, resetPage);
     } catch(e) {
