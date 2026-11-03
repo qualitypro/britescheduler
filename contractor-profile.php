@@ -28,6 +28,15 @@ require __DIR__ . '/partials/app_header.php';
     <button type="submit" id="profileSave">Save profile</button>
     <p id="profileStatus" role="status" aria-live="polite"></p>
   </form>
+  <div style="margin-top:24px;border-top:1px solid #e5e7eb;padding-top:20px">
+    <h2>My Work Portfolio</h2>
+    <p class="muted">Upload up to 20 examples of your best work. JPG, JPEG, or PNG only; maximum 5 MB per image. Photos are visible to authorized members of your tenant network.</p>
+    <label for="portfolioUpload">Add portfolio photos</label>
+    <input id="portfolioUpload" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple data-brite-pills="off">
+    <p id="portfolioStatus" role="status" aria-live="polite"></p>
+    <div id="portfolioGallery" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px"></div>
+  </div>
 </section>
+<script src="<?=htmlspecialchars(app_url('/assets/js/contractor-portfolio.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <script src="<?=htmlspecialchars(app_url('/assets/js/contractor-profile.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <?php require __DIR__ . '/partials/app_footer.php'; ?>
