@@ -166,6 +166,8 @@
         const type=document.createElement('select');
         type.setAttribute('aria-label','Filter by record or notification type');
         toolbar.append(type);
+        const topPagerHost=document.createElement('div');
+        topPagerHost.className='brite-marketplace-pagination brite-marketplace-pagination-top';
         const pagerHost=document.createElement('div');
         pagerHost.className='brite-marketplace-pagination';
         const st={field:'record',direction:1,headers,type,pager:null};
@@ -184,7 +186,7 @@
             headers.append(button);
         }
         type.addEventListener('change',()=>{st.pager.goTo(1);draw(root);});
-        root.before(headers,toolbar);
+        root.before(topPagerHost,headers,toolbar);
         root.after(pagerHost);
         st.pager=new BritePagination({
             container:pagerHost,
@@ -194,6 +196,51 @@
                     row.hidden=!visible.has(row);
                 });
             }
+        });
+        // Both controls use the shared paginator and stay on the same page.
+        const topPager=new BritePagination({
+            container:topPagerHost,
+            render(){ /* The bottom pager owns visibility of rows. */ }
+        });
+        const bottomPager=st.pager;
+        const bottomSetRecords=bottomPager.setRecords.bind(bottomPager);
+        const bottomGoTo=bottomPager.goTo.bind(bottomPager);
+        const bottomUpdate=bottomPager.update.bind(bottomPager);
+        const topGoTo=topPager.goTo.bind(topPager);
+        const topUpdate=topPager.update.bind(topPager);
+        const topSetRecords=topPager.setRecords.bind(topPager);
+        let syncing=false;
+        function syncTop() {
+            if(syncing) return;
+            syncing=true;
+            topPager.pageSize=bottomPager.pageSize;
+            topPager.pageSizeSelect.value=String(bottomPager.pageSize);
+            topSetRecords(bottomPager.records);
+            topPager.page=bottomPager.page;
+            topUpdate();
+            syncing=false;
+        }
+        bottomPager.setRecords=(records,reset=false)=>{
+            bottomSetRecords(records,reset);
+            syncTop();
+        };
+        bottomPager.goTo=page=>{
+            bottomGoTo(page);
+            syncTop();
+        };
+        bottomPager.update=()=>{
+            bottomUpdate();
+            syncTop();
+        };
+        topPager.goTo=page=>{
+            topGoTo(page);
+            bottomPager.goTo(topPager.page);
+        };
+        topPager.pageSizeSelect.addEventListener('change',()=>{
+            bottomPager.pageSize=topPager.pageSize;
+            bottomPager.pageSizeSelect.value=String(topPager.pageSize);
+            bottomPager.page=1;
+            bottomPager.update();
         });
         draw(root);
     }
