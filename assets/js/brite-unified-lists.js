@@ -115,7 +115,10 @@
        root.id==='inviteRecords'?'notification':'contractor';
      const group=category?.startsWith('client')?'client':category?.startsWith('contractor')?'contractor':category||'default';
      const heading=document.createElement('div');heading.className='brite-list-card-headings';
-     const fields=[['record','Record'],['status','Status'],['created','Created On'],['edited','Last Edited']];
+     const fields=group==='client'
+       ? [['status','Status'],['created','Created On'],['edited','Last Edited']]
+       : [['record','Record'],['status','Status'],['created','Created On'],['edited','Last Edited']];
+     if(group==='client')heading.classList.add('brite-list-client-headings');
      const state={field:'record',direction:1,cards:[],pager:null};
      cardLists.set(root,state);
      fields.forEach(([field,label])=>{
