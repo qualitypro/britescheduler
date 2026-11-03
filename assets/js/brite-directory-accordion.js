@@ -3,6 +3,21 @@
 (() => {
 'use strict';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Database timestamps are UTC; show dates in the viewer's local timezone.
+const displayStamp = value => {
+  if(!value) return '';
+  const raw=String(value).trim();
+  const iso=/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}/.test(raw)
+    ? raw.replace(' ','T')+'Z' : raw;
+  const date=new Date(iso);
+  return Number.isNaN(date.getTime())?'':new Intl.DateTimeFormat(undefined,{
+    dateStyle:'medium',timeStyle:'short'
+  }).format(date);
+};
+const timestampMeta = record => {
+  const created=displayStamp(record.created_at),edited=displayStamp(record.updated_at);
+  return [created?'Created on: '+created:'',edited?'Last edited: '+edited:''].filter(Boolean).join(' · ');
+};
 const schemas = {
   clients: {
     endpoint:'/api/clients.php', key:'clients',
@@ -44,7 +59,10 @@ function renderRecord(record,schema,type) {
   const strong=document.createElement('strong');strong.textContent=name;label.append(strong);
   const sub=document.createElement('small');
   sub.textContent=[organization,record.email,record.phone].filter(Boolean).join(' · ');
-  label.append(sub);summary.append(label);
+  label.append(sub);
+  const dates=document.createElement('small');dates.className='brite-record-timestamps';dates.textContent=timestampMeta(record);
+  if(dates.textContent) label.append(dates);
+  summary.append(label);
   const state=document.createElement('span');state.className='brite-directory-state';state.textContent=record.status||'Unknown';
   summary.append(state);
   details.append(summary);
@@ -67,7 +85,8 @@ function renderRecord(record,schema,type) {
       strong.textContent=[record.first_name,record.last_name].filter(Boolean).join(' ');
       sub.textContent=[type==='clients'?record.company_name:record.business_name,record.email,record.phone].filter(Boolean).join(' · ');
       state.textContent=record.status||'Unknown';
-      feedback.textContent='Changes saved';
+      // Fetch authoritative updated_at from the server on the next refresh.
+      feedback.textContent='Changes saved · Refresh to see the latest edit timestamp';
     } catch(error) {feedback.textContent='Save failed: '+error.message;}
     finally {button.disabled=false;}
   });
