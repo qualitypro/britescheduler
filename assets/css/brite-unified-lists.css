@@ -29,6 +29,23 @@
 .brite-activity-record header strong{flex:1}
 @media(max-width:760px){#serviceSort{grid-template-columns:repeat(4,minmax(0,1fr));}#contractorSort,#activitySort{grid-template-columns:minmax(0,1fr) 85px;}#contractorSort .brite-list-sort:nth-child(n+4),#activitySort .brite-list-sort:nth-child(n+4){display:none}}
 
-/* Client names remain in their cards; omit the redundant Record heading. */
-.brite-list-card-headings.brite-list-client-headings{grid-template-columns:repeat(2,minmax(0,1fr))}
-@media(max-width:760px){.brite-list-card-headings.brite-list-client-headings{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Clients: icon (no heading), name, email, created, edited, status. */
+.brite-directory[data-directory="clients"]{max-width:1500px}
+.brite-list-card-headings.brite-list-client-headings,
+.brite-directory[data-directory="clients"] .brite-directory-summary{
+  display:grid;
+  grid-template-columns:48px minmax(150px,1.5fr) minmax(160px,1.6fr) minmax(125px,1fr) minmax(125px,1fr) minmax(90px,.75fr);
+  gap:12px;align-items:center;
+}
+.brite-list-client-headings .brite-list-icon-heading{display:block}
+.brite-directory[data-directory="clients"] .brite-directory-summary>.brite-list-flat-icon{margin:0}
+.brite-directory[data-directory="clients"] .brite-directory-summary-main{min-width:0}
+.brite-directory[data-directory="clients"] .brite-client-email{overflow-wrap:anywhere}
+.brite-directory[data-directory="clients"] .brite-client-created,
+.brite-directory[data-directory="clients"] .brite-client-edited{font-size:.83rem;color:var(--brite-text-secondary,#475569)}
+@media(max-width:900px){
+  .brite-list-card-headings.brite-list-client-headings,
+  .brite-directory[data-directory="clients"] .brite-directory-summary{min-width:850px}
+  .brite-directory[data-directory="clients"] .brite-directory-list{overflow-x:auto}
+  .brite-directory[data-directory="clients"] .brite-list-card-headings{overflow-x:auto}
+}
