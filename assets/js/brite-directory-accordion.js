@@ -50,6 +50,11 @@ function renderRecord(record,schema,type) {
   const details=document.createElement('details');
   details.className='brite-directory-record';
   details.dataset.recordId=String(record.id);
+  if(type==='clients'){
+    details.dataset.clientEmail=String(record.email||'');
+    details.dataset.clientCreated=String(record.created_at||'');
+    details.dataset.clientEdited=String(record.updated_at||'');
+  }
   const name=[record.first_name,record.last_name].filter(Boolean).join(' ')||'Unnamed record';
   const organization=type==='clients'?record.company_name:record.business_name;
   const summary=document.createElement('summary');
@@ -60,8 +65,14 @@ function renderRecord(record,schema,type) {
   const sub=document.createElement('small');
   sub.textContent=[organization,record.email,record.phone].filter(Boolean).join(' · ');
   label.append(sub);
+  if(type==='clients'){
+    const email=document.createElement('span');email.className='brite-client-email';email.textContent=record.email||'—';
+    summary.append(email);
+    const created=document.createElement('span');created.className='brite-client-created';created.textContent=displayStamp(record.created_at)||'—';summary.append(created);
+    const edited=document.createElement('span');edited.className='brite-client-edited';edited.textContent=displayStamp(record.updated_at)||'—';summary.append(edited);
+  }
   const dates=document.createElement('small');dates.className='brite-record-timestamps';dates.textContent=timestampMeta(record);
-  if(dates.textContent) label.append(dates);
+  if(type!=='clients'&&dates.textContent) label.append(dates);
   summary.append(label);
   const state=document.createElement('span');state.className='brite-directory-state';state.textContent=record.status||'Unknown';
   summary.append(state);
@@ -85,6 +96,10 @@ function renderRecord(record,schema,type) {
       strong.textContent=[record.first_name,record.last_name].filter(Boolean).join(' ');
       sub.textContent=[type==='clients'?record.company_name:record.business_name,record.email,record.phone].filter(Boolean).join(' · ');
       state.textContent=record.status||'Unknown';
+      if(type==='clients'){
+        details.dataset.clientEmail=String(record.email||'');
+        summary.querySelector('.brite-client-email').textContent=record.email||'—';
+      }
       // Fetch authoritative updated_at from the server on the next refresh.
       feedback.textContent='Changes saved · Refresh to see the latest edit timestamp';
     } catch(error) {feedback.textContent='Save failed: '+error.message;}
