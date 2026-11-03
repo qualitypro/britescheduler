@@ -211,3 +211,21 @@
  .brite-marketplace .brite-marketplace-sort-headers {grid-template-columns:1fr 1fr;gap:.25rem}
  .brite-marketplace .brite-marketplace-list-tools select {flex:1 1 140px}
 }
+
+/* Align Type directly above the record icon; standard BritePagination below list. */
+.brite-marketplace .brite-marketplace-sort-headers {
+ grid-template-columns:3.5rem minmax(0,2fr) minmax(0,2fr) minmax(0,1fr);
+ gap:1rem;
+}
+.brite-marketplace .brite-marketplace-sort-heading[data-sort-field="type"] {
+ text-align:center;font-size:.73rem;overflow-wrap:anywhere;
+}
+.brite-marketplace .brite-marketplace-pagination .brite-pagination {padding:.3rem 0 1rem}
+.brite-marketplace .brite-marketplace-list-tools {border-bottom:0}
+@media(max-width:640px) {
+ .brite-marketplace .brite-marketplace-sort-headers {
+  grid-template-columns:3rem minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
+  gap:.25rem;
+ }
+ .brite-marketplace .brite-marketplace-sort-heading {font-size:.7rem}
+}
