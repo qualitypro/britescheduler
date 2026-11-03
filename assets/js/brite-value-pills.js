@@ -17,14 +17,16 @@
   const cleaned=String(raw || 'Value')
    .replace(/([a-z0-9])([A-Z])/g,'$1 $2')
    .replace(/[_-]+/g,' ')
-   .replace(/\\s+/g,' ')
-   .replace(/[:*\\s]+$/g,'')
+   .replace(/\s+/g,' ')
+   .replace(/[:*\s]+$/g,'')
    .trim();
-  return (cleaned || 'Value').replace(/\\b[a-z]/g,letter=>letter.toUpperCase());
+  return (cleaned || 'Value')
+   .replace(/\b[a-z]/g,letter=>letter.toUpperCase())
+   .replace(/\b(Id|Url|Zip|Api|Utc)\b/g,word=>({Id:'ID',Url:'URL',Zip:'ZIP',Api:'API',Utc:'UTC'})[word]);
  }
  function label(el) {
   const text=el.labels && el.labels.length ? el.labels[0].textContent.trim() : '';
-  return humanizeLabel(text || el.getAttribute('aria-label') || el.name || el.id || 'Value');
+  return humanizeLabel(el.dataset.britePillLabel || text || el.getAttribute('aria-label') || el.name || el.id || 'Value');
  }
  function value(el) {
   if (el.tagName==='SELECT') return el.value && el.selectedOptions.length ? [...el.selectedOptions].filter(o=>o.value).map(o=>o.textContent.trim()).join(', ') : '';
@@ -38,7 +40,7 @@
  }
  function capture(el) {
   if (!eligible(el) || !el.isConnected || !value(el)) { clear(el); return; }
-  if (el._britePill && el._britePill.dataset.value===el.value && el._britePill.dataset.label===value(el)) return;
+  if (el._britePill && el._britePill.dataset.value===el.value && el._britePill.dataset.label===value(el) && el._britePill.dataset.fieldLabel===label(el)) return;
   if (el._britePill) el._britePill.remove();
   const pill=document.createElement('span');
   pill.className='brite-value-pill';
@@ -46,6 +48,7 @@
   pill.dataset.kind=kind;
   pill.dataset.value=el.value;
   pill.dataset.label=value(el);
+  pill.dataset.fieldLabel=label(el);
   const text=document.createElement('span');
   text.className='brite-value-pill-label';
   text.textContent=label(el)+': '+value(el);
@@ -66,9 +69,9 @@
  // Initialize existing values and fields added by client-side rendering.
  // Never collapse the active input while the user is typing.
  function initialize(root) {
-  if (root instanceof Element && root.matches(selector) && root !== document.activeElement && true) capture(root);
+  if (root instanceof Element && root.matches(selector) && root !== document.activeElement) capture(root);
   if (root.querySelectorAll) root.querySelectorAll(selector).forEach(el=>{
-   if (el !== document.activeElement && true) capture(el);
+   if (el !== document.activeElement) capture(el);
   });
  }
  function start() {
