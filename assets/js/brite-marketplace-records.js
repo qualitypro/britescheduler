@@ -103,14 +103,72 @@
         });
     }
 
+    // Sort only the currently rendered records. Re-rendered API results are
+    // sorted again without changing marketplace permissions or server filters.
+    const sortState = new WeakMap();
+    function sortRows(root) {
+        const setting = sortState.get(root);
+        if (!setting) return;
+        const rows = [...root.children].filter(el => el.classList?.contains('brite-marketplace-record-host'));
+        const fieldText = (row, field) => {
+            const summary = row.querySelector('.brite-marketplace-record-summary');
+            const selector = {
+                record: '.brite-marketplace-record-title',
+                details: '.brite-marketplace-record-meta',
+                status: '.brite-marketplace-record-state'
+            }[field];
+            return normalize(summary?.querySelector(selector)?.textContent).toLowerCase();
+        };
+        const collator = new Intl.Collator(undefined, {numeric:true, sensitivity:'base'});
+        const ordered = rows.map((row, index) => ({row,index})).sort((a,b) =>
+            setting.direction * collator.compare(fieldText(a.row,setting.field),fieldText(b.row,setting.field)) || a.index-b.index
+        );
+        // Avoid unnecessary DOM moves and observer notifications.
+        if (ordered.every((entry,index) => entry.row===rows[index])) return;
+        root.append(...ordered.map(entry=>entry.row));
+    }
+    function addSortHeaders(root) {
+        if (sortState.has(root)) return;
+        sortState.set(root,{field:'record',direction:1});
+        const bar=document.createElement('div');
+        bar.className='brite-marketplace-sort-headers';
+        bar.setAttribute('role','group');
+        bar.setAttribute('aria-label','Sort Marketplace records');
+        for (const [field,title] of [['record','Record'],['details','Details'],['status','Status']]) {
+            const button=document.createElement('button');
+            button.type='button';
+            button.className='brite-marketplace-sort-heading';
+            button.dataset.sortField=field;
+            button.textContent=title;
+            button.setAttribute('aria-label','Sort by '+title);
+            button.addEventListener('click',()=>{
+                const current=sortState.get(root);
+                const direction=current.field===field ? -current.direction : 1;
+                sortState.set(root,{field,direction});
+                bar.querySelectorAll('button').forEach(item=>{
+                    const active=item.dataset.sortField===field;
+                    item.setAttribute('aria-pressed',String(active));
+                    item.textContent=item.dataset.sortField.charAt(0).toUpperCase()+item.dataset.sortField.slice(1)+(active?(direction===1?' ▲':' ▼'):'');
+                });
+                sortRows(root);
+            });
+            button.setAttribute('aria-pressed',String(field==='record'));
+            if(field==='record') button.textContent+=' ▲';
+            bar.appendChild(button);
+        }
+        root.parentNode.insertBefore(bar,root);
+    }
+
     roots.forEach(root => {
+        addSortHeaders(root);
         let queued = false;
         const observer = new MutationObserver(() => {
             if (queued) return;
             queued = true;
-            queueMicrotask(() => { queued = false; upgrade(root); });
+            queueMicrotask(() => { queued = false; upgrade(root); sortRows(root); });
         });
         observer.observe(root, {childList: true});
         upgrade(root);
+        sortRows(root);
     });
 })();
