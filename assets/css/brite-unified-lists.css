@@ -28,3 +28,7 @@
 .brite-activity-record header .brite-list-flat-icon{flex-shrink:0}
 .brite-activity-record header strong{flex:1}
 @media(max-width:760px){#serviceSort{grid-template-columns:repeat(4,minmax(0,1fr));}#contractorSort,#activitySort{grid-template-columns:minmax(0,1fr) 85px;}#contractorSort .brite-list-sort:nth-child(n+4),#activitySort .brite-list-sort:nth-child(n+4){display:none}}
+
+/* Client names remain in their cards; omit the redundant Record heading. */
+.brite-list-card-headings.brite-list-client-headings{grid-template-columns:minmax(90px,1fr) minmax(130px,1.25fr) minmax(130px,1.25fr)}
+@media(max-width:760px){.brite-list-card-headings.brite-list-client-headings{grid-template-columns:repeat(3,minmax(0,1fr))}.brite-list-client-headings .brite-list-sort:nth-child(n+3){display:none}}
