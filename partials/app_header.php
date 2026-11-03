@@ -257,6 +257,13 @@ My Availability
 <?php endif; ?>
 
 <?php if($tenant['role']==='client'): ?>
+<a href="<?=htmlspecialchars(app_url('/client-contractor-directory.php'),ENT_QUOTES,'UTF-8')?>">
+<span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M17 8h5M19.5 5.5v5"/></svg></span>
+Find Contractors
+</a>
+<?php endif; ?>
+
+<?php if($tenant['role']==='client'): ?>
 <a class="brite-client-booking-nav"
    href="<?=htmlspecialchars(app_url('/client-dashboard.php?book=1'),ENT_QUOTES,'UTF-8')?>">
 <span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M12 14v5M9.5 16.5h5"/></svg></span>
