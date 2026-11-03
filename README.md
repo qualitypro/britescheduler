@@ -310,7 +310,19 @@ Development verification has included PHP syntax checks, Git diff/merge checks, 
 
 Cycles 69A–69D were verified through Git fast-forward, PHP syntax checks, and source inspection in the local Fedora environment. **This is not equivalent to functional or security testing.** In particular, verify filtered cards, selected-contractor review, cancellation of warning confirmations, stale request handling, and the API's server-side assignment policy using authenticated tenant fixtures.
 
-A formal automated test runner, CI configuration, and reproducible full-suite command have not been established by the available documentation.
+### Automated source smoke checks (roadmap milestone)
+
+The repository includes `scripts/ci-smoke.sh` and `.github/workflows/source-smoke.yml`. The workflow runs on pushes to `main`, pull requests, and manual dispatch using PHP 8.2 and Node.js 22. It syntax-checks a maintained set of PHP entry points/API endpoints and shared JavaScript files.
+
+Run the same checks locally from the repository root:
+
+```bash
+bash scripts/ci-smoke.sh
+```
+
+To use the local LAMPP PHP binary: `PHP_BIN=/opt/lampp/bin/php bash scripts/ci-smoke.sh`.
+
+**Scope:** This is a dependency-free syntax smoke check, not a complete test suite. It does not start MariaDB, authenticate users, test browser interaction, or validate cross-tenant authorization. The GitHub Actions workflow is committed, but successful execution must be confirmed in the Actions tab.
 
 ## 🗺️ Roadmap
 
@@ -319,7 +331,7 @@ The following are **planned or potential improvements**, not claims of completed
 - **Cycle 70:** authenticated Smart Dispatch end-to-end tests, stale-data and confirmation-flow checks, cross-tenant regression tests, and verification that server-side assignment restrictions cannot be bypassed.
 - Cross-role browser checks for header notifications, tooltip descriptions, keyboard accessibility, directory sorting, and value-pill form behavior.
 - Live-data reconciliation tests for Trends selected-series booked value, invoice fallbacks, and overlapping membership categories.
-- Broader end-to-end tests and reproducible CI checks.
+- Extend the initial CI syntax smoke checks with database-backed integration tests, browser automation, and security regressions.
 - Additional negative authorization fixtures for Marketplace access.
 - Further contractor discovery and geographic matching improvements.
 - Expanded map-based workflows and proximity filtering.
@@ -339,6 +351,6 @@ This project is under active development. Before contributing, review existing c
 
 **Brite Scheduler** · Scheduling, service operations, and contractor marketplace
 
-*README v1.1 — updated October 2026; source-audited through Cycle 69D*
+*README v1.2 — updated November 2026; source smoke-check workflow added*
 
 </div>
