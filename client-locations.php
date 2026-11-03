@@ -22,6 +22,7 @@ require __DIR__.'/partials/app_header.php';
 <div class="card">
 <label for="client">Client</label>
 <select id="client">
+<?php if ($tenant['role']==='owner'): ?><option value="all" selected>All Clients</option><?php endif; ?>
 <?php foreach($clients as $c): ?>
 <option value="<?= (int)$c['id'] ?>"><?=htmlspecialchars($c['first_name'].' '.$c['last_name'],ENT_QUOTES,'UTF-8')?></option>
 <?php endforeach; ?>
@@ -57,6 +58,15 @@ require __DIR__.'/partials/app_header.php';
 const clientSelect=document.getElementById('client'), list=document.getElementById('locations'), form=document.getElementById('locationForm'), msg=document.getElementById('message');
 let locations=[];
 const mapMessage=document.getElementById('mapMessage');
+const allClientsMode=()=>clientSelect.value==='all';
+function clientName(x){return x.client_name || 'Client';}
+function locationTooltip(x){
+ return ['Client: '+clientName(x),'Location: '+x.label,
+ 'Address: '+[x.address1,x.address2,x.city,x.state,x.postal_code].filter(Boolean).join(', '),
+ 'Primary: '+(Number(x.is_primary)?'Yes':'No'),
+ 'Geocoding: '+(x.geocoding_diagnostics?.label||x.geocoding_status||'Unknown'),
+ 'Instructions: '+(x.service_instructions||'None')].join('\n');
+}
 
 const locationMap=L.map('clientLocationMap').setView([28.39,-80.61],10);
 
@@ -133,6 +143,7 @@ let activeLocationId=null;
 function closeEditor(){clearForm();editor.hidden=true;activeLocationId=null;}
 addLocation.addEventListener('click',()=>{
   list.querySelectorAll('details[open]').forEach(d=>d.open=false);
+  if(allClientsMode()){say('Select a client to add a location.');clientSelect.focus();return;}
   clearForm();activeLocationId=null;editor.hidden=false;form.scrollIntoView({behavior:'smooth'});
 });
 const locationPager = new BritePagination({
@@ -146,13 +157,14 @@ const locationPager = new BritePagination({
             const statusAction=String(diagnostics.action||'');
             const retryable=x.geocoding_retry_available===true;
             const id=Number(x.id);
-            return `<details class="brite-directory-record" data-location-id="${id}">
+            return `<details class="brite-directory-record" data-location-id="${id}" title="${escapeHtml(locationTooltip(x))}">
               <summary class="brite-directory-summary">
-                <span class="brite-directory-summary-main"><strong>${escapeHtml(x.label)}</strong>
+                <span class="brite-directory-summary-main">${allClientsMode()?`<span><strong>Client Name:</strong> ${escapeHtml(clientName(x))}</span>`:''}<strong>Location: ${escapeHtml(x.label)}</strong>
                 <small>${escapeHtml([x.address1,x.city,x.state,x.postal_code].filter(Boolean).join(', '))}</small></span>
                 <span class="brite-directory-state">${Number(x.is_primary)?'Primary':'Location'}</span>
               </summary>
               <div class="brite-directory-form">
+                <p><strong>Client Name:</strong> ${escapeHtml(clientName(x))}</p>
                 <p><strong>Address:</strong> ${escapeHtml([x.address1,x.address2,x.city,x.state,x.postal_code].filter(Boolean).join(', '))}</p>
                 <p><strong>Service instructions:</strong> ${escapeHtml(x.service_instructions||'—')}</p>
                 <p><strong>Geocoding:</strong> ${escapeHtml(statusLabel)}</p>
@@ -208,8 +220,8 @@ list.addEventListener('click',async e=>{
 
  if(retry){
     const id=Number(retry.dataset.geocodeRetry);
-    const clientId=Number(clientSelect.value);
     const location=locations.find(x=>Number(x.id)===id);
+    const clientId=Number(location?.client_id || clientSelect.value);
 
     if(!location || location.geocoding_retry_available!==true
         || location.latitude!=null || location.longitude!=null){
@@ -236,8 +248,10 @@ list.addEventListener('click',async e=>{
     }
     return;
  }
- if(edit){const x=locations.find(x=>String(x.id)===edit.dataset.edit);if(!x)return;clearForm();activeLocationId=Number(x.id);editor.hidden=false;for(const [k,v] of Object.entries(x)){const el=form.elements.namedItem(k);if(el&&k!=='is_primary')el.value=v??'';}form.elements.namedItem('is_primary').checked=Number(x.is_primary)===1;document.getElementById('formTitle').textContent='Edit Location';form.scrollIntoView({behavior:'smooth'});}
- if(del&&confirm('Delete this service location?')){try{await api('/api/client_locations.php',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(del.dataset.delete),client_id:Number(clientSelect.value)})});say('Location deleted');closeEditor();await refresh();}catch(err){say(err.message);}}
+ if(edit){const x=locations.find(x=>String(x.id)===edit.dataset.edit);if(!x)return;
+ if(allClientsMode()){clientSelect.value=String(x.client_id);await refresh(true);}
+ clearForm();activeLocationId=Number(x.id);editor.hidden=false;for(const [k,v] of Object.entries(x)){const el=form.elements.namedItem(k);if(el&&k!=='is_primary')el.value=v??'';}form.elements.namedItem('is_primary').checked=Number(x.is_primary)===1;document.getElementById('formTitle').textContent='Edit Location';form.scrollIntoView({behavior:'smooth'});}
+ if(del&&confirm('Delete this service location?')){try{await api('/api/client_locations.php',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(del.dataset.delete),client_id:Number(locations.find(x=>Number(x.id)===Number(del.dataset.delete))?.client_id || clientSelect.value)})});say('Location deleted');closeEditor();await refresh();}catch(err){say(err.message);}}
 });
 form.onsubmit=async e=>{
  e.preventDefault();
