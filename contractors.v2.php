@@ -6,7 +6,6 @@ $qualificationCanEdit = in_array((string)Auth::tenant()['role'], ['owner','admin
 <link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-directory-accordion.css'),ENT_QUOTES,'UTF-8')?>">
 <h1>Contractors</h1><p class="muted">Expand a contractor to edit their profile and manage service qualifications.</p><div class="card"><form id="f"><div class="row"><input name="first_name" placeholder="First name" required><input name="last_name" placeholder="Last name" required><input name="business_name" placeholder="Business"><input name="email" type="email" placeholder="Email"><input name="phone" placeholder="Phone"><input name="hourly_rate" type="number" step=".01" placeholder="Hourly rate"><button>Add contractor</button></div></form></div>
 <div class="brite-list-card-headings" id="contractorSort" role="group" aria-label="Sort contractors">
-<button type="button" class="brite-list-sort" data-sort="type">Type</button>
 <button type="button" class="brite-list-sort" data-sort="name">Contractor</button>
 <button type="button" class="brite-list-sort" data-sort="status">Status</button>
 <button type="button" class="brite-list-sort" data-sort="created_at">Created On</button>
@@ -176,7 +175,7 @@ function sortContractors(){
  const collator=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
  const sorted=contractorRecords.slice().sort((a,b)=>{
   const field=contractorSortField;
-  const value=c=>field==='type'?'contractor':field==='name'?[c.first_name,c.last_name].join(' '):c[field];
+  const value=c=>field==='name'?[c.first_name,c.last_name].join(' '):c[field];
   return contractorSortDirection*collator.compare(String(value(a)??''),String(value(b)??''));
  });
  contractorPager.setRecords(sorted,true);
