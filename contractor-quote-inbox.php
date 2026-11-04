@@ -4,7 +4,6 @@ require_once __DIR__.'/app/bootstrap.php';
 Auth::requireUser();Auth::requireRole('contractor');
 $pageTitle='Quote Requests';
 require __DIR__.'/partials/app_header.php';
-?><link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-quote-ux.css'),ENT_QUOTES,'UTF-8')?>"><?php
 ?>
 <section class="card" style="max-width:1050px;margin:auto">
 <h1>Quote Requests</h1>
