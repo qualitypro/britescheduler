@@ -58,3 +58,18 @@
 .brite-offer-actions button{min-height:44px;font-weight:700}
 .brite-offer-actions button:first-of-type{background:#166534;color:#fff}
 @media(max-width:600px){.brite-quote-offer-form{grid-template-columns:1fr}.brite-quote-offer-form label:nth-child(3),.brite-quote-offer-form label:nth-child(4),.brite-quote-offer-form>p{grid-column:auto}}
+
+/* Cycle 72C: contractor quote editor and client-facing preview */
+.brite-quote-workspace{display:grid;gap:12px;margin-top:12px}
+.brite-quote-workspace[hidden],.brite-quote-workspace [hidden]{display:none!important}
+.brite-quote-editor-tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid #cbd5e1;padding-bottom:8px}
+.brite-quote-editor-tabs button{min-height:44px;padding:9px 16px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;color:#243247;font-weight:700}
+.brite-quote-editor-tabs button[aria-selected="true"]{background:#175cd3;border-color:#175cd3;color:#fff}
+.brite-quote-editor-tabs button:focus-visible,.brite-quote-client-preview button:focus-visible{outline:3px solid #2563eb;outline-offset:3px}
+.brite-quote-estimate{grid-column:1/-1;margin:0;padding:12px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;font-weight:700;color:#1e3a8a}
+.brite-quote-offer-form button.brite-quote-secondary,.brite-quote-client-preview button:first-of-type{background:#fff;color:#174ea6;border:1px solid #93c5fd}
+.brite-quote-client-preview{display:grid;gap:12px;padding:12px 0}
+.brite-quote-client-preview h4{margin:0}
+.brite-quote-client-preview>.brite-offer-card{margin:0}
+.brite-quote-client-preview button{justify-self:start;min-height:44px;padding:9px 16px;background:#175cd3;color:#fff;font-weight:700;border-radius:9px}
+@media(max-width:600px){.brite-quote-editor-tabs button{flex:1}.brite-quote-client-preview button{width:100%}.brite-quote-offer-form button{width:100%;justify-self:stretch}}
