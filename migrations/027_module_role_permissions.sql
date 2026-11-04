@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS tenant_module_roles (
  PRIMARY KEY (tenant_id,module_key,role),
  CONSTRAINT fk_tmr_tenant_module FOREIGN KEY (tenant_id,module_key)
    REFERENCES tenant_modules(tenant_id,module_key) ON DELETE CASCADE
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 -- Preserve access for existing activated modules. Manifest restrictions still apply.
 INSERT IGNORE INTO tenant_module_roles (tenant_id,module_key,role,allowed)
 SELECT tm.tenant_id,tm.module_key,roles.role,1
