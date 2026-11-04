@@ -74,7 +74,7 @@
       img.style.cssText='width:110px;height:90px;object-fit:cover;border-radius:8px';
       a.append(img);images.append(a);
     });
-    card.append(images);target.append(card);
+    card.append(images);window.BriteQuoteConversation.attach(card,r.id,'client');target.append(card);
    });
   }catch(error){target.textContent=error.message;}
  }
