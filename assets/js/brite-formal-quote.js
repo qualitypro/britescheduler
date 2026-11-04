@@ -23,7 +23,53 @@ function attach(parent,id,role){
   const today=new Date();fields.valid_until.min=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
   const send=el('button','Send formal quote');send.type='submit';
   const hint=el('p','Submitting a revision replaces the previous outstanding offer. Clients can review the full history.');hint.className='muted';
-  form.append(hint,send);controls.append(form);
+  const workspace=el('div');workspace.className='brite-quote-workspace';
+  const tabs=el('div');tabs.className='brite-quote-editor-tabs';tabs.setAttribute('role','tablist');
+  const editTab=el('button','Edit quote'),previewTab=el('button','Client preview');
+  const preview=el('section');preview.className='brite-quote-client-preview';
+  const previewBody=el('div');const back=el('button','Back to editor');back.type='button';
+  const previewSend=el('button','Send formal quote');previewSend.type='button';
+  preview.append(el('h4','Formal service quote — client preview'),el('p','Review before sending. This preview does not submit the quote.'),previewBody,back,previewSend);
+  [editTab,previewTab].forEach((button,i)=>{button.type='button';button.setAttribute('role','tab');button.id='quote-'+id+'-tab-'+i;button.setAttribute('aria-controls','quote-'+id+'-panel-'+i);tabs.append(button);});
+  form.id='quote-'+id+'-panel-0';form.setAttribute('role','tabpanel');form.setAttribute('aria-labelledby',editTab.id);
+  preview.id='quote-'+id+'-panel-1';preview.setAttribute('role','tabpanel');preview.setAttribute('aria-labelledby',previewTab.id);
+  const estimate=el('p');estimate.className='brite-quote-estimate';estimate.setAttribute('aria-live','polite');
+  form.prepend(estimate);
+  const review=el('button','Review client preview');review.type='button';review.className='brite-quote-secondary';send.before(review);
+  function drawPreview(){
+   previewBody.replaceChildren();
+   const hourly=fields.pricing_type.value==='hourly',amount=Number(fields.amount.value),hours=Number(fields.estimated_hours.value);
+   const card=el('article');card.className='brite-offer-card';
+   card.append(el('strong',amount>0?money(amount)+(hourly?' per hour':' flat rate'):'Enter a price'));
+   if(hourly)card.append(el('p',hours>0?'Illustrative estimated total: '+money(Math.round(amount*hours*100)/100)+' ('+hours+' hours)':'No estimated hours provided'));
+   card.append(el('h4','Scope of work'),el('p',fields.scope_of_work.value.trim()||'Not entered'));
+   card.append(el('h4','Terms and exclusions'),el('p',fields.terms.value.trim()||'None specified'));
+   card.append(el('p','Valid through: '+(fields.valid_until.value||'No expiration specified')));
+   previewBody.append(card);
+  }
+  function switchTab(showPreview){
+   form.hidden=showPreview;preview.hidden=!showPreview;
+   editTab.setAttribute('aria-selected',String(!showPreview));previewTab.setAttribute('aria-selected',String(showPreview));
+   editTab.tabIndex=showPreview?-1:0;previewTab.tabIndex=showPreview?0:-1;
+   if(showPreview)drawPreview();
+  }
+  function updateEstimate(){
+   const amount=Number(fields.amount.value),hours=Number(fields.estimated_hours.value),hourly=fields.pricing_type.value==='hourly';
+   estimate.textContent=amount>0?(hourly?(hours>0?'Illustrative estimate: '+money(Math.round(amount*hours*100)/100):'Hourly rate: '+money(amount)+' per hour'):'Flat-rate quote: '+money(amount)):'Enter a price to see the quote summary.';
+  }
+  [fields.amount,fields.estimated_hours].forEach(input=>input.addEventListener('input',updateEstimate));
+  fields.pricing_type.addEventListener('change',updateEstimate);
+  editTab.addEventListener('click',()=>switchTab(false));previewTab.addEventListener('click',()=>switchTab(true));
+  review.addEventListener('click',()=>{if(form.reportValidity()){switchTab(true);previewTab.focus();}});
+  back.addEventListener('click',()=>{switchTab(false);editTab.focus();});
+  previewSend.addEventListener('click',()=>form.requestSubmit(send));
+  tabs.addEventListener('keydown',event=>{
+   if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+   event.preventDefault();const toPreview=event.key==='End'||(event.key!=='Home'&&!preview.hidden?false:event.key!=='Home');
+   switchTab(toPreview);(toPreview?previewTab:editTab).focus();
+  });
+  form.append(hint,send);workspace.append(tabs,form,preview);controls.append(workspace);
+  updateEstimate();switchTab(false);
   form.addEventListener('submit',async e=>{
    e.preventDefault();if(!form.reportValidity())return;
    if(fields.pricing_type.value==='flat'&&fields.estimated_hours.value){status.textContent='Estimated hours are only available for hourly quotes.';return;}
