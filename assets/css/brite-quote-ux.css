@@ -1,0 +1,26 @@
+/* Cycle 71E.13: shared quote and directory usability refinements */
+#directoryResults{align-items:stretch;gap:18px}
+#directoryResults>.card{transition:box-shadow .15s ease,border-color .15s ease;border:1px solid #dbe3ed}
+#directoryResults>.card:hover{border-color:#9ab5d5;box-shadow:0 6px 18px rgba(15,23,42,.10)}
+#directoryResults h2{font-size:1.15rem;line-height:1.35}
+#contractorQuoteInbox .card,#clientQuoteLookup .card{box-shadow:none;border-radius:12px}
+#contractorQuoteInbox .card:focus-within,#clientQuoteLookup .card:focus-within{border-color:#175cd3}
+#contractorQuoteFilters button[aria-pressed="true"]{background:#175cd3;color:#fff;border-color:#175cd3;font-weight:700}
+#contractorQuoteFilters button[aria-pressed="false"]{background:#fff;color:#243247}
+#contractorQuoteFilters button:hover{border-color:#175cd3}
+#directoryFilters input:focus-visible,#directoryFilters select:focus-visible,
+#contractorQuoteSearch:focus-visible,#clientQuoteSearch:focus-visible,
+#clientQuoteFilter:focus-visible,#contractorQuoteInbox button:focus-visible,
+#clientQuoteLookup button:focus-visible,#directoryResults button:focus-visible,
+#contractorQuoteFilters button:focus-visible{outline:3px solid #2563eb;outline-offset:3px}
+#contractorDetails::backdrop{background:rgba(15,23,42,.58)}
+#contractorDetails{width:min(760px,95vw);box-sizing:border-box}
+@media(max-width:600px){
+ #directoryResults{grid-template-columns:1fr}
+ #contractorQuoteInbox .card,#clientQuoteLookup .card{padding:12px!important}
+ #contractorQuoteInbox button>span:last-child,#clientQuoteLookup button>span:last-child{white-space:normal!important;text-align:right}
+ #contractorDetails{padding:16px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #directoryResults>.card{transition:none}
+}
