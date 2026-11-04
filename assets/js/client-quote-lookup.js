@@ -25,7 +25,7 @@ function detail(r){
  const photos=r.photos||[];
  body.append(node('h3','Job photographs ('+photos.length+')'));
  if(photos.length){
-  const gallery=node('div');gallery.style.cssText='display:flex;flex-wrap:wrap;gap:10px';
+  const gallery=node('div');gallery.setAttribute('data-brite-photo-gallery','');gallery.style.cssText='display:flex;flex-wrap:wrap;gap:10px';
   photos.forEach((p,i)=>{
    const link=node('a');link.href=p.url;link.target='_blank';link.rel='noopener noreferrer';
    const img=node('img');img.src=p.url;img.alt='Job photograph '+(i+1)+' for request '+r.id;img.loading='lazy';
