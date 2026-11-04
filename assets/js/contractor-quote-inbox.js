@@ -45,12 +45,12 @@ function detailsFor(r){
  }
  const guidance=r.status==='more_info_requested'?'Waiting for the client to respond. You can send a follow-up in the conversation below.':r.status==='submitted'?'Review the job and message the client, or request more details or photographs.':'Review the conversation for updates.';
  const hint=node('p',guidance);hint.className='muted';hint.style.marginTop='14px';body.append(hint);
+ if(window.BriteFormalQuote)window.BriteFormalQuote.attach(body,r.id,'contractor');
  const action=node('h3','Conversation and next steps');body.append(action);
  if(window.BriteQuoteConversation&&typeof window.BriteQuoteConversation.attach==='function'){
   window.BriteQuoteConversation.attach(body,r.id,'contractor');
  }else body.append(node('p','Conversation is currently unavailable. Refresh the page to retry.'));
- const future=node('p','Formal pricing and sending a quote will be available in a future update.');
- future.className='muted';body.append(future);
+ 
  return body;
 }
 function render(){
