@@ -12,6 +12,7 @@ function attach(card,id,role){
  button.setAttribute('aria-controls','quote-conversation-'+role+'-'+id);
  panel.id='quote-conversation-'+role+'-'+id;
  const heading=el('h3','Conversation with '+(role==='contractor'?'Client':'Contractor'));
+ const actionHint=el('p');actionHint.className='muted';actionHint.style.cssText='padding:10px;border-radius:8px;background:#eef6ff';
  const help=el('p',role==='contractor'?'Choose the type of response, write your message, and send it to the client.':'Review the conversation and reply below. You can attach additional job photographs.');
  help.className='muted';
  const status=el('p');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
@@ -22,6 +23,7 @@ function attach(card,id,role){
  textarea.placeholder=role==='contractor'?'Type your reply or question for the client...':'Type your reply to the contractor...';textarea.style.cssText='display:block;width:100%;box-sizing:border-box;margin-top:6px';
  label.append(textarea);
  const intentWrap=el('fieldset');intentWrap.style.cssText='border:1px solid #cbd5e1;border-radius:8px;padding:12px;display:grid;gap:9px';
+ let send=null;
  const intentInputs=[];
  const guidance=el('p');guidance.className='muted';guidance.style.cssText='margin:0;font-size:13px';
  if(role==='contractor'){
@@ -39,7 +41,7 @@ function attach(card,id,role){
   const copy={reply:['Send Reply to Client','Type your message to the client...','Send a normal message. The request stays in its current stage.'],request_photos:['Request More Photos','Which views or areas should the client photograph?','The client will see this as a request for additional photographs.'],request_data:['Request More Data','What details, measurements, or specifications do you need?','The client will see this as a request for additional job information.']};
   const [buttonText,placeholder,explanation]=copy[type];
   textarea.placeholder=placeholder;guidance.textContent=explanation;
-  if(typeof send!=='undefined')send.textContent=buttonText;
+  if(send)send.textContent=buttonText;
  }
  const photoLabel=el('label','Additional job photographs (optional, up to 5 JPG/PNG, 5 MB each)');
  const photos=el('input');photos.type='file';photos.accept='.jpg,.jpeg,.png,image/jpeg,image/png';photos.multiple=true;photos.setAttribute('data-brite-pills','off');
@@ -75,15 +77,24 @@ function attach(card,id,role){
   photos.value='';renderPreview();
  });
  renderPreview();
- const send=el('button',role==='contractor'?'Send Reply to Client':'Send Reply to Contractor');send.type='submit';send.style.cssText='font-weight:700;justify-self:start';
+ send=el('button',role==='contractor'?'Send Reply to Client':'Send Reply to Contractor');send.type='submit';send.style.cssText='font-weight:700;justify-self:start';
  if(role==='contractor'){form.append(intentWrap);updateIntent();}
  form.append(label,photoLabel,previewStatus,preview,send);
- panel.append(heading,help,messages,form,status);wrap.append(button,panel);card.append(wrap);
+ panel.append(heading,help,actionHint,messages,form,status);wrap.append(button,panel);card.append(wrap);
  async function refresh(){
   const response=await fetch(base+'/api/quote_request_messages.php?request_id='+encodeURIComponent(id),{credentials:'same-origin',headers:{Accept:'application/json'}});
   const data=await response.json();if(!response.ok)throw Error(data.error||'HTTP '+response.status);
   messages.replaceChildren();
-  if(!data.messages.length)messages.append(el('p','No conversation yet. Start by writing a message below.'));
+  if(!data.messages.length)messages.append(el('p',role==='client'?'Your contractor has not sent any messages yet. You can still send a question below.':'No conversation yet. Start by writing a message below.'));
+  if(role==='client'){
+   const pending=[...data.messages].reverse().find(m=>m.sender_role==='contractor'&&['request_photos','request_data'].includes(m.message_type));
+   const latestClient=[...data.messages].reverse().find(m=>m.sender_role==='client');
+   if(pending&&(!latestClient||Number(latestClient.id)<Number(pending.id))){
+    const needsPhotos=pending.message_type==='request_photos';
+    actionHint.textContent=needsPhotos?'Action needed: Your contractor requested more photos. Add the requested pictures below, write a short reply, then select Send Reply to Contractor.':'Action needed: Your contractor requested more details. Answer the question below, then select Send Reply to Contractor.';
+    actionHint.hidden=false;
+   }else{actionHint.textContent='You can send a message or additional photos to your contractor at any time while this request is open.';actionHint.hidden=false;}
+  }else{actionHint.hidden=true;}
   data.messages.forEach(m=>{
    const item=el('article');const mine=m.sender_role===role;item.style.cssText='padding:12px;border:1px solid #cbd5e1;border-radius:12px;max-width:88%;min-width:0;'+(mine?'justify-self:end;background:#e8f2ff':'justify-self:start;background:#f8fafc');
    item.append(el('strong',(mine?'You':(m.sender_role==='contractor'?'Contractor':'Client'))+' · '+m.created_at));
