@@ -79,6 +79,7 @@
    data.requests.forEach(r=>{
     const card=el('article');card.style.cssText='border-top:1px solid #cbd5e1;padding:12px 0';
     const heading=el('h3','Request #'+r.id+' · '+r.contractor_name);card.append(heading);
+    const manage=el('a','View quote and manage request');manage.href=base+'/client-quote-lookup.php';manage.style.cssText='display:inline-block;margin:6px 0;font-weight:700';card.append(manage);
     const state=el('p',labels[r.status]||r.status);state.style.cssText='display:inline-block;background:#e2e8f0;border-radius:12px;padding:6px 10px;font-weight:600';card.append(state);
     const hint=el('p',r.status==='more_info_requested'?'Your contractor has asked for additional information. Open the conversation below to see what they need.':r.status==='submitted'?'Your request has been sent. You can open the conversation to check messages or ask a question.':'Open the conversation to review updates.');hint.className='muted';card.append(hint);
     card.append(el('p',r.description));
