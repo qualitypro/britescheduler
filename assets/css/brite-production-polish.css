@@ -1,0 +1,40 @@
+/* Cycle 72A: production polish across authenticated screens */
+.brite-app{font-synthesis:none;-webkit-text-size-adjust:100%}
+.brite-app .brite-content{line-height:1.5}
+.brite-app .brite-content :is(h1,h2,h3){text-wrap:balance}
+.brite-app .brite-content p{overflow-wrap:anywhere}
+.brite-app .brite-content :is(.card,.brite-ui-card){min-width:0}
+.brite-app .brite-content :is(input,select,textarea){background-color:var(--brite-surface,#fff);color:var(--brite-text,#172033);min-height:40px}
+.brite-app .brite-content textarea{min-height:84px;resize:vertical}
+.brite-app .brite-content :is(input,select,textarea)[aria-invalid="true"]{border-color:#b91c1c;box-shadow:0 0 0 1px #b91c1c}
+.brite-app .brite-content :is(button,[role="button"]){min-height:40px}
+.brite-app .brite-content :is(button,input,select,textarea):disabled{cursor:not-allowed}
+.brite-app .brite-content fieldset{min-width:0}
+.brite-app .brite-content legend{font-weight:650}
+.brite-app .brite-content :is(label,legend){overflow-wrap:anywhere}
+.brite-app .brite-content :is([role="alert"],[role="status"]){line-height:1.45}
+.brite-app .brite-content :is(.card,.brite-ui-card)>:first-child{margin-top:0}
+.brite-app .brite-content :is(.card,.brite-ui-card)>:last-child{margin-bottom:0}
+.brite-app .brite-table-scroll{width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;border-radius:10px}
+.brite-app .brite-table-scroll table{width:100%;min-width:max-content}
+.brite-app .brite-table-scroll:focus-visible{outline:3px solid var(--brite-indigo,#4f46e5);outline-offset:2px}
+.brite-app .brite-sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.brite-app .brite-topbar-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brite-app .brite-sidebar-nav a{line-height:1.3}
+.brite-app .brite-content :is(a,button,input,select,textarea):focus-visible{outline-offset:2px}
+@media(min-width:901px) and (max-height:780px){
+ .brite-app .brite-content{padding-top:12px}
+ .brite-app .brite-content h1{margin-bottom:7px}
+ .brite-app .brite-topbar{min-height:54px;padding-block:6px}
+}
+@media(max-width:700px){
+ .brite-app .brite-content{padding-inline:14px}
+ .brite-app .brite-content :is(input,select,textarea){font-size:16px}
+ .brite-app .brite-content :is(button,[role="button"]){min-height:44px}
+ .brite-app .brite-table-scroll{margin-block:10px}
+ .brite-app .brite-content .card{padding:14px}
+}
+@media(prefers-reduced-motion:reduce){
+ .brite-app *,.brite-app *::before,.brite-app *::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+.brite-app[data-brite-reduced-motion="1"] *,.brite-app[data-brite-reduced-motion="1"] *::before,.brite-app[data-brite-reduced-motion="1"] *::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
