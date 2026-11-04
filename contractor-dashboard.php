@@ -111,6 +111,7 @@ require __DIR__.'/partials/app_header.php';
         <div class="brite-dashboard-heading">
             <h1>Contractor Dashboard</h1>
             <p><a href="<?=htmlspecialchars(app_url('/contractor-profile.php'),ENT_QUOTES,'UTF-8')?>">Edit my contractor profile</a></p>
+            <p><a href="<?=htmlspecialchars(app_url('/contractor-quote-inbox.php'),ENT_QUOTES,'UTF-8')?>"><strong>New Quote Requests</strong></a> — Review client requests and photographs</p>
             <p class="muted">
                 Welcome, <?=htmlspecialchars($user['first_name'])?>.
             </p>
