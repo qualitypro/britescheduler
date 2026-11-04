@@ -41,6 +41,7 @@ $dashboardPath = match ($tenant['role']) {
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-ux-foundation.css'), ENT_QUOTES, 'UTF-8')?>">
 <link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-quote-ux.css'),ENT_QUOTES,'UTF-8')?>">
+<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-photo-lightbox.css'),ENT_QUOTES,'UTF-8')?>">
 <link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-sitewide-ux.css'),ENT_QUOTES,'UTF-8')?>">
 
 <style>
@@ -104,6 +105,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+<script defer src="<?=htmlspecialchars(app_url('/assets/js/brite-photo-lightbox.js'),ENT_QUOTES,'UTF-8')?>"></script>
 </head>
 <body class="brite-app"
       data-brite-theme="<?=htmlspecialchars($palette, ENT_QUOTES, 'UTF-8')?>"
