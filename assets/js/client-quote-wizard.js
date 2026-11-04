@@ -89,7 +89,12 @@
    contractors.forEach(c=>contractor.add(new Option(c.business_name||[c.first_name,c.last_name].filter(Boolean).join(' '),c.contractor_id)));
    (locations.locations||[]).forEach(l=>locationSelect.add(new Option(l.label+' — '+l.address1+', '+l.city,l.id)));
    const pre=new URLSearchParams(window.location.search).get('contractor_id');
-   if(pre)contractor.value=pre;
+   if(pre){
+    contractor.value=pre;
+    if(!contractor.value){status.textContent='This contractor is not currently available. Please select a contractor from the directory.';submit.disabled=true;return;}
+    contractor.disabled=true;
+    const hidden=document.createElement('input');hidden.type='hidden';hidden.name='contractor_id';hidden.value=contractor.value;form.append(hidden);
+   }
    updateServices();
    const today=new Date();const localToday=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
    document.getElementById('quoteDate').min=localToday;
