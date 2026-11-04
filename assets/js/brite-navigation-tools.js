@@ -6,6 +6,15 @@ const make=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.classNa
 const topbar=document.querySelector('.brite-topbar');
 const main=document.getElementById('briteMainContent');
 if(!topbar||!main)return;
+// Give visible page sections stable in-page targets without changing their content.
+const existingIds=new Set([...document.querySelectorAll('[id]')].map(n=>n.id));
+main.querySelectorAll('h2,h3').forEach((heading,i)=>{
+ if(heading.id||!heading.textContent.trim())return;
+ const baseId='brite-section-'+heading.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,48);
+ let id=baseId||'brite-section-'+i;let suffix=2;
+ while(existingIds.has(id))id=(baseId||'brite-section-'+i)+'-'+suffix++;
+ heading.id=id;existingIds.add(id);
+});
 const trigger=make('button','brite-command-trigger','Search pages');trigger.type='button';trigger.setAttribute('aria-keyshortcuts','Control+K Meta+K');trigger.setAttribute('aria-haspopup','dialog');
 trigger.title='Find a page or jump to a section (Ctrl/⌘ + K)';
 const quick=document.querySelector('.brite-quick-actions');
