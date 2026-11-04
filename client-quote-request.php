@@ -8,7 +8,7 @@ require __DIR__.'/partials/app_header.php';
 <section class="card" style="max-width:850px;margin:auto">
 <h1>Request a Quote</h1>
 <p class="muted">Tell a contractor about your job and include 2–10 photos. Your request will be saved privately. Contractors will be able to respond in the next release.</p>
-<form id="quoteWizard" enctype="multipart/form-data" style="display:grid;gap:16px">
+<form id="quoteWizard" novalidate enctype="multipart/form-data" style="display:grid;gap:16px">
  <div><label for="quoteContractor">Contractor</label><select id="quoteContractor" name="contractor_id" required style="display:block;width:100%"><option value="">Choose a contractor</option></select></div>
  <div><label for="quoteService">Service</label><select id="quoteService" name="service_id" style="display:block;width:100%"><option value="">Choose a service (optional)</option></select></div>
  <div><label for="quoteLocation">Your service location</label><select id="quoteLocation" name="client_location_id" required style="display:block;width:100%"><option value="">Choose your location</option></select><a href="<?=htmlspecialchars(app_url('/client-locations.php'),ENT_QUOTES,'UTF-8')?>">Manage service locations</a></div>
@@ -27,7 +27,7 @@ require __DIR__.'/partials/app_header.php';
  <button type="button" id="quoteConfirm">Confirm and submit</button>
  <button type="button" id="quoteBack">Back to editing</button>
 </section>
- <button id="quoteSubmit" type="submit">Review Request</button>
+ <button id="quoteSubmit" type="button">Review Request</button>
  <p id="quoteStatus" role="status" aria-live="polite"></p>
 </form>
 </section>
