@@ -1,0 +1,21 @@
+/* Cycle 72B: navigation discovery and page utilities */
+.brite-app .brite-command-trigger{flex:0 0 auto;min-height:38px;padding:8px 12px;border:1px solid var(--brite-border,#cbd5e1);border-radius:9px;background:var(--brite-surface,#fff);color:var(--brite-text,#172033);font-weight:700;font-size:.82rem}
+.brite-app .brite-command-trigger:hover{border-color:var(--brite-indigo,#4f46e5);background:var(--brite-indigo-soft,#eef2ff)}
+.brite-command-dialog{position:fixed;inset:8vh 0 auto;width:min(620px,calc(100vw - 28px));max-height:82dvh;margin:0 auto;padding:0;border:1px solid #cbd5e1;border-radius:16px;background:#fff;color:#172033;box-shadow:0 28px 90px #0f172a66;overflow:hidden}
+.brite-command-dialog::backdrop{background:#0f172a99}
+.brite-command-frame{display:flex;flex-direction:column;max-height:82dvh;padding:16px;gap:10px}
+.brite-command-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brite-command-header button{min-height:40px;padding:7px 12px}
+.brite-command-input{width:100%;min-height:48px;padding:10px 14px;font-size:1rem;border:2px solid #94a3b8;border-radius:10px;background:#fff;color:#172033}
+.brite-command-hint,.brite-command-status{margin:0;color:#475569;font-size:.82rem}
+.brite-command-results{display:grid;gap:4px;overflow:auto;min-height:0;overscroll-behavior:contain}
+.brite-command-option{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:10px 12px;text-align:left;border:1px solid transparent;border-radius:9px;background:transparent;color:#172033;cursor:pointer}
+.brite-command-option small{flex-shrink:0;color:#64748b}
+.brite-command-option:hover,.brite-command-option[aria-selected="true"]{background:#e8efff;border-color:#93c5fd}
+.brite-command-option:focus-visible,.brite-command-input:focus-visible,.brite-app .brite-command-trigger:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+.brite-page-tools{display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap;margin:24px 0 0;padding:12px 0;border-top:1px solid var(--brite-border,#cbd5e1)}
+.brite-page-tools button{min-height:40px;border:1px solid var(--brite-border,#cbd5e1);border-radius:8px;background:var(--brite-surface,#fff);color:var(--brite-text,#172033);padding:8px 12px;font-weight:600}
+.brite-page-tools button:hover{background:var(--brite-indigo-soft,#eef2ff)}
+@media(max-width:700px){.brite-app .brite-command-trigger{padding:8px 10px;font-size:.75rem}.brite-command-dialog{inset:3vh 0 auto;max-height:92dvh}.brite-command-frame{max-height:92dvh}.brite-command-hint{font-size:.72rem}}
+@media(max-width:390px){.brite-app .brite-command-trigger{font-size:0;width:40px;min-width:40px}.brite-app .brite-command-trigger::before{content:'⌕';font-size:1.5rem;line-height:1}}
+@media(prefers-reduced-motion:reduce){.brite-command-dialog,.brite-command-option{scroll-behavior:auto}}
