@@ -349,6 +349,18 @@ My Locations
             </div>
         </div>
 
+        <nav class="brite-quick-actions" aria-label="Quick actions">
+<?php if($tenant['role']==='client'): ?>
+<a href="<?=htmlspecialchars(app_url('/client-contractor-directory.php'),ENT_QUOTES,'UTF-8')?>">Find contractors</a>
+<a href="<?=htmlspecialchars(app_url('/client-quote-lookup.php'),ENT_QUOTES,'UTF-8')?>">My quotes</a>
+<?php elseif($tenant['role']==='contractor'): ?>
+<a href="<?=htmlspecialchars(app_url('/contractor-quote-inbox.php'),ENT_QUOTES,'UTF-8')?>">Quote inbox</a>
+<a href="<?=htmlspecialchars(app_url('/scheduling.php'),ENT_QUOTES,'UTF-8')?>">Schedule</a>
+<?php elseif(in_array($tenant['role'],['owner','admin','scheduler','accounting'],true)): ?>
+<a href="<?=htmlspecialchars(app_url('/dashboard.v2.php'),ENT_QUOTES,'UTF-8')?>">Dashboard</a>
+<a href="<?=htmlspecialchars(app_url('/scheduling.php'),ENT_QUOTES,'UTF-8')?>">Schedule</a>
+<?php endif; ?>
+</nav>
         <div class="brite-topbar-actions">
             <!-- Notifications live beside the signed-in user's identity. -->
     <button
