@@ -2,58 +2,125 @@
  'use strict';
  const form=document.getElementById('quoteWizard');if(!form)return;
  const base=window.BRITE_BASE||'';
- const status=document.getElementById('quoteStatus'),submit=document.getElementById('quoteSubmit');
- const contractor=form.elements.namedItem('contractor_id'),service=form.elements.namedItem('service_id'),location=form.elements.namedItem('client_location_id');
- const el=(tag,text)=>{const n=document.createElement(tag);n.textContent=String(text);return n;};
- let contractors=[];
- async function json(path,options={}){
-  const r=await fetch(base+path,{credentials:'same-origin',headers:{Accept:'application/json'},...options});
-  const d=await r.json();if(!r.ok)throw Error(d.error||'Request failed');return d;
+ const status=document.getElementById('quoteStatus');
+ const submit=document.getElementById('quoteSubmit');
+ const contractor=document.getElementById('quoteContractor');
+ const service=document.getElementById('quoteService');
+ const locationSelect=document.getElementById('quoteLocation');
+ const input=document.getElementById('quotePhotos');
+ const gallery=document.getElementById('quotePhotoPreview');
+ const count=document.getElementById('quotePhotoCount');
+ const review=document.getElementById('quoteReview');
+ const reviewDetails=document.getElementById('quoteReviewDetails');
+ const confirm=document.getElementById('quoteConfirm');
+ const back=document.getElementById('quoteBack');
+ let contractors=[],photos=[],busy=false;
+ const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=String(text);return n;};
+ async function json(path){
+  const response=await fetch(base+path,{credentials:'same-origin',headers:{Accept:'application/json'}});
+  let data;try{data=await response.json();}catch(_){throw Error('Server returned HTTP '+response.status+' instead of JSON');}
+  if(!response.ok)throw Error(data.error||'HTTP '+response.status);
+  return data;
  }
  function updateServices(){
   const selected=contractors.find(c=>String(c.contractor_id)===contractor.value);
   service.replaceChildren(new Option('Choose a service (optional)',''));
   (selected?.services||[]).forEach(s=>service.add(new Option(s.name,s.id)));
  }
+ function renderPhotos(){
+  gallery.replaceChildren();
+  count.textContent=photos.length+' of 10 photographs selected (minimum 2).';
+  photos.forEach((file,index)=>{
+   const card=el('div');card.style.cssText='border:1px solid #cbd5e1;border-radius:10px;padding:8px;min-width:0';
+   const img=document.createElement('img');const url=URL.createObjectURL(file);
+   img.src=url;img.alt='Selected job photo '+(index+1);
+   img.style.cssText='width:100%;height:115px;object-fit:cover;border-radius:6px';
+   img.addEventListener('load',()=>URL.revokeObjectURL(url),{once:true});
+   img.addEventListener('error',()=>URL.revokeObjectURL(url),{once:true});
+   const label=el('p',file.name);label.style.cssText='font-size:.8rem;overflow-wrap:anywhere';
+   const remove=el('button','Remove');remove.type='button';
+   remove.addEventListener('click',()=>{if(busy)return;photos.splice(index,1);renderPhotos();review.hidden=true;});
+   card.append(img,label,remove);gallery.append(card);
+  });
+ }
+ input.addEventListener('change',()=>{
+  const chosen=Array.from(input.files||[]);
+  for(const file of chosen){
+   if(photos.length>=10){status.textContent='Maximum 10 photographs. Remove a photo before adding more.';break;}
+   if(file.size<1||file.size>5*1024*1024||!(/\.(jpe?g|png)$/i.test(file.name))||!['image/jpeg','image/png'].includes(file.type)){
+    status.textContent='Only JPG/PNG photos up to 5 MB each are supported: '+file.name;
+    continue;
+   }
+   photos.push(file);
+  }
+  input.value='';
+  review.hidden=true;renderPhotos();
+ });
  async function history(){
   const target=document.getElementById('quoteHistory');
-  try {
-   const data=await json('/api/client_quote_requests.php');target.replaceChildren();
+  try{
+   const data=await json('/api/client_quote_requests.php');
+   target.replaceChildren();
    if(!data.requests.length){target.append(el('p','No quote requests yet.'));return;}
-   data.requests.forEach(r=>{const p=el('p','#'+r.id+' — '+r.contractor_name+' — '+r.status+' — '+r.created_at);target.append(p);});
-  }catch(e){target.textContent=e.message;}
+   data.requests.forEach(r=>target.append(el('p','#'+r.id+' — '+r.contractor_name+' — '+r.status+' — '+r.created_at)));
+  }catch(error){target.textContent=error.message;}
  }
  async function init(){
   try{
    const [directory,locations]=await Promise.all([json('/api/client_contractor_directory.php'),json('/api/client_locations.php')]);
    contractors=directory.contractors||[];
-   contractors.forEach(c=>contractor.add(new Option(c.business_name||[c.first_name,c.last_name].join(' '),c.contractor_id)));
-   (locations.locations||[]).forEach(l=>location.add(new Option(l.label+' — '+l.address1+', '+l.city,l.id)));
-   const params=new URLSearchParams(locationSearch());
-   const pre=params.get('contractor_id');
+   contractors.forEach(c=>contractor.add(new Option(c.business_name||[c.first_name,c.last_name].filter(Boolean).join(' '),c.contractor_id)));
+   (locations.locations||[]).forEach(l=>locationSelect.add(new Option(l.label+' — '+l.address1+', '+l.city,l.id)));
+   const pre=new URLSearchParams(window.location.search).get('contractor_id');
    if(pre)contractor.value=pre;
    updateServices();
-   const date=form.elements.namedItem('preferred_date');date.min=new Date().toLocaleDateString('en-CA');
-   status.textContent='Ready to submit.';
-  }catch(e){status.textContent=e.message;submit.disabled=true;}
-  history();
+   const today=new Date();const localToday=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
+   document.getElementById('quoteDate').min=localToday;
+   if(!contractors.length)status.textContent='No active contractors are available in your network.';
+   else if(locationSelect.options.length<2)status.textContent='Add a service location before requesting a quote.';
+   else status.textContent='Choose 2–10 photographs and review your request.';
+  }catch(error){status.textContent='Unable to load form options: '+error.message;submit.disabled=true;}
+  renderPhotos();history();
  }
- function locationSearch(){return window.location.search;}
- contractor.addEventListener('change',updateServices);
- form.addEventListener('submit',async e=>{
-  e.preventDefault();
-  const photos=document.getElementById('quotePhotos').files;
-  if(photos.length<2||photos.length>10){status.textContent='Please select 2–10 photographs.';return;}
-  for(const p of photos){if(p.size>5*1024*1024||!/^image\/(jpeg|png)$/.test(p.type)){status.textContent='Photos must be JPG or PNG, up to 5 MB each.';return;}}
-  submit.disabled=true;status.textContent='Submitting request...';
+ contractor.addEventListener('change',()=>{updateServices();review.hidden=true;});
+ form.addEventListener('input',()=>{review.hidden=true;});
+ form.addEventListener('submit',event=>{
+  event.preventDefault();
+  if(busy)return;
+  if(!form.reportValidity())return;
+  if(photos.length<2||photos.length>10){status.textContent='Please add 2–10 photographs before submitting.';input.focus();return;}
+  reviewDetails.replaceChildren();
+  for(const [label,value] of [
+   ['Contractor',contractor.selectedOptions[0]?.textContent],
+   ['Service',service.selectedOptions[0]?.textContent],
+   ['Location',locationSelect.selectedOptions[0]?.textContent],
+   ['Preferred date',document.getElementById('quoteDate').value||'Flexible'],
+   ['Description',document.getElementById('quoteDescription').value],
+   ['Photographs',photos.length+' attached']
+  ])reviewDetails.append(el('p',label+': '+(value||'Not selected')));
+  review.hidden=false;review.scrollIntoView({behavior:'smooth',block:'nearest'});
+  status.textContent='Review your request, then confirm to upload photographs and submit.';
+ });
+ back.addEventListener('click',()=>{review.hidden=true;submit.focus();});
+ confirm.addEventListener('click',async()=>{
+  if(busy)return;
+  if(!form.reportValidity()||photos.length<2||photos.length>10){review.hidden=true;status.textContent='Please correct the request before submitting.';return;}
+  busy=true;confirm.disabled=true;submit.disabled=true;status.textContent='Uploading photographs and submitting request...';
   try{
    const data=new FormData(form);
-   const r=await fetch(base+'/api/client_quote_requests.php',{method:'POST',credentials:'same-origin',headers:{'X-CSRF-Token':window.BRITE_CSRF,Accept:'application/json'},body:data});
-   const result=await r.json();if(!r.ok)throw Error(result.error||'Submission failed');
+   photos.forEach(file=>data.append('photos[]',file,file.name));
+   const response=await fetch(base+'/api/client_quote_requests.php',{
+    method:'POST',credentials:'same-origin',
+    headers:{'X-CSRF-Token':window.BRITE_CSRF,Accept:'application/json'},
+    body:data
+   });
+   let result;try{result=await response.json();}catch(_){throw Error('Server returned HTTP '+response.status+' instead of JSON');}
+   if(!response.ok)throw Error(result.error||'Submission failed (HTTP '+response.status+')');
    status.textContent='Quote request #'+result.request_id+' submitted successfully.';
-   form.reset();updateServices();history();
-  }catch(err){status.textContent=err.message;}
-  finally{submit.disabled=false;}
+   photos=[];renderPhotos();form.reset();updateServices();review.hidden=true;
+   await history();
+  }catch(error){status.textContent='Unable to submit: '+error.message;}
+  finally{busy=false;confirm.disabled=false;submit.disabled=false;}
  });
  init();
 })();
