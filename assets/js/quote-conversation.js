@@ -24,8 +24,39 @@ function attach(card,id,role){
  const photoLabel=el('label','Additional job photographs (optional, up to 5 JPG/PNG, 5 MB each)');
  const photos=el('input');photos.type='file';photos.accept='.jpg,.jpeg,.png,image/jpeg,image/png';photos.multiple=true;photos.setAttribute('data-brite-pills','off');
  photoLabel.append(photos);
+ const previewStatus=el('p','No photographs selected.');previewStatus.setAttribute('role','status');previewStatus.setAttribute('aria-live','polite');
+ const preview=el('div');preview.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px';
+ preview.setAttribute('aria-label','Photographs selected for this reply');
+ let selectedPhotos=[],sending=false;
+ function renderPreview(){
+  preview.replaceChildren();
+  previewStatus.textContent=selectedPhotos.length+' of 5 photographs selected for this reply.';
+  selectedPhotos.forEach((file,index)=>{
+   const tile=el('div');tile.style.cssText='border:1px solid #cbd5e1;border-radius:8px;padding:8px;min-width:0';
+   const img=el('img');const url=URL.createObjectURL(file);
+   img.src=url;img.alt='Reply photograph '+(index+1);img.style.cssText='width:100%;height:110px;object-fit:cover;border-radius:6px';
+   img.addEventListener('load',()=>URL.revokeObjectURL(url),{once:true});
+   img.addEventListener('error',()=>URL.revokeObjectURL(url),{once:true});
+   const name=el('p',file.name);name.style.cssText='font-size:12px;overflow-wrap:anywhere';
+   const remove=el('button','Remove');remove.type='button';remove.disabled=sending;
+   remove.addEventListener('click',()=>{if(sending)return;selectedPhotos.splice(index,1);renderPreview();});
+   tile.append(img,name,remove);preview.append(tile);
+  });
+ }
+ photos.addEventListener('change',()=>{
+  if(sending)return;
+  for(const file of Array.from(photos.files||[])){
+   if(selectedPhotos.length>=5){status.textContent='Maximum 5 photographs per reply.';break;}
+   if(file.size<1||file.size>5*1024*1024||!['image/jpeg','image/png'].includes(file.type)||!/\.(jpe?g|png)$/i.test(file.name)){
+    status.textContent='Only JPG/PNG files up to 5 MB are accepted: '+file.name;continue;
+   }
+   selectedPhotos.push(file);
+  }
+  photos.value='';renderPreview();
+ });
+ renderPreview();
  const send=el('button',role==='contractor'?'Send Reply to Client':'Send Reply to Contractor');send.type='submit';send.style.cssText='font-weight:700;justify-self:start';
- form.append(label,photoLabel,send);
+ form.append(label,photoLabel,previewStatus,preview,send);
  panel.append(heading,help,messages,form,status);wrap.append(button,panel);card.append(wrap);
  async function refresh(){
   const response=await fetch(base+'/api/quote_request_messages.php?request_id='+encodeURIComponent(id),{credentials:'same-origin',headers:{Accept:'application/json'}});
@@ -56,17 +87,18 @@ function attach(card,id,role){
  });
  form.addEventListener('submit',async event=>{
   event.preventDefault();if(!textarea.value.trim()){status.textContent='Enter a message.';return;}
-  const selected=Array.from(photos.files||[]);
+  if(sending)return;
+  const selected=selectedPhotos.slice();
   if(selected.length>5||selected.some(f=>f.size<1||f.size>5*1024*1024||!['image/jpeg','image/png'].includes(f.type))){status.textContent='Choose up to 5 JPG/PNG photographs, each no larger than 5 MB.';return;}
   const data=new FormData();data.append('request_id',String(id));data.append('body',textarea.value.trim());
   selected.forEach(f=>data.append('photos[]',f,f.name));
-  send.disabled=true;status.textContent='Sending...';
+  sending=true;send.disabled=true;photos.disabled=true;preview.querySelectorAll('button').forEach(b=>b.disabled=true);status.textContent='Sending...';
   try{
    const response=await fetch(base+'/api/quote_request_messages.php',{method:'POST',credentials:'same-origin',headers:{'X-CSRF-Token':csrf,Accept:'application/json'},body:data});
    const result=await response.json();if(!response.ok)throw Error(result.error||'HTTP '+response.status);
-   textarea.value='';photos.value='';await refresh();status.textContent='Reply sent successfully. The other party can read it in this conversation.';
+   textarea.value='';photos.value='';selectedPhotos=[];renderPreview();await refresh();status.textContent='Reply sent successfully. The other party can read it in this conversation.';
   }catch(e){status.textContent='Unable to send: '+e.message;}
-  finally{if(!['accepted','declined','cancelled'].includes(status.dataset.requestStatus||''))send.disabled=false;}
+  finally{sending=false;const closed=['accepted','declined','cancelled'].includes(status.dataset.requestStatus||'');send.disabled=closed;photos.disabled=closed;preview.querySelectorAll('button').forEach(b=>b.disabled=closed);}
  });
 }
 window.BriteQuoteConversation={attach};
