@@ -5,7 +5,6 @@ Auth::requireUser();
 Auth::requireRole('client');
 $pageTitle='My Quote Requests';
 require __DIR__.'/partials/app_header.php';
-?><link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-quote-ux.css'),ENT_QUOTES,'UTF-8')?>"><?php
 ?>
 <section class="card" style="max-width:1050px;margin:auto">
  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
