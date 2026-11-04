@@ -10,7 +10,9 @@
  let contractors=[];
  const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=String(text);if(cls)n.className=cls;return n;};
  const title=c=>c.business_name||[c.first_name,c.last_name].filter(Boolean).join(' ')||'Contractor';
- const money=n=>n===null||n===undefined||n===''?'Contact for pricing':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n));
+ const money=n=>n===null||n===undefined||n===''||!Number.isFinite(Number(n))?'Contact for pricing':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n));
+ const quoteUrl=c=>(window.BRITE_BASE||'')+'/client-quote-request.php?contractor_id='+encodeURIComponent(c.contractor_id);
+ const rate=s=>s.rate!==null&&s.rate!==undefined?money(s.rate)+(s.pricing_model==='hourly'?'/hour':' flat rate'):'Price on request';
  function photoGrid(c,limit){
   const grid=el('div');grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:10px;margin:12px 0';
   (c.photos||[]).slice(0,limit).forEach(p=>{
@@ -28,7 +30,7 @@
   if(c.skills)detail.append(el('p','Skills: '+c.skills));
   detail.append(el('h3','Services and pricing'));
   if(!c.services.length)detail.append(el('p','No services listed yet.','muted'));
-  c.services.forEach(s=>detail.append(el('p',s.name+' — '+(s.rate!==null&&s.rate!==undefined?money(s.rate)+(s.pricing_model==='hourly'?'/hour':' flat rate'):money(null)))));
+  (c.services||[]).forEach(s=>detail.append(el('p',s.name+' — '+rate(s))));
   detail.append(el('h3','Service areas'));
   if(!c.service_areas.length)detail.append(el('p','Service areas not listed.','muted'));
   c.service_areas.forEach(a=>detail.append(el('p',a.label+(a.area_type==='zip'&&a.postal_code?' ('+a.postal_code+')':''))));
@@ -37,20 +39,34 @@
   if(c.portfolio_url){
    try{const u=new URL(c.portfolio_url);if(u.protocol==='https:'){const link=el('a','Visit portfolio website');link.href=u.href;link.target='_blank';link.rel='noopener noreferrer';detail.append(link);}}catch(_){}
   }
-  const quote=el('a','Request a quote from this contractor');quote.href=(window.BRITE_BASE||'')+'/client-quote-request.php?contractor_id='+encodeURIComponent(c.contractor_id);detail.append(quote);
+  const quote=el('a','Request a quote from this contractor');quote.href=quoteUrl(c);quote.style.cssText='display:inline-block;padding:10px 14px;margin-top:12px;background:#175cd3;color:white;border-radius:8px;font-weight:700;text-decoration:none';detail.append(quote);
   if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');
  }
  function render(){
   results.replaceChildren();
-  if(!contractors.length){results.append(el('p','No matching contractors found. Try clearing the filters.'));return;}
+  if(!contractors.length){
+   const empty=el('div',undefined,'card');empty.style.gridColumn='1 / -1';
+   empty.append(el('h2','No matching contractors'),el('p','Try a different service, search term, or ZIP code.','muted'));
+   const clear=el('button','Clear filters');clear.type='button';clear.addEventListener('click',()=>{form.reset();load();});empty.append(clear);results.append(empty);return;
+  }
   contractors.forEach(c=>{
-   const card=el('article',undefined,'card');card.style.minWidth='0';
-   card.append(el('h2',title(c)),el('p',c.headline||c.specialties||'Network contractor','muted'));
-   if(c.photos.length)card.append(photoGrid(c,1));
-   const services=c.services.map(s=>s.name).slice(0,4).join(', ');
-   if(services)card.append(el('p','Services: '+services));
-   const btn=el('button','View profile and photos');btn.type='button';btn.addEventListener('click',()=>show(c));card.append(btn);const quote=el('a','Request a quote');quote.href=(window.BRITE_BASE||'')+'/client-quote-request.php?contractor_id='+encodeURIComponent(c.contractor_id);quote.style.marginLeft='12px';card.append(quote);
-   results.append(card);
+   const card=el('article',undefined,'card');card.style.cssText='min-width:0;display:flex;flex-direction:column;gap:10px';
+   const heading=el('h2',title(c));heading.style.margin='0';
+   const tagline=el('p',c.headline||c.specialties||'Available network contractor','muted');tagline.style.margin='0';
+   card.append(heading,tagline);
+   if((c.photos||[]).length)card.append(photoGrid(c,1));
+   const services=(c.services||[]).slice(0,3);
+   if(services.length){
+    const list=el('div');list.style.cssText='display:grid;gap:5px';
+    services.forEach(s=>list.append(el('div',s.name+' · '+rate(s))));
+    card.append(list);
+    if(c.services.length>3)card.append(el('p','+'+(c.services.length-3)+' more services','muted'));
+   }else card.append(el('p','Services and rates available on request.','muted'));
+   if((c.service_areas||[]).length)card.append(el('p','Service areas: '+c.service_areas.slice(0,2).map(a=>a.label||a.postal_code).filter(Boolean).join(', '),'muted'));
+   const actions=el('div');actions.style.cssText='display:flex;flex-wrap:wrap;gap:10px;margin-top:auto;padding-top:10px';
+   const profile=el('button','View profile');profile.type='button';profile.addEventListener('click',()=>show(c));
+   const quote=el('a','Request quote');quote.href=quoteUrl(c);quote.style.cssText='display:inline-flex;align-items:center;padding:9px 14px;border-radius:8px;background:#175cd3;color:white;text-decoration:none;font-weight:700';
+   actions.append(profile,quote);card.append(actions);results.append(card);
   });
  }
  async function load(){
@@ -72,5 +88,6 @@
  form.addEventListener('submit',e=>{e.preventDefault();load();});
  form.addEventListener('reset',()=>{setTimeout(load,0);});
  document.getElementById('directoryClose').addEventListener('click',()=>{if(dialog.close)dialog.close();else dialog.removeAttribute('open');});
+ dialog.addEventListener('click',event=>{if(event.target===dialog&&dialog.close)dialog.close();});
  load();
 })();
