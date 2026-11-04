@@ -1,0 +1,16 @@
+{
+  "key": "sample-test",
+  "name": "Sample Test Module",
+  "version": "1.0.0",
+  "description": "Demonstrates tenant activation, menu registration, and user-aware content.",
+  "menu_label": "Test Module",
+  "page": "page.php",
+  "roles": [
+    "owner",
+    "admin",
+    "scheduler",
+    "accounting",
+    "contractor",
+    "client"
+  ]
+}
