@@ -10,6 +10,14 @@ require __DIR__.'/partials/app_header.php';
 ?>
 
 <h1>Business Settings</h1>
+<section class="card" id="briteModuleSettings" aria-labelledby="briteModulesHeading" style="margin:18px 0">
+<h2 id="briteModulesHeading">Installed Modules</h2>
+<p class="muted">Modules installed on the server can be activated for this business. Activation affects menu visibility and page access for users in this tenant.</p>
+<p id="briteModuleStatus" role="status" aria-live="polite">Loading modules…</p>
+<div id="briteModuleList" style="display:grid;gap:12px"></div>
+</section>
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-module-settings.js'),ENT_QUOTES,'UTF-8')?>"></script>
+
 <?php if ((string)Auth::tenant()['role'] === 'owner'): ?>
 <p><a href="<?=htmlspecialchars(app_url('/staff-management.php'),ENT_QUOTES,'UTF-8')?>">Manage staff accounts and tenant roles</a></p>
 <?php endif; ?>
