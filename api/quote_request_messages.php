@@ -12,7 +12,7 @@ $q->execute([$id,$tid,$uid]);$request=$q->fetch(PDO::FETCH_ASSOC);
 if(!$request)json_response(['error'=>'Request not found'],404);
 $method=$_SERVER['REQUEST_METHOD']??'GET';
 if($method==='GET'){
- $q=$pdo->prepare("SELECT id,sender_role,body,created_at FROM contractor_quote_messages WHERE tenant_id=? AND request_id=? ORDER BY id ASC LIMIT 500");
+ $q=$pdo->prepare("SELECT id,sender_role,message_type,body,created_at FROM contractor_quote_messages WHERE tenant_id=? AND request_id=? ORDER BY id ASC LIMIT 500");
  $q->execute([$tid,$id]);$messages=$q->fetchAll(PDO::FETCH_ASSOC);
  $photos=$pdo->prepare("SELECT id FROM contractor_quote_message_photos WHERE tenant_id=? AND message_id=? ORDER BY id");
  foreach($messages as &$message){
@@ -24,6 +24,9 @@ if($method==='GET'){
 if($method!=='POST'){header('Allow: GET, POST');json_response(['error'=>'Method not allowed'],405);}
 verify_csrf();
 if(in_array($request['status'],['accepted','declined','cancelled'],true))json_response(['error'=>'Conversation is closed'],409);
+$messageType=(string)($_POST['message_type']??'reply');
+if(!in_array($messageType,['reply','request_photos','request_data'],true))json_response(['error'=>'Invalid message type'],422);
+if($role!=='contractor'&&$messageType!=='reply')json_response(['error'=>'Only contractors may request additional information'],403);
 $body=trim((string)($_POST['body']??''));
 if(mb_strlen($body,'UTF-8')<1||mb_strlen($body,'UTF-8')>3000)json_response(['error'=>'Message must contain 1–3000 characters'],422);
 $files=$_FILES['photos']??null;$count=0;
@@ -64,11 +67,11 @@ try{
  $q=$pdo->prepare("SELECT status FROM contractor_quote_requests WHERE tenant_id=? AND id=? FOR UPDATE");
  $q->execute([$tid,$id]);$current=$q->fetchColumn();
  if($current===false||in_array($current,['accepted','declined','cancelled'],true))throw new DomainException('Conversation is closed');
- $q=$pdo->prepare("INSERT INTO contractor_quote_messages(tenant_id,request_id,sender_role,sender_user_id,body) VALUES(?,?,?,?,?)");
- $q->execute([$tid,$id,$role,$uid,$body]);$messageId=(int)$pdo->lastInsertId();
+ $q=$pdo->prepare("INSERT INTO contractor_quote_messages(tenant_id,request_id,sender_role,sender_user_id,message_type,body) VALUES(?,?,?,?,?,?)");
+ $q->execute([$tid,$id,$role,$uid,$messageType,$body]);$messageId=(int)$pdo->lastInsertId();
  $q=$pdo->prepare("INSERT INTO contractor_quote_message_photos(tenant_id,message_id,storage_key,mime_type) VALUES(?,?,?,?)");
  foreach($stored as $photo)$q->execute([$tid,$messageId,$photo['key'],$photo['mime']]);
- if($role==='contractor'&&$current==='submitted'){
+ if($role==='contractor'&&$messageType!=='reply'&&$current==='submitted'){
   $q=$pdo->prepare("UPDATE contractor_quote_requests SET status='more_info_requested' WHERE id=? AND tenant_id=?");$q->execute([$id,$tid]);
  }
  if($role==='client'&&$current==='more_info_requested'){
