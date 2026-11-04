@@ -33,7 +33,7 @@ require __DIR__.'/partials/app_header.php';
  <p id="quoteStatus" role="status" aria-live="polite"></p>
 </form>
 </section>
-<section class="card" style="max-width:850px;margin:20px auto"><h2 id="myQuoteRequestsHeading">My Quote Requests</h2><p class="muted">Track your requests, view messages, and send any photos or details your contractor needs.</p><div id="quoteHistory">Loading...</div></section>
+<section class="card" style="max-width:850px;margin:20px auto"><h2 id="myQuoteRequestsHeading">My Quote Requests</h2><p><a href="<?=htmlspecialchars(app_url('/client-quote-lookup.php'),ENT_QUOTES,'UTF-8')?>">Search and manage all my quote requests</a></p><p class="muted">Track your requests, view messages, and send any photos or details your contractor needs.</p><div id="quoteHistory">Loading...</div></section>
 <script src="<?=htmlspecialchars(app_url('/assets/js/quote-conversation.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <script src="<?=htmlspecialchars(app_url('/assets/js/client-quote-wizard.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <?php require __DIR__.'/partials/app_footer.php'; ?>
