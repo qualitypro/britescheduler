@@ -2,6 +2,7 @@
  'use strict';
  const form=document.getElementById('quoteWizard');if(!form)return;
  const base=window.BRITE_BASE||'';
+ window.addEventListener('error',event=>{if(event.filename&&event.filename.includes('client-quote-wizard.js')){const message=document.getElementById('quoteStatus');if(message)message.textContent='Quote wizard error: '+event.message;}});
  const status=document.getElementById('quoteStatus');
  const submit=document.getElementById('quoteSubmit');
  const contractor=document.getElementById('quoteContractor');
@@ -39,7 +40,7 @@
    img.addEventListener('error',()=>URL.revokeObjectURL(url),{once:true});
    const label=el('p',file.name);label.style.cssText='font-size:.8rem;overflow-wrap:anywhere';
    const remove=el('button','Remove');remove.type='button';
-   remove.addEventListener('click',()=>{if(busy)return;photos.splice(index,1);renderPhotos();review.hidden=true;});
+   remove.addEventListener('click',()=>{if(busy)return;photos.splice(index,1);renderPhotos();review.hidden=true;review.style.display='none';});
    card.append(img,label,remove);gallery.append(card);
   });
  }
@@ -96,11 +97,29 @@
  }
  contractor.addEventListener('change',()=>{updateServices();review.hidden=true;});
  form.addEventListener('input',()=>{review.hidden=true;});
- form.addEventListener('submit',event=>{
-  event.preventDefault();
+ function validateRequest(){
+  const fields=[
+   [contractor,'Select a contractor.'],
+   [locationSelect,'Select a service location.'],
+   [document.getElementById('quoteDescription'),'Enter a job description of at least 20 characters.'],
+   [document.getElementById('quoteDate'),'Select a valid preferred date, or leave it blank.']
+  ];
+  for(const [field,message] of fields){
+   if(!field.checkValidity()){
+    status.textContent=message;
+    field.focus();
+    return false;
+   }
+  }
+  if(photos.length<2||photos.length>10){
+   status.textContent='Add at least 2 photographs (maximum 10) before reviewing.';
+   input.focus();return false;
+  }
+  return true;
+ }
+ function showReview(){
   if(busy)return;
-  if(!form.reportValidity()){status.textContent='Complete all required fields before reviewing.';return;}
-  if(photos.length<2||photos.length>10){status.textContent='Please add 2–10 photographs before submitting.';input.focus();return;}
+  if(!validateRequest())return;
   reviewDetails.replaceChildren();
   for(const [label,value] of [
    ['Contractor',contractor.selectedOptions[0]?.textContent],
@@ -110,9 +129,13 @@
    ['Description',document.getElementById('quoteDescription').value],
    ['Photographs',photos.length+' attached']
   ])reviewDetails.append(el('p',label+': '+(value||'Not selected')));
-  review.hidden=false;review.scrollIntoView({behavior:'smooth',block:'nearest'});
-  status.textContent='Review your request, then confirm to upload photographs and submit.';
- });
+  review.hidden=false;
+  review.style.display='block';
+  review.scrollIntoView({behavior:'smooth',block:'nearest'});
+  status.textContent='Review your request, then click Confirm and submit.';
+ }
+ submit.addEventListener('click',showReview);
+ form.addEventListener('submit',event=>{event.preventDefault();showReview();});
  back.addEventListener('click',()=>{review.hidden=true;submit.focus();});
  confirm.addEventListener('click',async()=>{
   if(busy)return;
