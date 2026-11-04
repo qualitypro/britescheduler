@@ -32,5 +32,6 @@ require __DIR__.'/partials/app_header.php';
 </form>
 </section>
 <section class="card" style="max-width:850px;margin:20px auto"><h2>My Quote Requests</h2><div id="quoteHistory">Loading...</div></section>
+<script src="<?=htmlspecialchars(app_url('/assets/js/quote-conversation.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <script src="<?=htmlspecialchars(app_url('/assets/js/client-quote-wizard.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <?php require __DIR__.'/partials/app_footer.php'; ?>
