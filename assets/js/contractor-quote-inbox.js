@@ -3,13 +3,18 @@
 const target=document.getElementById('contractorQuoteInbox');
 const status=document.getElementById('contractorQuoteStatus');
 const filters=document.getElementById('contractorQuoteFilters');
+const search=document.getElementById('contractorQuoteSearch');
 if(!target||!status)return;
 const base=window.BRITE_BASE||'';
 const node=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=String(text);return e;};
 const statuses={submitted:'New request',more_info_requested:'Waiting on client',quoted:'Quote sent',accepted:'Accepted',declined:'Declined',cancelled:'Cancelled'};
 const closed=new Set(['quoted','accepted','declined','cancelled']);
 let requests=[],activeFilter='all';
-const matches=r=>activeFilter==='all'||(activeFilter==='new'&&r.status==='submitted')||(activeFilter==='waiting'&&r.status==='more_info_requested')||(activeFilter==='closed'&&closed.has(r.status));
+const matches=r=>{
+ const q=(search?.value||'').trim().toLowerCase();
+ const found=!q||[r.id,r.client_name,r.service_name,r.description,r.city,r.postal_code].some(v=>String(v||'').toLowerCase().includes(q));
+ return found&&(activeFilter==='all'||(activeFilter==='new'&&r.status==='submitted')||(activeFilter==='waiting'&&r.status==='more_info_requested')||(activeFilter==='closed'&&closed.has(r.status)));
+};
 function line(parent,label,value){
  const p=node('p');p.style.margin='8px 0';
  p.append(node('strong',label+': '),document.createTextNode(String(value||'Not provided')));
@@ -49,9 +54,12 @@ function detailsFor(r){
 }
 function render(){
  target.replaceChildren();
- const visible=requests.filter(matches);
+ const visible=requests.filter(matches).sort((a,b)=>{
+ const priority=r=>r.status==='submitted'?0:r.status==='more_info_requested'?1:2;
+ return priority(a)-priority(b)||Number(b.id)-Number(a.id);
+ });
  status.textContent=visible.length+' of '+requests.length+' quote requests shown.';
- if(!visible.length){target.append(node('p',requests.length?'No requests match this filter.':'No quote requests received yet.'));return;}
+ if(!visible.length){const empty=node('div');empty.className='card';empty.append(node('h3',requests.length?'No matching requests':'No quote requests yet'),node('p',requests.length?'Try another search or status filter.':'New client requests will appear here when received.'));target.append(empty);return;}
  visible.forEach(r=>{
   const card=node('article');card.className='card';card.style.cssText='border:1px solid #cbd5e1;padding:16px;min-width:0';
   const toggle=node('button');toggle.type='button';toggle.setAttribute('aria-expanded','false');
@@ -61,7 +69,7 @@ function render(){
   const meta=node('span',[r.client_name,r.preferred_date||'Flexible date'].filter(Boolean).join(' · '));meta.className='muted';
   const state=node('span',statuses[r.status]||r.status);state.style.cssText='font-size:.85rem;font-weight:600';
   heading.append(title,meta,state);
-  const indicator=node('span','Review request +');indicator.style.cssText='white-space:nowrap;font-weight:600;font-size:.85rem';
+  const indicator=node('span',r.status==='submitted'?'Review new request +':'View details +');indicator.style.cssText='white-space:nowrap;font-weight:600;font-size:.85rem';
   toggle.append(heading,indicator);card.append(toggle);
   let content=null;
   toggle.addEventListener('click',()=>{
@@ -76,6 +84,7 @@ function render(){
   target.append(card);
  });
 }
+if(search)search.addEventListener('input',render);
 if(filters){
  filters.addEventListener('click',event=>{
   const button=event.target.closest('button[data-quote-filter]');
@@ -90,7 +99,7 @@ async function load(){
   const response=await fetch(base+'/api/contractor_quote_inbox.php',{credentials:'same-origin',headers:{Accept:'application/json'}});
   const data=await response.json();
   if(!response.ok)throw Error(data.error||'HTTP '+response.status);
-  requests=data.requests||[];
+  requests=Array.isArray(data.requests)?data.requests:[];
   render();
  }catch(error){status.textContent='Unable to load quote requests: '+error.message;}
 }
