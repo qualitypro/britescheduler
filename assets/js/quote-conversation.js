@@ -101,7 +101,7 @@ function attach(card,id,role){
    if(m.message_type==='request_photos')item.append(el('p','📷 Request More Photos'));
    if(m.message_type==='request_data')item.append(el('p','📋 Request More Data'));
    item.append(el('p',m.body));
-   const gallery=el('div');gallery.style.cssText='display:flex;flex-wrap:wrap;gap:8px';
+   const gallery=el('div');gallery.setAttribute('data-brite-photo-gallery','');gallery.style.cssText='display:flex;flex-wrap:wrap;gap:8px';
    (m.photos||[]).forEach((p,i)=>{
     const a=el('a');a.href=p.url;a.target='_blank';a.rel='noopener noreferrer';
     const img=el('img');img.src=p.url;img.alt='Message photo '+(i+1);img.loading='lazy';
