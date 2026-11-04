@@ -11,7 +11,6 @@ const statuses={submitted:'New request',more_info_requested:'Waiting on client',
 const closed=new Set(['quoted','accepted','declined','cancelled']);
 let requests=[],activeFilter='all';
 const expanded=new Set();
-let lastFocusedRequest=null;
 const matches=r=>{
  const q=(search?.value||'').trim().toLowerCase();
  const found=!q||[r.id,r.client_name,r.service_name,r.description,r.city,r.postal_code].some(v=>String(v||'').toLowerCase().includes(q));
@@ -56,8 +55,14 @@ function detailsFor(r){
 }
 function render(){
  const focused=document.activeElement?.closest('article')?.dataset.requestId;
- if(focused)lastFocusedRequest=focused;
  target.replaceChildren();
+ if(filters){
+  const counts={all:requests.length,new:requests.filter(r=>r.status==='submitted').length,waiting:requests.filter(r=>r.status==='more_info_requested').length,closed:requests.filter(r=>closed.has(r.status)).length};
+  filters.querySelectorAll('button[data-quote-filter]').forEach(button=>{
+   const label={all:'All',new:'New',waiting:'Waiting on client',closed:'Completed / closed'}[button.dataset.quoteFilter];
+   if(label)button.textContent=label+' ('+counts[button.dataset.quoteFilter]+')';
+  });
+ }
  const visible=requests.filter(matches).sort((a,b)=>{
  const priority=r=>r.status==='submitted'?0:r.status==='more_info_requested'?1:2;
  return priority(a)-priority(b)||Number(b.id)-Number(a.id);
