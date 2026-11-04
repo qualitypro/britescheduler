@@ -9,7 +9,21 @@ require __DIR__.'/partials/app_header.php';
 
 ?>
 
-<h1>Business Settings</h1>
+<h1>Administration Settings</h1>
+<style>
+.brite-settings-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 22px;border-bottom:1px solid var(--border-color,#d6dce5);padding-bottom:10px}
+.brite-settings-tab{border:1px solid var(--border-color,#d6dce5);border-radius:9px;padding:11px 17px;background:transparent;color:inherit;font:inherit;cursor:pointer}
+.brite-settings-tab[aria-selected="true"]{background:var(--primary,#1769aa);color:#fff;border-color:transparent;font-weight:600}
+.brite-settings-tab:focus-visible{outline:3px solid #e7a83e;outline-offset:2px}
+.brite-settings-panel[hidden]{display:none!important}
+</style>
+<div class="brite-settings-tabs" role="tablist" aria-label="Administration settings">
+<button class="brite-settings-tab" type="button" role="tab" id="settings-tab-owner" aria-controls="settings-panel-owner" aria-selected="true" tabindex="0" data-settings-tab="owner">Owner Profile</button>
+<button class="brite-settings-tab" type="button" role="tab" id="settings-tab-business" aria-controls="settings-panel-business" aria-selected="false" tabindex="-1" data-settings-tab="business">Business Profile</button>
+<button class="brite-settings-tab" type="button" role="tab" id="settings-tab-modules" aria-controls="settings-panel-modules" aria-selected="false" tabindex="-1" data-settings-tab="modules">Modules</button>
+</div>
+
+<section id="settings-panel-modules" class="brite-settings-panel" role="tabpanel" aria-labelledby="settings-tab-modules" hidden>
 <section class="card" id="briteModuleSettings" aria-labelledby="briteModulesHeading" style="margin:18px 0">
 <h2 id="briteModulesHeading">Installed Modules</h2>
 <p class="muted">Modules installed on the server can be activated for this business. Activation affects menu visibility and page access for users in this tenant.</p>
@@ -18,6 +32,8 @@ require __DIR__.'/partials/app_header.php';
 </section>
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-module-settings.js'),ENT_QUOTES,'UTF-8')?>"></script>
 
+</section>
+<section id="settings-panel-owner" class="brite-settings-panel" role="tabpanel" aria-labelledby="settings-tab-owner">
 <?php if ((string)Auth::tenant()['role'] === 'owner'): ?>
 <p><a href="<?=htmlspecialchars(app_url('/staff-management.php'),ENT_QUOTES,'UTF-8')?>">Manage staff accounts and tenant roles</a></p>
 <?php endif; ?>
@@ -61,6 +77,8 @@ require __DIR__.'/partials/app_header.php';
 </script>
 
 
+</section>
+<section id="settings-panel-business" class="brite-settings-panel" role="tabpanel" aria-labelledby="settings-tab-business" hidden>
 <p class="muted">
     Configure the business information displayed on invoices
     and other customer-facing documents.
@@ -275,6 +293,36 @@ businessForm.addEventListener(
 
 loadBusiness();
 
+</script>
+
+</section>
+<script>
+(() => {
+ const tabs=Array.from(document.querySelectorAll('[data-settings-tab]'));
+ const valid=new Set(['owner','business','modules']);
+ function activate(name,focus=false){
+   if(!valid.has(name)) name='owner';
+   for(const tab of tabs){
+     const selected=tab.dataset.settingsTab===name;
+     tab.setAttribute('aria-selected',String(selected));
+     tab.tabIndex=selected?0:-1;
+     document.getElementById('settings-panel-'+tab.dataset.settingsTab).hidden=!selected;
+     if(selected&&focus)tab.focus();
+   }
+   if(location.hash!=='#'+name) history.replaceState(null,'','#'+name);
+ }
+ for(const [index,tab] of tabs){
+   tab.addEventListener('click',()=>activate(tab.dataset.settingsTab));
+   tab.addEventListener('keydown',event=>{
+     if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+     event.preventDefault();
+     const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;
+     activate(tabs[next].dataset.settingsTab,true);
+   });
+ }
+ activate(location.hash.slice(1));
+ window.addEventListener('hashchange',()=>activate(location.hash.slice(1)));
+})();
 </script>
 
 <?php require __DIR__.'/partials/app_footer.php'; ?>
