@@ -7,7 +7,8 @@ require __DIR__.'/partials/app_header.php';
 ?>
 <section class="card" style="max-width:850px;margin:auto">
 <h1>Request a Quote</h1>
-<p class="muted">Tell a contractor about your job and include 2–10 photos. Your request will be saved privately. Contractors will be able to respond in the next release.</p>
+<p class="muted">Describe the job, attach 2–10 photos, and review your request before sending it. After submitting, you can message the contractor and respond to requests for more details or photos.</p>
+<p class="muted"><strong>Step 1:</strong> Choose a contractor and location. <strong>Step 2:</strong> Describe the job and add photos. <strong>Step 3:</strong> Review and submit.</p>
 <form id="quoteWizard" novalidate enctype="multipart/form-data" style="display:grid;gap:16px">
  <div><label for="quoteContractor">Contractor</label><select id="quoteContractor" name="contractor_id" required style="display:block;width:100%"><option value="">Choose a contractor</option></select></div>
  <div><label for="quoteService">Service</label><select id="quoteService" name="service_id" style="display:block;width:100%"><option value="">Choose a service (optional)</option></select></div>
@@ -31,7 +32,7 @@ require __DIR__.'/partials/app_header.php';
  <p id="quoteStatus" role="status" aria-live="polite"></p>
 </form>
 </section>
-<section class="card" style="max-width:850px;margin:20px auto"><h2>My Quote Requests</h2><div id="quoteHistory">Loading...</div></section>
+<section class="card" style="max-width:850px;margin:20px auto"><h2 id="myQuoteRequestsHeading">My Quote Requests</h2><p class="muted">Track your requests, view messages, and send any photos or details your contractor needs.</p><div id="quoteHistory">Loading...</div></section>
 <script src="<?=htmlspecialchars(app_url('/assets/js/quote-conversation.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <script src="<?=htmlspecialchars(app_url('/assets/js/client-quote-wizard.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <?php require __DIR__.'/partials/app_footer.php'; ?>
