@@ -1,0 +1,36 @@
+/* Cycle 71E.15 — sitewide density and above-the-fold actions.
+   Progressive enhancement only: no forms, panels or role permissions altered. */
+.brite-app .brite-topbar{gap:12px;padding-block:9px;min-height:62px}
+.brite-app .brite-quick-actions{display:flex;align-items:center;gap:7px;margin-left:auto;min-width:0}
+.brite-app .brite-quick-actions a{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:8px 12px;border:1px solid var(--brite-border,#cbd5e1);border-radius:9px;color:var(--brite-text,#172033);background:var(--brite-surface,#fff);text-decoration:none;font-size:.82rem;font-weight:700;white-space:nowrap}
+.brite-app .brite-quick-actions a:hover,.brite-app .brite-quick-actions a[aria-current="page"]{border-color:var(--brite-indigo,#4f46e5);background:var(--brite-indigo-soft,#eef2ff)}
+.brite-app .brite-quick-actions a:focus-visible{outline:3px solid var(--brite-indigo,#4f46e5);outline-offset:2px}
+.brite-app .brite-content{padding-top:18px;padding-bottom:24px}
+.brite-app .brite-content> :first-child{margin-top:0}
+.brite-app .brite-content :is(h1,h2,h3){scroll-margin-top:90px}
+.brite-app .brite-content h1{line-height:1.2;margin-top:0;margin-bottom:10px}
+.brite-app .brite-content .card>h1:first-child{margin-top:0}
+.brite-app .brite-content :is(form,.brite-tab-toolbar,.brite-tabs,[role="tablist"]){scroll-margin-top:85px}
+.brite-app .brite-content :is(button,input,select,textarea){max-width:100%}
+.brite-app .brite-content :is(button,a){touch-action:manipulation}
+.brite-app .brite-content :is(.card,.brite-ui-card){overflow-wrap:break-word}
+.brite-app .brite-content :is(.grid,[class*="grid"]){min-width:0}
+.brite-app .brite-content :is(table){max-width:100%}
+.brite-app .brite-content :is([role="status"],[aria-live]){overflow-wrap:anywhere}
+@media(min-width:901px){
+ .brite-app .brite-content{padding:18px 24px 28px}
+ .brite-app .brite-topbar{padding-inline:24px}
+}
+@media(max-width:1100px){
+ .brite-app .brite-quick-actions{gap:4px}
+ .brite-app .brite-quick-actions a{padding-inline:9px;font-size:.76rem}
+}
+@media(max-width:700px){
+ .brite-app .brite-quick-actions{display:none}
+ .brite-app .brite-content{padding-top:14px}
+ .brite-app .brite-topbar{min-height:56px}
+ .brite-app .brite-content h1{font-size:clamp(1.3rem,5vw,1.8rem)}
+}
+@media(prefers-reduced-motion:reduce){
+ .brite-app .brite-quick-actions a{transition:none}
+}
