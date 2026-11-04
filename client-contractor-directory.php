@@ -8,7 +8,7 @@ require __DIR__.'/partials/app_header.php';
 ?>
 <section class="card" style="margin-bottom:18px">
  <h1>Find a Contractor</h1>
- <p class="muted">Explore active contractors in your network, compare services and view their work. Quote requests are coming in the next release.</p>
+ <p class="muted">Compare contractor services, pricing information and portfolios. Choose a contractor to request a quote.</p>
  <form id="directoryFilters" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end">
   <label style="flex:2;min-width:180px">Search by name or specialty
    <input name="q" maxlength="100" placeholder="Cleaning, painting..." style="display:block;width:100%;box-sizing:border-box">
@@ -24,6 +24,7 @@ require __DIR__.'/partials/app_header.php';
  </form>
  <p class="muted" style="font-size:.85rem">ZIP filtering matches contractors who explicitly list that ZIP. Radius-based coverage is not included in this filter yet.</p>
  <p id="directoryStatus" role="status" aria-live="polite">Loading contractors...</p>
+ <p><a href="<?=htmlspecialchars(app_url('/client-quote-lookup.php'),ENT_QUOTES,'UTF-8')?>">View my existing quote requests</a></p>
 </section>
 <section id="directoryResults" class="grid" aria-label="Contractor results"></section>
 <dialog id="contractorDetails" style="border:0;border-radius:14px;max-width:min(760px,95vw);max-height:85vh;overflow:auto;padding:24px">
