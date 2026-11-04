@@ -96,7 +96,7 @@ async function briteSignOut(){
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const current = location.pathname.split('/').pop();
-    document.querySelectorAll('.brite-sidebar-nav a').forEach(function (link) {
+    document.querySelectorAll('.brite-sidebar-nav a, .brite-quick-actions a').forEach(function (link) {
         const target = new URL(link.href, location.href).pathname.split('/').pop();
         if (target === current) {
             link.setAttribute('aria-current', 'page');
