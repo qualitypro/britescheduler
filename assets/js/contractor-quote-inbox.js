@@ -10,6 +10,8 @@ const node=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)
 const statuses={submitted:'New request',more_info_requested:'Waiting on client',quoted:'Quote sent',accepted:'Accepted',declined:'Declined',cancelled:'Cancelled'};
 const closed=new Set(['quoted','accepted','declined','cancelled']);
 let requests=[],activeFilter='all';
+const expanded=new Set();
+let lastFocusedRequest=null;
 const matches=r=>{
  const q=(search?.value||'').trim().toLowerCase();
  const found=!q||[r.id,r.client_name,r.service_name,r.description,r.city,r.postal_code].some(v=>String(v||'').toLowerCase().includes(q));
@@ -53,6 +55,8 @@ function detailsFor(r){
  return body;
 }
 function render(){
+ const focused=document.activeElement?.closest('article')?.dataset.requestId;
+ if(focused)lastFocusedRequest=focused;
  target.replaceChildren();
  const visible=requests.filter(matches).sort((a,b)=>{
  const priority=r=>r.status==='submitted'?0:r.status==='more_info_requested'?1:2;
@@ -61,7 +65,7 @@ function render(){
  status.textContent=visible.length+' of '+requests.length+' quote requests shown.';
  if(!visible.length){const empty=node('div');empty.className='card';empty.append(node('h3',requests.length?'No matching requests':'No quote requests yet'),node('p',requests.length?'Try another search or status filter.':'New client requests will appear here when received.'));target.append(empty);return;}
  visible.forEach(r=>{
-  const card=node('article');card.className='card';card.style.cssText='border:1px solid #cbd5e1;padding:16px;min-width:0';
+  const card=node('article');card.dataset.requestId=String(r.id);card.className='card';card.style.cssText='border:1px solid #cbd5e1;padding:16px;min-width:0';
   const toggle=node('button');toggle.type='button';toggle.setAttribute('aria-expanded','false');
   toggle.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;cursor:pointer;background:transparent;color:inherit;border:0;padding:0';
   const heading=node('span');heading.style.cssText='display:grid;gap:5px;min-width:0';
@@ -74,6 +78,7 @@ function render(){
   let content=null;
   toggle.addEventListener('click',()=>{
    const opening=toggle.getAttribute('aria-expanded')!=='true';
+   if(opening)expanded.add(String(r.id));else expanded.delete(String(r.id));
    toggle.setAttribute('aria-expanded',String(opening));
    indicator.textContent=opening?'Hide details −':'Review request +';
    if(opening){
@@ -81,6 +86,7 @@ function render(){
     content.hidden=false;
    }else if(content)content.hidden=true;
   });
+  if(expanded.has(String(r.id)))toggle.click();
   target.append(card);
  });
 }
