@@ -45,19 +45,29 @@ async function load(){
     item.append(input,node('span',roleLabels[role]));roleGrid.append(item);inputs.push(input);
    }
    const actions=node('div');actions.style.cssText='display:flex;align-items:center;gap:12px;flex-wrap:wrap';
-   const save=node('button','Save role permissions');save.type='button';save.disabled=!mod.enabled;
    const feedback=node('span');feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');
-   actions.append(save,feedback);
-   save.addEventListener('click',async()=>{
-    save.disabled=true;feedback.textContent='Saving permissions…';
+   actions.append(feedback);
+   const syncControls=busy=>{
+    checkbox.disabled=busy;
+    for(const input of inputs)input.disabled=busy||!mod.enabled||!(mod.supported_roles||[]).includes(input.value);
+   };
+   for(const input of inputs)input.addEventListener('change',async()=>{
+    // Lock the module's controls until the full role set is persisted.
+    // This prevents overlapping requests from overwriting a newer selection.
+    const previous=[...(mod.allowed_roles||[])];
+    const selected=inputs.filter(item=>item.checked).map(item=>item.value);
+    syncControls(true);
+    feedback.textContent='Saving role permissions…';
     const data=new FormData();data.set('action','permissions');data.set('module_key',mod.key);
-    for(const input of inputs)if(input.checked&&!input.disabled)data.append('roles[]',input.value);
+    for(const role of selected)data.append('roles[]',role);
     try{
      const saved=await request(data);
-     feedback.textContent='Permissions saved. Reload the page to update navigation.';
      mod.allowed_roles=saved.allowed_roles;
-    }catch(error){feedback.textContent='Save failed: '+error.message;}
-    finally{save.disabled=!checkbox.checked;}
+     feedback.textContent='Permissions saved automatically. Reload to update navigation.';
+    }catch(error){
+     for(const item of inputs)item.checked=previous.includes(item.value);
+     feedback.textContent='Unable to save permissions: '+error.message;
+    }finally{syncControls(false);}
    });
    checkbox.addEventListener('change',async()=>{
     checkbox.disabled=true;feedback.textContent='Updating activation…';
