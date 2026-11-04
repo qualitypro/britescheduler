@@ -62,10 +62,10 @@ function attach(parent,id,role){
   editTab.addEventListener('click',()=>switchTab(false));previewTab.addEventListener('click',()=>switchTab(true));
   review.addEventListener('click',()=>{if(form.reportValidity()){switchTab(true);previewTab.focus();}});
   back.addEventListener('click',()=>{switchTab(false);editTab.focus();});
-  previewSend.addEventListener('click',()=>form.requestSubmit(send));
+  previewSend.addEventListener('click',()=>{if(form.reportValidity())form.requestSubmit(send);else switchTab(false);});
   tabs.addEventListener('keydown',event=>{
    if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
-   event.preventDefault();const toPreview=event.key==='End'||(event.key!=='Home'&&!preview.hidden?false:event.key!=='Home');
+   event.preventDefault();const toPreview=event.key==='End'||(event.key!=='Home'&&preview.hidden);
    switchTab(toPreview);(toPreview?previewTab:editTab).focus();
   });
   form.append(hint,send);workspace.append(tabs,form,preview);controls.append(workspace);
@@ -119,7 +119,7 @@ function attach(parent,id,role){
   });
   if(role==='contractor'){
    const form=controls.querySelector('form');
-   if(form){form.hidden=!['submitted','more_info_requested','quoted'].includes(data.request_status);if(data.request_status==='quoted')form.querySelector('button[type=submit]').textContent='Send revised quote';}
+   if(form){form.closest('.brite-quote-workspace').hidden=!['submitted','more_info_requested','quoted'].includes(data.request_status);if(data.request_status==='quoted'){form.querySelector('button[type=submit]').textContent='Send revised quote';const previewAction=form.closest('.brite-quote-workspace').querySelector('.brite-quote-client-preview button:last-child');if(previewAction)previewAction.textContent='Send revised quote';}}
   }
  }
  status.textContent='Loading formal quotes...';
