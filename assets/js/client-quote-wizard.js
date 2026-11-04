@@ -1,6 +1,6 @@
 (() => {
  'use strict';
- const form=document.getElementById('quoteWizard');if(!form)return;
+ const form=document.getElementById('quoteWizard');
  const base=window.BRITE_BASE||'';
  window.addEventListener('error',event=>{if(event.filename&&event.filename.includes('client-quote-wizard.js')){const message=document.getElementById('quoteStatus');if(message)message.textContent='Quote wizard error: '+event.message;}});
  const status=document.getElementById('quoteStatus');
@@ -82,6 +82,7 @@
    });
   }catch(error){target.textContent=error.message;}
  }
+ if(!form){history();return;}
  async function init(){
   try{
    const [directory,locations]=await Promise.all([json('/api/client_contractor_directory.php'),json('/api/client_locations.php')]);
