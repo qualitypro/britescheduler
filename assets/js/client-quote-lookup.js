@@ -10,7 +10,6 @@ const node=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)
 const labels={submitted:'Awaiting contractor response',more_info_requested:'Action needed',quoted:'Quote received',accepted:'Accepted',declined:'Declined',cancelled:'Cancelled'};
 let requests=[];
 const expanded=new Set();
-let lastFocusedRequest=null;
 function matches(r){
  const q=search.value.trim().toLowerCase();
  const match=!q||[r.id,r.contractor_name,r.description,r.preferred_date].some(v=>String(v||'').toLowerCase().includes(q));
@@ -43,7 +42,6 @@ function detail(r){
 }
 function render(){
  const focused=document.activeElement?.closest('article')?.dataset.requestId;
- if(focused)lastFocusedRequest=focused;
  root.replaceChildren();
  const visible=requests.filter(matches).sort((a,b)=>{
  const priority=r=>r.status==='more_info_requested'?0:r.status==='quoted'?1:r.status==='submitted'?2:3;
@@ -54,6 +52,7 @@ function render(){
  if(!visible.length){
   const p=node('p',requests.length?'No quote requests match your search.':'You have not requested any quotes yet.');
   root.append(p);
+  if(requests.length){const reset=node('button','Clear search and filters');reset.type='button';reset.addEventListener('click',()=>{search.value='';filter.value='all';render();});root.append(reset);}
   if(!requests.length){const a=node('a','Find a contractor to request a quote');a.href=base+'/client-contractor-directory.php';root.append(a);}
   return;
  }
