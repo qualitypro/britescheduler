@@ -12,7 +12,7 @@ function attach(card,id,role){
  button.setAttribute('aria-controls','quote-conversation-'+role+'-'+id);
  panel.id='quote-conversation-'+role+'-'+id;
  const heading=el('h3','Conversation with '+(role==='contractor'?'Client':'Contractor'));
- const help=el('p',role==='contractor'?'Send a reply or ask the client for more job details. Your message will be visible to the client.':'Send a reply to your contractor. You can include additional photographs.');
+ const help=el('p',role==='contractor'?'Choose the type of response, write your message, and send it to the client.':'Review the conversation and reply below. You can attach additional job photographs.');
  help.className='muted';
  const status=el('p');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
  const messages=el('div');messages.style.cssText='display:grid;gap:10px;margin:12px 0;max-height:420px;overflow-y:auto';messages.setAttribute('aria-label','Conversation history');
@@ -23,13 +23,23 @@ function attach(card,id,role){
  label.append(textarea);
  const intentWrap=el('fieldset');intentWrap.style.cssText='border:1px solid #cbd5e1;border-radius:8px;padding:12px;display:grid;gap:9px';
  const intentInputs=[];
+ const guidance=el('p');guidance.className='muted';guidance.style.cssText='margin:0;font-size:13px';
  if(role==='contractor'){
   intentWrap.append(el('legend','What would you like to send?'));
   [['reply','Reply to Client'],['request_photos','Request More Photos'],['request_data','Request More Data']].forEach(([value,title])=>{
    const option=el('label');option.style.cssText='display:flex;align-items:center;gap:9px;cursor:pointer';
    const input=el('input');input.type='radio';input.name='quote_intent_'+id;input.value=value;input.checked=value==='reply';
    option.append(input,document.createTextNode(title));intentWrap.append(option);intentInputs.push(input);
+   input.addEventListener('change',()=>{if(input.checked)updateIntent();});
   });
+  intentWrap.append(guidance);
+ }
+ function updateIntent(){
+  const type=intentInputs.find(input=>input.checked)?.value||'reply';
+  const copy={reply:['Send Reply to Client','Type your message to the client...','Send a normal message. The request stays in its current stage.'],request_photos:['Request More Photos','Which views or areas should the client photograph?','The client will see this as a request for additional photographs.'],request_data:['Request More Data','What details, measurements, or specifications do you need?','The client will see this as a request for additional job information.']};
+  const [buttonText,placeholder,explanation]=copy[type];
+  textarea.placeholder=placeholder;guidance.textContent=explanation;
+  if(typeof send!=='undefined')send.textContent=buttonText;
  }
  const photoLabel=el('label','Additional job photographs (optional, up to 5 JPG/PNG, 5 MB each)');
  const photos=el('input');photos.type='file';photos.accept='.jpg,.jpeg,.png,image/jpeg,image/png';photos.multiple=true;photos.setAttribute('data-brite-pills','off');
@@ -66,17 +76,17 @@ function attach(card,id,role){
  });
  renderPreview();
  const send=el('button',role==='contractor'?'Send Reply to Client':'Send Reply to Contractor');send.type='submit';send.style.cssText='font-weight:700;justify-self:start';
- if(role==='contractor')form.append(intentWrap);
+ if(role==='contractor'){form.append(intentWrap);updateIntent();}
  form.append(label,photoLabel,previewStatus,preview,send);
  panel.append(heading,help,messages,form,status);wrap.append(button,panel);card.append(wrap);
  async function refresh(){
   const response=await fetch(base+'/api/quote_request_messages.php?request_id='+encodeURIComponent(id),{credentials:'same-origin',headers:{Accept:'application/json'}});
   const data=await response.json();if(!response.ok)throw Error(data.error||'HTTP '+response.status);
   messages.replaceChildren();
-  if(!data.messages.length)messages.append(el('p','No messages yet. Write your first reply below.'));
+  if(!data.messages.length)messages.append(el('p','No conversation yet. Start by writing a message below.'));
   data.messages.forEach(m=>{
-   const item=el('article');item.style.cssText='padding:10px;border:1px solid #cbd5e1;border-radius:8px';
-   item.append(el('strong',(m.sender_role==='contractor'?'Contractor':'Client')+' — '+m.created_at));
+   const item=el('article');const mine=m.sender_role===role;item.style.cssText='padding:12px;border:1px solid #cbd5e1;border-radius:12px;max-width:88%;min-width:0;'+(mine?'justify-self:end;background:#e8f2ff':'justify-self:start;background:#f8fafc');
+   item.append(el('strong',(mine?'You':(m.sender_role==='contractor'?'Contractor':'Client'))+' · '+m.created_at));
    if(m.message_type==='request_photos')item.append(el('p','📷 Request More Photos'));
    if(m.message_type==='request_data')item.append(el('p','📋 Request More Data'));
    item.append(el('p',m.body));
@@ -90,7 +100,8 @@ function attach(card,id,role){
   const closed=['accepted','declined','cancelled'].includes(data.request_status);
   send.disabled=closed;textarea.disabled=closed;photos.disabled=closed;intentInputs.forEach(input=>input.disabled=closed);
   status.dataset.requestStatus=data.request_status;
-  if(closed)status.textContent='This conversation is closed.';
+  if(closed)status.textContent='This conversation is closed. Previous messages and photographs remain available.';
+  messages.scrollTop=messages.scrollHeight;
  }
  button.addEventListener('click',async()=>{
   panel.hidden=!panel.hidden;
@@ -110,7 +121,7 @@ function attach(card,id,role){
   try{
    const response=await fetch(base+'/api/quote_request_messages.php',{method:'POST',credentials:'same-origin',headers:{'X-CSRF-Token':csrf,Accept:'application/json'},body:data});
    const result=await response.json();if(!response.ok)throw Error(result.error||'HTTP '+response.status);
-   textarea.value='';photos.value='';selectedPhotos=[];renderPreview();intentInputs.forEach(input=>input.checked=input.value==='reply');await refresh();status.textContent='Reply sent successfully. The other party can read it in this conversation.';
+   textarea.value='';photos.value='';selectedPhotos=[];renderPreview();intentInputs.forEach(input=>input.checked=input.value==='reply');if(role==='contractor')updateIntent();await refresh();status.textContent='Message sent. It is now visible in the conversation above.';
   }catch(e){status.textContent='Unable to send: '+e.message;}
   finally{sending=false;const closed=['accepted','declined','cancelled'].includes(status.dataset.requestStatus||'');send.disabled=closed;photos.disabled=closed;preview.querySelectorAll('button').forEach(b=>b.disabled=closed);}
  });
