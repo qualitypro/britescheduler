@@ -302,6 +302,20 @@ My Locations
 <?php endif; ?>
 
 
+<?php
+require_once dirname(__DIR__).'/app/ModuleRegistry.php';
+$briteActiveModules=ModuleRegistry::activeFor($tenant);
+if($briteActiveModules):
+?>
+<div class="brite-nav-group-label">Modules</div>
+<?php foreach($briteActiveModules as $briteModule): ?>
+<a href="<?=htmlspecialchars(app_url('/module.php?module='.rawurlencode($briteModule['key'])),ENT_QUOTES,'UTF-8')?>">
+<span class="brite-nav-icon" aria-hidden="true">▦</span>
+<?=htmlspecialchars($briteModule['menu_label'],ENT_QUOTES,'UTF-8')?>
+</a>
+<?php endforeach; ?>
+<?php endif; ?>
+
     <div class="brite-nav-group-label">Personal</div>
     <a href="<?=htmlspecialchars(
         app_url('/my-settings.php'),
