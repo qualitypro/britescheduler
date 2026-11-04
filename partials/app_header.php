@@ -238,6 +238,10 @@ Settings
 
 <?php if($tenant['role']==='contractor'): ?>
 <div class="brite-nav-group-label">Workspace</div>
+<a href="<?=htmlspecialchars(app_url('/contractor-quote-inbox.php'),ENT_QUOTES,'UTF-8')?>">
+<span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span>
+New Quote Requests
+</a>
 <a href="<?=htmlspecialchars(app_url('/contractor-dashboard.php'))?>">
 <span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span>
 My Dashboard
