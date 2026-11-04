@@ -9,6 +9,7 @@ require __DIR__.'/partials/app_header.php';
 <h1>Request a Quote</h1>
 <p class="muted">Describe the job, attach 2–10 photos, and review your request before sending it. After submitting, you can message the contractor and respond to requests for more details or photos.</p>
 <p class="muted"><strong>Step 1:</strong> Choose a contractor and location. <strong>Step 2:</strong> Describe the job and add photos. <strong>Step 3:</strong> Review and submit.</p>
+<p id="quoteProgress" class="muted" role="status" aria-live="polite">Preparing your request...</p>
 <form id="quoteWizard" novalidate enctype="multipart/form-data" style="display:grid;gap:16px">
  <div><label for="quoteContractor">Contractor</label><select id="quoteContractor" name="contractor_id" required style="display:block;width:100%"><option value="">Choose a contractor</option></select></div>
  <div><label for="quoteService">Service</label><select id="quoteService" name="service_id" style="display:block;width:100%"><option value="">Choose a service (optional)</option></select></div>
