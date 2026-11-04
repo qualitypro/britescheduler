@@ -1,6 +1,6 @@
 (() => {
  'use strict';
- const form=document.getElementById('quoteWizard');
+ const form=document.getElementById('quoteWizard');if(!form)return;
  const base=window.BRITE_BASE||'';
  window.addEventListener('error',event=>{if(event.filename&&event.filename.includes('client-quote-wizard.js')){const message=document.getElementById('quoteStatus');if(message)message.textContent='Quote wizard error: '+event.message;}});
  const status=document.getElementById('quoteStatus');
@@ -82,7 +82,6 @@
    });
   }catch(error){target.textContent=error.message;}
  }
- if(!form){history();return;}
  async function init(){
   try{
    const [directory,locations]=await Promise.all([json('/api/client_contractor_directory.php'),json('/api/client_locations.php')]);
@@ -90,12 +89,7 @@
    contractors.forEach(c=>contractor.add(new Option(c.business_name||[c.first_name,c.last_name].filter(Boolean).join(' '),c.contractor_id)));
    (locations.locations||[]).forEach(l=>locationSelect.add(new Option(l.label+' — '+l.address1+', '+l.city,l.id)));
    const pre=new URLSearchParams(window.location.search).get('contractor_id');
-   if(pre){
-    contractor.value=pre;
-    if(!contractor.value){status.textContent='This contractor is not currently available. Please select a contractor from the directory.';submit.disabled=true;return;}
-    contractor.disabled=true;
-    const hidden=document.createElement('input');hidden.type='hidden';hidden.name='contractor_id';hidden.value=contractor.value;form.append(hidden);
-   }
+   if(pre)contractor.value=pre;
    updateServices();
    const today=new Date();const localToday=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
    document.getElementById('quoteDate').min=localToday;
