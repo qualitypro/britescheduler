@@ -16,6 +16,17 @@
  const confirm=document.getElementById('quoteConfirm');
  const back=document.getElementById('quoteBack');
  let contractors=[],photos=[],busy=false;
+ const description=document.getElementById('quoteDescription');
+ const date=document.getElementById('quoteDate');
+ const progress=document.getElementById('quoteProgress');
+ const requestHeading=document.getElementById('myQuoteRequestsHeading');
+ function updateProgress(){
+  if(!progress)return;
+  const ready=[Boolean(contractor.value),Boolean(locationSelect.value),description.value.trim().length>=20,photos.length>=2];
+  const complete=ready.filter(Boolean).length;
+  progress.textContent=complete+' of 4 essentials ready: contractor, location, job description, and at least 2 photos.';
+ }
+
  const labels={submitted:'Awaiting contractor response',more_info_requested:'Contractor needs more information',quoted:'Quote received',accepted:'Accepted',declined:'Declined',cancelled:'Cancelled'};
  const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=String(text);return n;};
  async function json(path){
@@ -32,6 +43,7 @@
  function renderPhotos(){
   gallery.replaceChildren();
   count.textContent=photos.length+' of 10 photographs selected (minimum 2).';
+  updateProgress();
   photos.forEach((file,index)=>{
    const card=el('div');card.style.cssText='border:1px solid #cbd5e1;border-radius:10px;padding:8px;min-width:0';
    const img=document.createElement('img');const url=URL.createObjectURL(file);
@@ -87,20 +99,27 @@
    const [directory,locations]=await Promise.all([json('/api/client_contractor_directory.php'),json('/api/client_locations.php')]);
    contractors=directory.contractors||[];
    contractors.forEach(c=>contractor.add(new Option(c.business_name||[c.first_name,c.last_name].filter(Boolean).join(' '),c.contractor_id)));
-   (locations.locations||[]).forEach(l=>locationSelect.add(new Option(l.label+' — '+l.address1+', '+l.city,l.id)));
+   const availableLocations=locations.locations||[];
+   availableLocations.forEach(l=>locationSelect.add(new Option(l.label+' — '+l.address1+', '+l.city,l.id)));
+   const primary=availableLocations.find(l=>Number(l.is_primary)===1);
+   if(primary)locationSelect.value=String(primary.id);
+   else if(availableLocations.length===1)locationSelect.value=String(availableLocations[0].id);
    const pre=new URLSearchParams(window.location.search).get('contractor_id');
-   if(pre)contractor.value=pre;
+   if(pre){contractor.value=pre;if(!contractor.value)status.textContent='Selected contractor is unavailable. Please choose another contractor.';}
    updateServices();
+   const preService=new URLSearchParams(window.location.search).get('service_id');
+   if(preService&&[...service.options].some(o=>o.value===preService))service.value=preService;
    const today=new Date();const localToday=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
    document.getElementById('quoteDate').min=localToday;
    if(!contractors.length)status.textContent='No active contractors are available in your network.';
    else if(locationSelect.options.length<2)status.textContent='Add a service location before requesting a quote.';
    else status.textContent='Choose 2–10 photographs and review your request.';
   }catch(error){status.textContent='Unable to load form options: '+error.message;submit.disabled=true;}
-  renderPhotos();history();
+  renderPhotos();updateProgress();history();
  }
- contractor.addEventListener('change',()=>{updateServices();review.hidden=true;});
- form.addEventListener('input',()=>{review.hidden=true;});
+ contractor.addEventListener('change',()=>{updateServices();review.hidden=true;updateProgress();});
+ form.addEventListener('input',()=>{review.hidden=true;updateProgress();});
+ form.addEventListener('change',()=>{review.hidden=true;updateProgress();});
  function validateRequest(){
   const fields=[
    [contractor,'Select a contractor.'],
@@ -156,8 +175,12 @@
    let result;try{result=await response.json();}catch(_){throw Error('Server returned HTTP '+response.status+' instead of JSON');}
    if(!response.ok)throw Error((result.error||'Submission failed')+' (HTTP '+response.status+')');
    status.textContent='Quote request #'+result.request_id+' sent successfully. You can track it in My Quote Requests below.';
-   photos=[];renderPhotos();form.reset();updateServices();review.hidden=true;
+   const selectedContractor=contractor.value;
+   const selectedLocation=locationSelect.value;
+   photos=[];form.reset();contractor.value=selectedContractor;updateServices();locationSelect.value=selectedLocation;
+   renderPhotos();review.hidden=true;review.style.display='none';updateProgress();
    await history();
+   requestHeading?.scrollIntoView({behavior:'smooth',block:'start'});
   }catch(error){status.textContent='Unable to submit: '+error.message;}
   finally{busy=false;confirm.disabled=false;submit.disabled=false;}
  });
