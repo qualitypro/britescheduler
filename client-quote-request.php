@@ -5,8 +5,6 @@ Auth::requireUser();Auth::requireRole('client');
 $pageTitle='Request a Quote';
 require __DIR__.'/partials/app_header.php';
 ?>
-<?php $selectedContractorId=filter_input(INPUT_GET,'contractor_id',FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]); ?>
-<?php if($selectedContractorId): ?>
 <section class="card" style="max-width:850px;margin:auto">
 <h1>Request a Quote</h1>
 <p class="muted">Describe the job, attach 2–10 photos, and review your request before sending it. After submitting, you can message the contractor and respond to requests for more details or photos.</p>
@@ -34,10 +32,7 @@ require __DIR__.'/partials/app_header.php';
  <p id="quoteStatus" role="status" aria-live="polite"></p>
 </form>
 </section>
-<?php else: ?>
-<section class="card" style="max-width:850px;margin:auto"><h1>My Quote Requests</h1><p class="muted">To request a new quote, browse contractors and select Request a Quote from a contractor profile.</p><a href="<?=htmlspecialchars(app_url('/client-contractor-directory.php'),ENT_QUOTES,'UTF-8')?>">Find Contractors</a></section>
-<?php endif; ?>
-<section class="card" style="max-width:850px;margin:20px auto"><h2 id="myQuoteRequestsHeading"><?= $selectedContractorId ? 'My Quote Requests' : 'Request History' ?></h2><p class="muted">Track your requests, view messages, and send any photos or details your contractor needs.</p><div id="quoteHistory">Loading...</div></section>
+<section class="card" style="max-width:850px;margin:20px auto"><h2 id="myQuoteRequestsHeading">My Quote Requests</h2><p class="muted">Track your requests, view messages, and send any photos or details your contractor needs.</p><div id="quoteHistory">Loading...</div></section>
 <script src="<?=htmlspecialchars(app_url('/assets/js/quote-conversation.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <script src="<?=htmlspecialchars(app_url('/assets/js/client-quote-wizard.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <?php require __DIR__.'/partials/app_footer.php'; ?>
