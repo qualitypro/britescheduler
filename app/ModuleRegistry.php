@@ -38,10 +38,21 @@ final class ModuleRegistry {
         $q->execute([$tenantId]);
         return array_fill_keys($q->fetchAll(PDO::FETCH_COLUMN),true);
     }
+    public static function allowedRoles(int $tenantId, string $moduleKey): array {
+        $q=Database::connection()->prepare(
+            'SELECT role FROM tenant_module_roles WHERE tenant_id=? AND module_key=? AND allowed=1'
+        );
+        $q->execute([$tenantId,$moduleKey]);
+        return array_values(array_intersect(self::ROLES,$q->fetchAll(PDO::FETCH_COLUMN)));
+    }
     public static function activeFor(array $tenant): array {
-        $enabled=self::enabled((int)$tenant['tenant_id']);$result=[];
+        $tid=(int)$tenant['tenant_id'];
+        $role=(string)$tenant['role'];
+        $enabled=self::enabled($tid);
+        $result=[];
         foreach(self::installed() as $key=>$module) {
-            if(isset($enabled[$key])&&in_array((string)$tenant['role'],$module['roles'],true))$result[$key]=$module;
+            if(!isset($enabled[$key])||!in_array($role,$module['roles'],true))continue;
+            if(in_array($role,self::allowedRoles($tid,$key),true))$result[$key]=$module;
         }
         return $result;
     }
