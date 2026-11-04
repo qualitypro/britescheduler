@@ -311,7 +311,7 @@ loadBusiness();
    }
    if(location.hash!=='#'+name) history.replaceState(null,'','#'+name);
  }
- for(const [index,tab] of tabs){
+ for(const [index,tab] of tabs.entries()){
    tab.addEventListener('click',()=>activate(tab.dataset.settingsTab));
    tab.addEventListener('keydown',event=>{
      if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
