@@ -9,6 +9,8 @@ const base=window.BRITE_BASE||'';
 const node=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=String(text);return e;};
 const labels={submitted:'Awaiting contractor response',more_info_requested:'Action needed',quoted:'Quote received',accepted:'Accepted',declined:'Declined',cancelled:'Cancelled'};
 let requests=[];
+const expanded=new Set();
+let lastFocusedRequest=null;
 function matches(r){
  const q=search.value.trim().toLowerCase();
  const match=!q||[r.id,r.contractor_name,r.description,r.preferred_date].some(v=>String(v||'').toLowerCase().includes(q));
@@ -40,6 +42,8 @@ function detail(r){
  return body;
 }
 function render(){
+ const focused=document.activeElement?.closest('article')?.dataset.requestId;
+ if(focused)lastFocusedRequest=focused;
  root.replaceChildren();
  const visible=requests.filter(matches).sort((a,b)=>{
  const priority=r=>r.status==='more_info_requested'?0:r.status==='quoted'?1:r.status==='submitted'?2:3;
@@ -54,7 +58,7 @@ function render(){
   return;
  }
  visible.forEach(r=>{
-  const card=node('article');card.className='card';card.style.cssText='border:1px solid #cbd5e1;padding:16px';
+  const card=node('article');card.dataset.requestId=String(r.id);card.className='card';card.style.cssText='border:1px solid #cbd5e1;padding:16px';
   const button=node('button');button.type='button';button.setAttribute('aria-expanded','false');
   button.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:12px;text-align:left;width:100%;background:transparent;border:0;color:inherit;padding:0;cursor:pointer';
   const summary=node('span');summary.style.cssText='display:grid;gap:5px;min-width:0';
@@ -70,6 +74,7 @@ function render(){
   let body=null;
   button.addEventListener('click',()=>{
    const open=button.getAttribute('aria-expanded')!=='true';
+   if(open)expanded.add(String(r.id));else expanded.delete(String(r.id));
    button.setAttribute('aria-expanded',String(open));
    indicator.textContent=open?'Hide details −':'View details +';
    if(open){
@@ -77,6 +82,7 @@ function render(){
     body.hidden=false;
    }else if(body)body.hidden=true;
   });
+  if(expanded.has(String(r.id)))button.click();
   root.append(card);
  });
 }
