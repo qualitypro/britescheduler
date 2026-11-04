@@ -16,6 +16,7 @@
  const confirm=document.getElementById('quoteConfirm');
  const back=document.getElementById('quoteBack');
  let contractors=[],photos=[],busy=false;
+ const labels={submitted:'Awaiting contractor response',more_info_requested:'Contractor needs more information',quoted:'Quote received',accepted:'Accepted',declined:'Declined',cancelled:'Cancelled'};
  const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=String(text);return n;};
  async function json(path){
   const response=await fetch(base+path,{credentials:'same-origin',headers:{Accept:'application/json'}});
@@ -62,10 +63,12 @@
   try{
    const data=await json('/api/client_quote_requests.php');
    target.replaceChildren();
-   if(!data.requests.length){target.append(el('p','No quote requests yet.'));return;}
+   if(!data.requests.length){target.append(el('p','No requests yet. Complete the form above to send your first quote request.'));return;}
    data.requests.forEach(r=>{
     const card=el('article');card.style.cssText='border-top:1px solid #cbd5e1;padding:12px 0';
-    card.append(el('p','#'+r.id+' — '+r.contractor_name+' — '+r.status+' — '+r.created_at));
+    const heading=el('h3','Request #'+r.id+' · '+r.contractor_name);card.append(heading);
+    const state=el('p',labels[r.status]||r.status);state.style.cssText='display:inline-block;background:#e2e8f0;border-radius:12px;padding:6px 10px;font-weight:600';card.append(state);
+    const hint=el('p',r.status==='more_info_requested'?'Your contractor has asked for additional information. Open the conversation below to see what they need.':r.status==='submitted'?'Your request has been sent. You can open the conversation to check messages or ask a question.':'Open the conversation to review updates.');hint.className='muted';card.append(hint);
     card.append(el('p',r.description));
     const images=el('div');images.style.cssText='display:flex;flex-wrap:wrap;gap:10px';
     (r.photos||[]).forEach(p=>{
@@ -74,6 +77,7 @@
       img.style.cssText='width:110px;height:90px;object-fit:cover;border-radius:8px';
       a.append(img);images.append(a);
     });
+    if((r.photos||[]).length)card.append(el('h4','Your job photographs'));
     card.append(images);window.BriteQuoteConversation.attach(card,r.id,'client');target.append(card);
    });
   }catch(error){target.textContent=error.message;}
@@ -151,7 +155,7 @@
    });
    let result;try{result=await response.json();}catch(_){throw Error('Server returned HTTP '+response.status+' instead of JSON');}
    if(!response.ok)throw Error((result.error||'Submission failed')+' (HTTP '+response.status+')');
-   status.textContent='Quote request #'+result.request_id+' submitted successfully.';
+   status.textContent='Quote request #'+result.request_id+' sent successfully. You can track it in My Quote Requests below.';
    photos=[];renderPhotos();form.reset();updateServices();review.hidden=true;
    await history();
   }catch(error){status.textContent='Unable to submit: '+error.message;}
