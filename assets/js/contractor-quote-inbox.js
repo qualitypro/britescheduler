@@ -16,9 +16,10 @@ async function load(){
   if(!requests.length){target.append(node('p','No quote requests received yet.'));return;}
   requests.forEach(r=>{
    const card=node('article');card.className='card';card.style.cssText='border:1px solid #cbd5e1';
-   const title=node('h2','Request #'+r.id+' — '+(statuses[r.status]||r.status));card.append(title);
+   const title=node('h2','Request #'+r.id+' · '+(r.service_name||'Service request'));title.style.cssText='margin:0 0 8px';card.append(title);
+   const badge=node('p',statuses[r.status]||r.status);badge.style.cssText='display:inline-block;padding:5px 10px;border-radius:16px;background:#e2e8f0;font-weight:600;margin:0 0 12px';card.append(badge);
    for(const [label,value] of [
-    ['Client',r.client_name],['Service',r.service_name||'Not specified'],
+    ['Client',r.client_name],
     ['Location',[r.location_label,r.address1,r.address2,r.city,r.state,r.postal_code].filter(Boolean).join(', ')],
     ['Preferred date',r.preferred_date||'Flexible'],['Received',r.created_at],['Description',r.description]
    ]){const line=node('p');const strong=node('strong',label+': ');line.append(strong,document.createTextNode(String(value||'')));card.append(line);}
@@ -29,7 +30,9 @@ async function load(){
     img.style.cssText='width:100%;height:125px;object-fit:cover;border-radius:8px';
     link.append(img);gallery.append(link);
    });
-   card.append(gallery);window.BriteQuoteConversation.attach(card,r.id,'contractor');target.append(card);
+   if((r.photos||[]).length){const photoTitle=node('h3','Job Photos ('+r.photos.length+')');card.append(photoTitle);}card.append(gallery);
+   const next=node('p',r.status==='more_info_requested'?'Waiting for the client to provide more information. You can still send a follow-up.':r.status==='submitted'?'Next step: review the job and reply, or request additional information.':'Review the conversation for updates.');next.className='muted';card.append(next);
+   window.BriteQuoteConversation.attach(card,r.id,'contractor');target.append(card);
   });
  }catch(error){status.textContent='Unable to load quote requests: '+error.message;}
 }
