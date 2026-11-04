@@ -49,7 +49,7 @@
    if(c.photos.length)card.append(photoGrid(c,1));
    const services=c.services.map(s=>s.name).slice(0,4).join(', ');
    if(services)card.append(el('p','Services: '+services));
-   const btn=el('button','View profile and photos');btn.type='button';btn.addEventListener('click',()=>show(c));card.append(btn);const quote=el('a','Request a quote');quote.href=(window.BRITE_BASE||'')+'/client-quote-request.php?contractor_id='+encodeURIComponent(c.contractor_id);quote.style.marginLeft='12px';card.append(quote);
+   const btn=el('button','View profile and photos');btn.type='button';btn.addEventListener('click',()=>show(c));card.append(btn);
    results.append(card);
   });
  }
