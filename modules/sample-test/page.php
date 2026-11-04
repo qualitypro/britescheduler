@@ -5,7 +5,7 @@ $displayName=trim((string)$user['first_name'].' '.(string)$user['last_name']);
 ?>
 <section class="card" style="max-width:850px;margin:auto">
 <h1>Sample Test Module</h1>
-<p>This page is supplied by an installed module, not the core application.</p>
+<p>This page is supplied by an installed module, not the core application. Your current role has been explicitly granted access for this tenant.</p>
 <div class="card" role="status">
 <h2>Welcome, <?=htmlspecialchars($displayName,ENT_QUOTES,'UTF-8')?>!</h2>
 <p>You are signed in as <strong><?=htmlspecialchars((string)$tenant['role'],ENT_QUOTES,'UTF-8')?></strong> for <strong><?=htmlspecialchars((string)$tenant['name'],ENT_QUOTES,'UTF-8')?></strong>.</p>
@@ -19,5 +19,5 @@ $displayName=trim((string)$user['first_name'].' '.(string)$user['last_name']);
 <p>Team member message: This module is available to your account.</p>
 <?php endif; ?>
 </div>
-<p class="muted">Module: sample-test · Version 1.0.0 · Demonstration only</p>
+<p class="muted">Module: sample-test · Version 1.1.0 · Role-controlled demonstration</p>
 </section>
