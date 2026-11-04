@@ -34,6 +34,7 @@ function detail(r){
   });
   body.append(gallery);
  }
+ if(window.BriteFormalQuote)window.BriteFormalQuote.attach(body,r.id,'client');
  body.append(node('h3','Conversation'));
  if(window.BriteQuoteConversation&&typeof window.BriteQuoteConversation.attach==='function'){
   window.BriteQuoteConversation.attach(body,r.id,'client');
