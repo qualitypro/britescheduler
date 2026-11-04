@@ -1,0 +1,87 @@
+(()=>{
+'use strict';
+const root=document.getElementById('clientQuoteLookup');
+const status=document.getElementById('clientQuoteLookupStatus');
+const search=document.getElementById('clientQuoteSearch');
+const filter=document.getElementById('clientQuoteFilter');
+if(!root||!status||!search||!filter)return;
+const base=window.BRITE_BASE||'';
+const node=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=String(text);return e;};
+const labels={submitted:'Awaiting contractor response',more_info_requested:'Action needed',quoted:'Quote received',accepted:'Accepted',declined:'Declined',cancelled:'Cancelled'};
+let requests=[];
+function matches(r){
+ const q=search.value.trim().toLowerCase();
+ const match=!q||[r.id,r.contractor_name,r.description,r.preferred_date].some(v=>String(v||'').toLowerCase().includes(q));
+ const state=filter.value;
+ return match&&(state==='all'||(state==='closed'?['accepted','declined','cancelled'].includes(r.status):r.status===state));
+}
+function detail(r){
+ const body=node('div');body.style.cssText='border-top:1px solid #cbd5e1;margin-top:12px;padding-top:12px';
+ const date=node('p','Preferred date: '+(r.preferred_date||'Flexible'));
+ const received=node('p','Requested: '+(r.created_at||''));
+ const desc=node('p',r.description||'No description');
+ body.append(date,received,node('h3','Your job description'),desc);
+ const photos=r.photos||[];
+ body.append(node('h3','Job photographs ('+photos.length+')'));
+ if(photos.length){
+  const gallery=node('div');gallery.style.cssText='display:flex;flex-wrap:wrap;gap:10px';
+  photos.forEach((p,i)=>{
+   const link=node('a');link.href=p.url;link.target='_blank';link.rel='noopener noreferrer';
+   const img=node('img');img.src=p.url;img.alt='Job photograph '+(i+1)+' for request '+r.id;img.loading='lazy';
+   img.style.cssText='width:115px;height:95px;object-fit:cover;border-radius:8px';
+   link.append(img);gallery.append(link);
+  });
+  body.append(gallery);
+ }
+ body.append(node('h3','Conversation'));
+ if(window.BriteQuoteConversation&&typeof window.BriteQuoteConversation.attach==='function'){
+  window.BriteQuoteConversation.attach(body,r.id,'client');
+ }else body.append(node('p','Conversation unavailable. Refresh to retry.'));
+ return body;
+}
+function render(){
+ root.replaceChildren();
+ const visible=requests.filter(matches);
+ status.textContent=visible.length+' of '+requests.length+' quote requests shown.';
+ if(!visible.length){
+  const p=node('p',requests.length?'No quote requests match your search.':'You have not requested any quotes yet.');
+  root.append(p);
+  if(!requests.length){const a=node('a','Find a contractor to request a quote');a.href=base+'/client-contractor-directory.php';root.append(a);}
+  return;
+ }
+ visible.forEach(r=>{
+  const card=node('article');card.className='card';card.style.cssText='border:1px solid #cbd5e1;padding:16px';
+  const button=node('button');button.type='button';button.setAttribute('aria-expanded','false');
+  button.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:12px;text-align:left;width:100%;background:transparent;border:0;color:inherit;padding:0;cursor:pointer';
+  const summary=node('span');summary.style.cssText='display:grid;gap:5px;min-width:0';
+  const title=node('strong','Request #'+r.id+' · '+(r.contractor_name||'Contractor'));
+  const state=node('span',labels[r.status]||r.status);state.style.cssText='font-weight:600;font-size:.9rem';
+  const excerpt=node('span',(r.description||'').slice(0,120));excerpt.className='muted';
+  summary.append(title,state,excerpt);
+  const indicator=node('span','View details +');indicator.style.cssText='white-space:nowrap;font-size:.85rem;font-weight:600';
+  button.append(summary,indicator);card.append(button);
+  let body=null;
+  button.addEventListener('click',()=>{
+   const open=button.getAttribute('aria-expanded')!=='true';
+   button.setAttribute('aria-expanded',String(open));
+   indicator.textContent=open?'Hide details −':'View details +';
+   if(open){
+    if(!body){body=detail(r);body.id='client-quote-detail-'+r.id;button.setAttribute('aria-controls',body.id);card.append(body);}
+    body.hidden=false;
+   }else if(body)body.hidden=true;
+  });
+  root.append(card);
+ });
+}
+search.addEventListener('input',render);
+filter.addEventListener('change',render);
+(async()=>{
+ try{
+  const response=await fetch(base+'/api/client_quote_requests.php',{credentials:'same-origin',headers:{Accept:'application/json'}});
+  const data=await response.json();
+  if(!response.ok)throw Error(data.error||'HTTP '+response.status);
+  requests=Array.isArray(data.requests)?data.requests:[];
+  render();
+ }catch(e){status.textContent='Unable to load quote requests: '+e.message;}
+})();
+})();
