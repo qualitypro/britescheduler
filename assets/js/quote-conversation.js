@@ -38,6 +38,7 @@ function attach(card,id,role){
   });
   const closed=['accepted','declined','cancelled'].includes(data.request_status);
   send.disabled=closed;textarea.disabled=closed;photos.disabled=closed;
+  status.dataset.requestStatus=data.request_status;
   if(closed)status.textContent='This conversation is closed.';
  }
  button.addEventListener('click',async()=>{
