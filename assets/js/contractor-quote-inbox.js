@@ -29,7 +29,7 @@ async function load(){
     img.style.cssText='width:100%;height:125px;object-fit:cover;border-radius:8px';
     link.append(img);gallery.append(link);
    });
-   card.append(gallery);target.append(card);
+   card.append(gallery);window.BriteQuoteConversation.attach(card,r.id,'contractor');target.append(card);
   });
  }catch(error){status.textContent='Unable to load quote requests: '+error.message;}
 }
