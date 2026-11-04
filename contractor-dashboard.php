@@ -388,6 +388,16 @@ $assignmentEligible =
             <div class="brite-dashboard-quick-actions">
 
                 <a class="brite-dashboard-quick-action brite-quick-action-button"
+                   href="<?=htmlspecialchars(app_url('/contractor-quote-inbox.php'),ENT_QUOTES,'UTF-8')?>">
+                    <span class="brite-quick-action-icon-wrap" aria-hidden="true"><svg class="brite-quick-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span>
+                    <span class="brite-quick-action-content">
+                        <strong>New Quote Requests</strong>
+                        <span>Review client requests, photographs and conversations.</span>
+                    </span>
+                    <span class="brite-quick-action-arrow" aria-hidden="true">→</span>
+                </a>
+
+                <a class="brite-dashboard-quick-action brite-quick-action-button"
                    href="#contractorSchedulePanel"
                    data-contractor-schedule-action="true">
     <span class="brite-quick-action-icon-wrap"><svg class="brite-quick-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/><path d="m8 16 2.5 2.5L16 13"/></svg></span>
