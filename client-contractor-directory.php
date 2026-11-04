@@ -8,7 +8,7 @@ require __DIR__.'/partials/app_header.php';
 ?>
 <section class="card" style="margin-bottom:18px">
  <h1>Find a Contractor</h1>
- <p class="muted">Explore active contractors in your network, compare services and view their work. Quote requests are coming in the next release.</p>
+ <p class="muted">Explore active contractors in your network, compare services and view their work. Open a contractor's profile to review their services, photographs, and experience. You can request a quote from the profile.</p>
  <form id="directoryFilters" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end">
   <label style="flex:2;min-width:180px">Search by name or specialty
    <input name="q" maxlength="100" placeholder="Cleaning, painting..." style="display:block;width:100%;box-sizing:border-box">
