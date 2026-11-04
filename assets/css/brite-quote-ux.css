@@ -24,3 +24,23 @@
 @media(prefers-reduced-motion:reduce){
  #directoryResults>.card{transition:none}
 }
+
+/* Cycle 71E.14: readable request summaries, touch targets and clearer affordances */
+#contractorQuoteInbox article>button,
+#clientQuoteLookup article>button{min-height:58px;line-height:1.45}
+#contractorQuoteInbox article>button:hover,
+#clientQuoteLookup article>button:hover{color:#175cd3}
+#contractorQuoteInbox article>button[aria-expanded="true"],
+#clientQuoteLookup article>button[aria-expanded="true"]{color:#174ea6}
+#contractorQuoteInbox article>button span,
+#clientQuoteLookup article>button span{overflow-wrap:anywhere}
+#contractorQuoteFilters button{min-height:42px}
+#directoryResults article a,#directoryResults article button{min-height:42px}
+#directoryStatus,#contractorQuoteStatus,#clientQuoteLookupStatus{font-size:.9rem}
+#directoryResults img{aspect-ratio:16/9}
+@media(max-width:600px){
+ #contractorQuoteFilters{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))}
+ #contractorQuoteFilters button{white-space:normal;text-align:center}
+ #directoryResults article>div:last-child{display:grid!important;grid-template-columns:1fr 1fr}
+ #directoryResults article>div:last-child>*{justify-content:center;text-align:center}
+}
