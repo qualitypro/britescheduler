@@ -44,3 +44,17 @@
  #directoryResults article>div:last-child{display:grid!important;grid-template-columns:1fr 1fr}
  #directoryResults article>div:last-child>*{justify-content:center;text-align:center}
 }
+
+/* Cycle 71F: formal quotes */
+.brite-formal-quote{margin:16px 0;padding:16px;border:1px solid #bfdbfe;border-radius:12px;background:var(--brite-surface,#fff)}
+.brite-formal-quote h3{margin-top:0}
+.brite-quote-offer-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.brite-quote-offer-form label{display:block;min-width:0;font-weight:600}
+.brite-quote-offer-form label:nth-child(3),.brite-quote-offer-form label:nth-child(4),.brite-quote-offer-form>p{grid-column:1/-1}
+.brite-quote-offer-form button{justify-self:start;min-height:44px;background:#175cd3;color:#fff;border-radius:9px}
+.brite-offer-card{border:1px solid #cbd5e1;padding:14px;border-radius:10px;margin:10px 0;overflow-wrap:anywhere}
+.brite-offer-card p{margin:8px 0;white-space:pre-wrap}
+.brite-offer-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.brite-offer-actions button{min-height:44px;font-weight:700}
+.brite-offer-actions button:first-of-type{background:#166534;color:#fff}
+@media(max-width:600px){.brite-quote-offer-form{grid-template-columns:1fr}.brite-quote-offer-form label:nth-child(3),.brite-quote-offer-form label:nth-child(4),.brite-quote-offer-form>p{grid-column:auto}}
