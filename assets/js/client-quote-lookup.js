@@ -41,8 +41,12 @@ function detail(r){
 }
 function render(){
  root.replaceChildren();
- const visible=requests.filter(matches);
- status.textContent=visible.length+' of '+requests.length+' quote requests shown.';
+ const visible=requests.filter(matches).sort((a,b)=>{
+ const priority=r=>r.status==='more_info_requested'?0:r.status==='quoted'?1:r.status==='submitted'?2:3;
+ return priority(a)-priority(b)||Number(b.id)-Number(a.id);
+ });
+ const attention=requests.filter(r=>r.status==='more_info_requested').length;
+ status.textContent=visible.length+' of '+requests.length+' quote requests shown.'+(attention?' '+attention+' need your attention.':'');
  if(!visible.length){
   const p=node('p',requests.length?'No quote requests match your search.':'You have not requested any quotes yet.');
   root.append(p);
@@ -55,10 +59,13 @@ function render(){
   button.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:12px;text-align:left;width:100%;background:transparent;border:0;color:inherit;padding:0;cursor:pointer';
   const summary=node('span');summary.style.cssText='display:grid;gap:5px;min-width:0';
   const title=node('strong','Request #'+r.id+' · '+(r.contractor_name||'Contractor'));
-  const state=node('span',labels[r.status]||r.status);state.style.cssText='font-weight:600;font-size:.9rem';
+  const state=node('span',labels[r.status]||r.status);state.style.cssText='font-weight:700;font-size:.9rem;'+(r.status==='more_info_requested'?'color:#9a3412':'');
   const excerpt=node('span',(r.description||'').slice(0,120));excerpt.className='muted';
   summary.append(title,state,excerpt);
-  const indicator=node('span','View details +');indicator.style.cssText='white-space:nowrap;font-size:.85rem;font-weight:600';
+  if(r.status==='more_info_requested')summary.append(node('span','Next step: Open the conversation and answer the contractor’s question.'));
+  else if(r.status==='submitted')summary.append(node('span','Next step: Waiting for the contractor to review your request.'));
+  else if(r.status==='quoted')summary.append(node('span','A quote has been marked as received. Review the conversation for details.'));
+  const indicator=node('span',r.status==='more_info_requested'?'Respond +':'View details +');indicator.style.cssText='white-space:nowrap;font-size:.85rem;font-weight:600';
   button.append(summary,indicator);card.append(button);
   let body=null;
   button.addEventListener('click',()=>{
