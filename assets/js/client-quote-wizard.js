@@ -62,7 +62,19 @@
    const data=await json('/api/client_quote_requests.php');
    target.replaceChildren();
    if(!data.requests.length){target.append(el('p','No quote requests yet.'));return;}
-   data.requests.forEach(r=>target.append(el('p','#'+r.id+' — '+r.contractor_name+' — '+r.status+' — '+r.created_at)));
+   data.requests.forEach(r=>{
+    const card=el('article');card.style.cssText='border-top:1px solid #cbd5e1;padding:12px 0';
+    card.append(el('p','#'+r.id+' — '+r.contractor_name+' — '+r.status+' — '+r.created_at));
+    card.append(el('p',r.description));
+    const images=el('div');images.style.cssText='display:flex;flex-wrap:wrap;gap:10px';
+    (r.photos||[]).forEach(p=>{
+      const a=document.createElement('a');a.href=p.url;a.target='_blank';a.rel='noopener noreferrer';
+      const img=document.createElement('img');img.src=p.url;img.loading='lazy';img.alt='Job photo for request '+r.id;
+      img.style.cssText='width:110px;height:90px;object-fit:cover;border-radius:8px';
+      a.append(img);images.append(a);
+    });
+    card.append(images);target.append(card);
+   });
   }catch(error){target.textContent=error.message;}
  }
  async function init(){
@@ -87,7 +99,7 @@
  form.addEventListener('submit',event=>{
   event.preventDefault();
   if(busy)return;
-  if(!form.reportValidity())return;
+  if(!form.reportValidity()){status.textContent='Complete all required fields before reviewing.';return;}
   if(photos.length<2||photos.length>10){status.textContent='Please add 2–10 photographs before submitting.';input.focus();return;}
   reviewDetails.replaceChildren();
   for(const [label,value] of [
@@ -115,7 +127,7 @@
     body:data
    });
    let result;try{result=await response.json();}catch(_){throw Error('Server returned HTTP '+response.status+' instead of JSON');}
-   if(!response.ok)throw Error(result.error||'Submission failed (HTTP '+response.status+')');
+   if(!response.ok)throw Error((result.error||'Submission failed')+' (HTTP '+response.status+')');
    status.textContent='Quote request #'+result.request_id+' submitted successfully.';
    photos=[];renderPhotos();form.reset();updateServices();review.hidden=true;
    await history();
