@@ -7,7 +7,7 @@ require __DIR__.'/partials/app_header.php';
 ?>
 <section class="card" style="max-width:1050px;margin:auto">
 <h1>New Quote Requests</h1>
-<p class="muted">Review requests addressed to your contractor profile, including job details and private photographs. Quote responses and follow-up messaging are coming in the next update.</p>
+<p class="muted">Review each job, view photographs, and reply to the client or request more details. Pricing and formal quote submission are not available yet.</p>
 <p id="contractorQuoteStatus" role="status" aria-live="polite">Loading quote requests...</p>
 <div id="contractorQuoteInbox" style="display:grid;gap:16px"></div>
 </section>
