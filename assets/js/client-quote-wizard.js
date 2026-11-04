@@ -83,7 +83,7 @@
     const state=el('p',labels[r.status]||r.status);state.style.cssText='display:inline-block;background:#e2e8f0;border-radius:12px;padding:6px 10px;font-weight:600';card.append(state);
     const hint=el('p',r.status==='more_info_requested'?'Your contractor has asked for additional information. Open the conversation below to see what they need.':r.status==='submitted'?'Your request has been sent. You can open the conversation to check messages or ask a question.':'Open the conversation to review updates.');hint.className='muted';card.append(hint);
     card.append(el('p',r.description));
-    const images=el('div');images.style.cssText='display:flex;flex-wrap:wrap;gap:10px';
+    const images=el('div');images.setAttribute('data-brite-photo-gallery','');images.style.cssText='display:flex;flex-wrap:wrap;gap:10px';
     (r.photos||[]).forEach(p=>{
       const a=document.createElement('a');a.href=p.url;a.target='_blank';a.rel='noopener noreferrer';
       const img=document.createElement('img');img.src=p.url;img.loading='lazy';img.alt='Job photo for request '+r.id;
