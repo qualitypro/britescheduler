@@ -14,8 +14,20 @@ require __DIR__.'/partials/app_header.php';
  <div><label for="quoteLocation">Your service location</label><select id="quoteLocation" name="client_location_id" required style="display:block;width:100%"><option value="">Choose your location</option></select><a href="<?=htmlspecialchars(app_url('/client-locations.php'),ENT_QUOTES,'UTF-8')?>">Manage service locations</a></div>
  <div><label for="quoteDescription">Job description (at least 20 characters)</label><textarea id="quoteDescription" name="description" minlength="20" maxlength="5000" rows="6" required style="display:block;width:100%;box-sizing:border-box" placeholder="Describe the work, size of the job, and any special requirements"></textarea></div>
  <div><label for="quoteDate">Preferred date (optional)</label><input id="quoteDate" name="preferred_date" type="date" style="display:block"></div>
- <div><label for="quotePhotos">Job photographs (2–10 JPG or PNG, max 5 MB each)</label><input id="quotePhotos" name="photos[]" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple required data-brite-pills="off" style="display:block"></div>
- <button id="quoteSubmit" type="submit">Submit Quote Request</button>
+ <div>
+ <label for="quotePhotos">Job photographs (2–10 JPG or PNG, max 5 MB each)</label>
+ <input id="quotePhotos" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple data-brite-pills="off" style="display:block">
+ <p id="quotePhotoCount" role="status" aria-live="polite">No photographs selected.</p>
+ <div id="quotePhotoPreview" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px" aria-label="Selected photo previews"></div>
+</div>
+<section id="quoteReview" class="card" hidden aria-label="Review quote request">
+ <h2>Review before submitting</h2>
+ <div id="quoteReviewDetails"></div>
+ <p class="muted">Your photographs will be uploaded securely when you confirm.</p>
+ <button type="button" id="quoteConfirm">Confirm and submit</button>
+ <button type="button" id="quoteBack">Back to editing</button>
+</section>
+ <button id="quoteSubmit" type="submit">Review Request</button>
  <p id="quoteStatus" role="status" aria-live="polite"></p>
 </form>
 </section>
