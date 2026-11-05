@@ -115,7 +115,6 @@ section.bi-workspace .bi-toolbar button:focus-visible{
   <label>From <input type="date" id="biFrom" value="<?=date('Y-m-01',strtotime('-5 months'))?>"></label>
   <label>To <input type="date" id="biTo" value="<?=date('Y-m-d')?>"></label>
   <label>Interval <select id="biInterval"><option value="day">Day</option><option value="week">Week</option><option value="month" selected>Month</option></select></label>
-  <button type="button" id="biRun">Update chart</button>
   <label>Saved view <select id="biViewList"><option value="">Choose view…</option></select></label>
   <button type="button" id="biSave">Save view</button>
   <button type="button" id="biLoad">Load view</button>
@@ -125,7 +124,7 @@ section.bi-workspace .bi-toolbar button:focus-visible{
   <button type="button" id="biPdf">PDF</button>
  </div>
  <div class="bi-layout">
-  <aside class="bi-panel"><h2>Available series</h2><p class="bi-note">Select up to eight metrics using standard checkboxes. All queries are restricted to your tenant.</p><div id="biMetrics" class="bi-metrics" role="group" aria-label="Available metric series">Loading metrics…</div></aside>
+  <aside class="bi-panel"><h2>Available series</h2><p class="bi-note">Select up to eight metrics. Charts refresh automatically when settings change. All queries are restricted to your tenant.</p><div id="biMetrics" class="bi-metrics" role="group" aria-label="Available metric series">Loading metrics…</div></aside>
   <div class="bi-panel">
    <h2>Performance analysis</h2><p id="biStatus" class="bi-note" role="status" aria-live="polite">Select metrics to begin.</p>
    <canvas id="biChart" width="1100" height="540" role="img" aria-label="Intelligence multi-series trend chart"></canvas>
@@ -143,7 +142,6 @@ section.bi-workspace .bi-toolbar button:focus-visible{
     <label>From <input type="date" id="biFinFrom" value="<?=date('Y-m-01',strtotime('-5 months'))?>"></label>
     <label>To <input type="date" id="biFinTo" value="<?=date('Y-m-d')?>"></label>
     <label>Interval <select id="biFinInterval"><option value="day">Day</option><option value="week">Week</option><option value="month" selected>Month</option></select></label>
-    <button type="button" id="biFinRun">Update financial chart</button>
     <label>Saved view <select id="biFinViewList"><option value="">Choose view…</option></select></label>
     <button type="button" id="biFinSave">Save view</button>
     <button type="button" id="biFinLoad" disabled>Load view</button>
@@ -152,7 +150,7 @@ section.bi-workspace .bi-toolbar button:focus-visible{
     <button type="button" id="biFinJpg" disabled>JPG</button>
     <button type="button" id="biFinPdf" disabled>PDF</button>
    </div>
-   <p class="bi-note">Select up to six dollar-valued series. Open and lost opportunities are estimates based on service list prices, not booked revenue.</p>
+   <p class="bi-note">Select up to six dollar-valued series. Charts refresh automatically. Open and lost opportunities are estimates based on service list prices, not booked revenue.</p>
    <div id="biFinMetrics" class="bi-fin-metrics" role="group" aria-label="Financial metric selection">Loading financial metrics…</div>
   </div>
   <div id="biFinTotals" class="bi-fin-totals" aria-label="Selected financial totals"></div>
@@ -256,9 +254,9 @@ async function load(){
  current=data;paint();showTable();$('biStatus').textContent='Loaded '+data.series.length+' series · '+data.from+' through '+data.to;
  }catch(e){if(id===requestId&&e.name!=='AbortError')$('biStatus').textContent=e.message}
 }
-function scheduleRefresh(){clearTimeout(refreshTimer);refreshTimer=setTimeout(load,180)}
+function scheduleRefresh(){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>{const opts=safeSettings();if(opts.from&&opts.to&&opts.from<=opts.to)load()},250)}
 $('biMetrics').addEventListener('change',event=>{if(!event.target.matches('.bi-metric'))return;const selected=document.querySelectorAll('.bi-metric:checked');if(selected.length>8){event.target.checked=false;$('biStatus').textContent='Select a maximum of eight series.';return}scheduleRefresh()});
-controls.forEach(id=>$(id).addEventListener('change',scheduleRefresh));
+controls.forEach(id=>{['input','change'].forEach(type=>$(id).addEventListener(type,scheduleRefresh))});
 let exportUrl=null,exportName=null;
 const exportDialog=$('biExportDialog'),exportBody=$('biExportBody');
 function closeExport(){if(exportDialog.open)exportDialog.close()}
@@ -310,7 +308,6 @@ function pdfExport(source=chart,filename=null){
  add('trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF');
  previewExport(new Blob(chunks,{type:'application/pdf'}),filename||exportFilename('pdf'));
 }
-$('biRun').addEventListener('click',load);
 $('biPng').addEventListener('click',()=>imageExport('image/png'));
 $('biJpg').addEventListener('click',()=>imageExport('image/jpeg'));
 $('biPdf').addEventListener('click',pdfExport);
@@ -473,9 +470,8 @@ if(finTab){
    $('biFinStatus').textContent='Loaded '+data.series.length+' dollar-valued series · '+data.from+' through '+data.to;
   }catch(error){if(seq===finSeq&&error.name!=='AbortError')$('biFinStatus').textContent=error.message}
  }
- function scheduleFinancial(){clearTimeout(finTimer);finTimer=setTimeout(loadFinancial,180)}
- ['biFinFrom','biFinTo','biFinInterval'].forEach(id=>$(id).addEventListener('change',scheduleFinancial));
- $('biFinRun').addEventListener('click',loadFinancial);
+ function scheduleFinancial(){clearTimeout(finTimer);finTimer=setTimeout(()=>{const opts=finOptions();if(opts.from&&opts.to&&opts.from<=opts.to)loadFinancial()},250)}
+ ['biFinFrom','biFinTo','biFinInterval'].forEach(id=>{['input','change'].forEach(type=>$(id).addEventListener(type,scheduleFinancial))});
 
  const finFilename=ext=>{
   const options=finOptions();
