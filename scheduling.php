@@ -780,7 +780,7 @@ require __DIR__.'/partials/app_header.php';
 </style>
 
 <link rel="stylesheet"
-      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89c'))?>">
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89d'))?>">
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'), ENT_QUOTES, 'UTF-8')?>">
 
@@ -3524,7 +3524,9 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                 scrollTime: '00:00:00',
                 scrollTimeReset: false,
                 stickyHeaderDates: false,
-                viewDidMount: () => requestAnimationFrame(queueCalendarFit),
+                datesSet: () => requestAnimationFrame(() => {
+                    if (typeof queueCalendarFit === 'function') queueCalendarFit();
+                }),
                 firstDay: calendarPreferences.week_starts_on === 'monday' ? 1 : 0,
                 eventTimeFormat: {
                     hour: '2-digit',
@@ -3644,18 +3646,36 @@ document.addEventListener('DOMContentLoaded',async ()=>{
         function fitScheduleCalendar() {
             if (!calendar || scheduleCalendarPanel?.hidden) return;
             const monthView = calendar.view.type === 'dayGridMonth';
-            const cardBounds = calendarCard?.getBoundingClientRect();
-            const desktop = window.matchMedia('(min-width:900px) and (min-height:500px)').matches;
-            // Month always occupies the available viewport. Week/day keep
-            // FullCalendar's internal vertical time-grid scrolling.
-            const available = desktop
-                ? Math.max(240, Math.floor((cardBounds?.height || 0) - 18))
-                : Math.max(240, Math.floor(window.innerHeight - (cardBounds?.top || 0) - 18));
-            const target = monthView || desktop ? available : 'auto';
+            const viewportHeight = document.documentElement.clientHeight;
+            const workspaceTop = Math.max(0, Math.ceil(
+                scheduleWorkspace?.getBoundingClientRect().top || 0
+            ));
+            // The month view owns the remaining visible page, not a
+            // percentage of an auto-sized FullCalendar parent.
+            const workspaceHeight = Math.max(260, viewportHeight - workspaceTop - 4);
+            const toolbarHeight = scheduleWorkspace?.querySelector('.brite-tab-toolbar')
+                ?.getBoundingClientRect().height || 0;
+            const panelGap = 8;
+            const cardPadding = 18;
+            const available = Math.max(
+                190, Math.floor(workspaceHeight - toolbarHeight - panelGap - cardPadding)
+            );
             scheduleWorkspace?.classList.toggle('brite-month-viewport', monthView);
-            if (target !== lastCalendarMode) {
-                lastCalendarMode = target;
-                calendar.setOption('height', target);
+            document.body.classList.toggle('brite-schedule-month-mode', monthView);
+            if (monthView) {
+                scheduleWorkspace?.style.setProperty('--brite-month-workspace-height', workspaceHeight + 'px');
+                const target = available;
+                if (target !== lastCalendarMode) {
+                    lastCalendarMode = target;
+                    calendar.setOption('height', target);
+                }
+            } else {
+                scheduleWorkspace?.style.removeProperty('--brite-month-workspace-height');
+                const target = '100%';
+                if (target !== lastCalendarMode) {
+                    lastCalendarMode = target;
+                    calendar.setOption('height', target);
+                }
             }
             calendar.updateSize();
         }
