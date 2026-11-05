@@ -57,9 +57,13 @@ try {
     foreach($keys as $key){
         $m=$metrics[$key];$date=$m['date'];
         $group=sprintf($bucket,$date,$date);
-        $sql="SELECT $group AS bucket, {$m['expr']} AS value FROM {$m['table']} WHERE tenant_id=? AND $date >= ? AND $date < DATE_ADD(?,INTERVAL 1 DAY) GROUP BY bucket ORDER BY bucket";
+        $isRate=($m['rollup']??'')==='weighted';
+        $extra=$isRate?', COUNT(*) AS weight':'';
+        $sql="SELECT $group AS bucket, {$m['expr']} AS value$extra FROM {$m['table']} WHERE tenant_id=? AND $date >= ? AND $date < DATE_ADD(?,INTERVAL 1 DAY) GROUP BY bucket ORDER BY bucket";
         $stmt=$pdo->prepare($sql);$stmt->execute([$tid,$from,$to]);
-        $series[]=['key'=>$key,'name'=>$m['name'],'source'=>$m['source'],'unit'=>$m['unit']??'number','rollup'=>$m['rollup']??'sum','points'=>array_map(static fn($r)=>['bucket'=>$r['bucket'],'value'=>(float)$r['value']],$stmt->fetchAll(PDO::FETCH_ASSOC))];
+        $rows=$stmt->fetchAll(PDO::FETCH_ASSOC);
+        $points=array_map(static fn($r)=>['bucket'=>$r['bucket'],'value'=>(float)$r['value']]+(isset($r['weight'])?['weight'=>(int)$r['weight']]:[]),$rows);
+        $series[]=['key'=>$key,'name'=>$m['name'],'source'=>$m['source'],'unit'=>$m['unit']??'number','rollup'=>$m['rollup']??'sum','points'=>$points];
     }
     header('Cache-Control: no-store');
     echo json_encode(['from'=>$from,'to'=>$to,'interval'=>$interval,'series'=>$series],JSON_THROW_ON_ERROR);
