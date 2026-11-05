@@ -780,7 +780,7 @@ require __DIR__.'/partials/app_header.php';
 </style>
 
 <link rel="stylesheet"
-      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89g'))?>">
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89h'))?>">
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'), ENT_QUOTES, 'UTF-8')?>">
 
@@ -3505,88 +3505,75 @@ document.addEventListener('DOMContentLoaded',async ()=>{
 
         const use24HourTime = calendarPreferences.time_format === '24h';
 
-        // Cycle 89G: accessible, viewport-aware preview for compact events.
-        // The preview is attached to the document, not the clipped grid cell.
-        const eventPreview = document.createElement('div');
-        eventPreview.className = 'brite-calendar-event-preview';
-        eventPreview.setAttribute('role', 'tooltip');
-        eventPreview.hidden = true;
-        document.body.appendChild(eventPreview);
-        let previewAnchor = null;
-        let previewTimer = 0;
-
+        // Cycle 89H: expand the actual FullCalendar event element, not a
+        // separate tooltip. Reparent temporarily to escape clipped scrollers.
+        let expandedEvent = null;
+        let expandTimer = 0;
+        let collapseTimer = 0;
         function dismissEventPreview() {
-            clearTimeout(previewTimer);
-            previewAnchor = null;
-            eventPreview.hidden = true;
-            eventPreview.replaceChildren();
-        }
-        function positionEventPreview(anchor) {
-            if (!anchor || eventPreview.hidden) return;
-            const rect = anchor.getBoundingClientRect();
-            const width = eventPreview.offsetWidth;
-            const height = eventPreview.offsetHeight;
-            const margin = 10;
-            const left = Math.max(margin, Math.min(
-                rect.left, window.innerWidth - width - margin
-            ));
-            const below = rect.bottom + margin;
-            const top = below + height <= window.innerHeight - margin
-                ? below
-                : Math.max(margin, rect.top - height - margin);
-            eventPreview.style.left = left + 'px';
-            eventPreview.style.top = top + 'px';
+            clearTimeout(expandTimer);
+            clearTimeout(collapseTimer);
+            if (!expandedEvent) return;
+            const {element, placeholder, style, focusTarget} = expandedEvent;
+            expandedEvent = null;
+            element.classList.remove('brite-event-expanded');
+            element.removeAttribute('aria-expanded');
+            element.style.cssText = style;
+            if (placeholder.isConnected) placeholder.replaceWith(element);
+            if (focusTarget && element.isConnected) element.focus({preventScroll:true});
         }
         function isCompactCalendarEvent(element) {
             const content = element.querySelector('.brite-calendar-event');
             if (!content) return false;
-            const clipped = content.scrollHeight > content.clientHeight + 2 ||
-                content.scrollWidth > content.clientWidth + 2 ||
-                element.scrollHeight > element.clientHeight + 2;
-            const shortEvent = element.getBoundingClientRect().height < 80;
-            const truncatedText = Array.from(content.querySelectorAll('*'))
-                .some(node => node.scrollWidth > node.clientWidth + 2 ||
+            return element.getBoundingClientRect().height < 90 ||
+                element.scrollHeight > element.clientHeight + 2 ||
+                content.scrollHeight > content.clientHeight + 2 ||
+                Array.from(content.querySelectorAll('*')).some(node =>
+                    node.scrollWidth > node.clientWidth + 2 ||
                     node.scrollHeight > node.clientHeight + 2);
-            return clipped || shortEvent || truncatedText;
         }
-        function showEventPreview(info) {
-            const anchor = info.el;
-            if (!isCompactCalendarEvent(anchor)) return;
-            const a = info.event.extendedProps || {};
-            const rows = [
-                ['Appointment', a.title || a.service_name || info.event.title || 'Appointment'],
-                ['Time', appointmentDetailsDate(info.event.start) +
-                    (info.event.end ? ' – ' + appointmentDetailsDate(info.event.end) : '')],
-                ['Status', appointmentStatusLabel(a.status)]
-            ];
-            const client = [a.client_first, a.client_last].filter(Boolean).join(' ');
-            if (client && BRITE_CALENDAR_ROLE !== 'client') rows.push(['Client', client]);
-            if (a.service_name) rows.push(['Service', a.service_name]);
-            if (a.location) rows.push(['Location', a.location]);
-            if (['owner','admin','scheduler'].includes(BRITE_CALENDAR_ROLE)) {
-                const contractors = appointmentContractorNames(a);
-                if (contractors.length) rows.push(['Contractors', contractors.join(', ')]);
-            }
-            const heading = document.createElement('strong');
-            heading.textContent = 'Appointment details';
-            const list = document.createElement('dl');
-            for (const [label, value] of rows) {
-                const dt = document.createElement('dt');
-                const dd = document.createElement('dd');
-                dt.textContent = label;
-                dd.textContent = value;
-                list.append(dt, dd);
-            }
-            eventPreview.replaceChildren(heading, list);
-            previewAnchor = anchor;
-            eventPreview.hidden = false;
-            positionEventPreview(anchor);
+        function expandCalendarEvent(info) {
+            const element = info.el;
+            if (!element.isConnected || !isCompactCalendarEvent(element)) return;
+            dismissEventPreview();
+            const rect = element.getBoundingClientRect();
+            const placeholder = document.createElement('span');
+            placeholder.className = 'brite-expanded-event-placeholder';
+            placeholder.style.width = rect.width + 'px';
+            placeholder.style.height = rect.height + 'px';
+            const style = element.style.cssText;
+            const focusTarget = element.contains(document.activeElement);
+            element.replaceWith(placeholder);
+            document.body.appendChild(element);
+            expandedEvent = {element, placeholder, style, focusTarget};
+            element.classList.add('brite-event-expanded');
+            element.setAttribute('aria-expanded', 'true');
+            const width = Math.min(360, Math.max(245, rect.width), window.innerWidth - 20);
+            element.style.setProperty('width', width + 'px', 'important');
+            element.style.setProperty('height', 'auto', 'important');
+            element.style.setProperty('min-height', '115px', 'important');
+            element.style.setProperty('max-height', 'min(65dvh, 440px)', 'important');
+            const height = element.getBoundingClientRect().height;
+            const left = Math.max(10, Math.min(rect.left, window.innerWidth - width - 10));
+            const top = rect.top + height <= window.innerHeight - 10
+                ? rect.top
+                : Math.max(10, window.innerHeight - height - 10);
+            element.style.setProperty('left', left + 'px', 'important');
+            element.style.setProperty('top', top + 'px', 'important');
+            if (focusTarget) element.focus({preventScroll:true});
         }
         function scheduleEventPreview(info) {
-            clearTimeout(previewTimer);
-            previewTimer = setTimeout(() => {
-                if (info.el.isConnected) showEventPreview(info);
-            }, 180);
+            clearTimeout(collapseTimer);
+            clearTimeout(expandTimer);
+            expandTimer = setTimeout(() => expandCalendarEvent(info), 180);
+        }
+        function scheduleCollapseEvent() {
+            clearTimeout(collapseTimer);
+            collapseTimer = setTimeout(() => {
+                if (expandedEvent && !expandedEvent.element.matches(':hover, :focus-within')) {
+                    dismissEventPreview();
+                }
+            }, 100);
         }
         document.addEventListener('keydown', event => {
             if (event.key === 'Escape') dismissEventPreview();
@@ -3679,14 +3666,15 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                     info.el.dataset.britePreviewTitle = lines.join('\n');
                     info.el.removeAttribute('title');
                     info.el.addEventListener('focusin', () => scheduleEventPreview(info));
-                    info.el.addEventListener('focusout', dismissEventPreview);
+                    info.el.addEventListener('focusout', scheduleCollapseEvent);
+                    info.el.addEventListener('pointerleave', scheduleCollapseEvent);
                     info.el.setAttribute('aria-label', lines.join('. '));
                 },
 
                 eventMouseEnter: scheduleEventPreview,
-                eventMouseLeave: dismissEventPreview,
+                eventMouseLeave: scheduleCollapseEvent,
                 eventWillUnmount: info => {
-                    if (previewAnchor === info.el) dismissEventPreview();
+                    if (expandedEvent?.element === info.el) dismissEventPreview();
                 },
                 eventContent:calendarEventContent,
                 eventDisplay:'block',
