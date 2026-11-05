@@ -53,7 +53,6 @@
      menu.hidden=true;restoreToggle.setAttribute('aria-expanded','false');
     }
    });
-   let pointer=null;
    const announce=message=>{status.textContent=message};
    const notify=()=>{grid.dispatchEvent(new CustomEvent('brite:widgets-changed',{bubbles:true}));window.dispatchEvent(new Event('resize'))};
    const cache=()=>{try{localStorage.setItem(storageKey,JSON.stringify(saved))}catch(_e){}};
