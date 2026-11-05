@@ -98,12 +98,20 @@ async function briteSignOut(){
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const current = location.pathname.split('/').pop();
-    document.querySelectorAll('.brite-sidebar-nav a, .brite-quick-actions a').forEach(function (link) {
-        const target = new URL(link.href, location.href).pathname.split('/').pop();
-        if (target === current) {
-            link.setAttribute('aria-current', 'page');
-        }
+    const currentUrl = new URL(location.href);
+    const links = document.querySelectorAll('.brite-sidebar-nav a, .brite-quick-actions a');
+    links.forEach(function (link) {
+        const target = new URL(link.href, location.href);
+        // Module links share module.php; their module keys must match exactly.
+        const samePath = target.pathname === currentUrl.pathname;
+        const isModule = target.pathname.endsWith('/module.php');
+        const selected = samePath && (isModule
+            ? target.searchParams.get('module') !== null &&
+              target.searchParams.get('module') === currentUrl.searchParams.get('module')
+            : (!target.searchParams.has('book') ||
+               target.searchParams.get('book') === currentUrl.searchParams.get('book')));
+        if (selected) link.setAttribute('aria-current', 'page');
+        else link.removeAttribute('aria-current');
     });
 });
 </script>
