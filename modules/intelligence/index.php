@@ -12,7 +12,11 @@ $biFinancialAccess=in_array((string)($tenant['role']??''),['owner','admin','acco
 .bi-workspace .bi-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
 .bi-workspace .bi-toolbar label{display:grid;gap:4px;font-size:.78rem;font-weight:650}
 .bi-workspace .bi-layout{display:grid;grid-template-columns:minmax(215px,260px) minmax(0,1fr);gap:14px}
-.bi-workspace .bi-metrics{display:grid;gap:8px;max-height:400px;overflow:auto}
+/* Keep the series selector aligned with the adjacent analysis card.
+   Its own content scrolls instead of leaving unused space below a 400px cap. */
+.bi-workspace .bi-layout > .bi-panel:first-child{display:flex;flex-direction:column;min-height:0}
+.bi-workspace .bi-layout > .bi-panel:first-child > h2{flex:0 0 auto}
+.bi-workspace .bi-metrics{display:grid;align-content:start;gap:8px;flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
 .bi-workspace .bi-metrics label{display:flex;gap:9px;align-items:center;font-size:.85rem;font-weight:400;line-height:1.4;padding:4px 2px;background:transparent;border:0;border-radius:0;box-shadow:none;cursor:pointer}
 .bi-workspace .bi-metrics h3{font-size:.9rem;margin:12px 0 2px;font-weight:700}
 .bi-workspace .bi-metrics h3:first-child{margin-top:0}
