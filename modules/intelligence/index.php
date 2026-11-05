@@ -296,6 +296,14 @@ function paint(){
  });
  ctx.font='13px system-ui';ctx.fillStyle='#64748b';ctx.fillText('Normalized to each series maximum',L,H-15);
 }
+function metricSummary(series){
+ const values=series.points.map(p=>Number(p.value||0));
+ if(series.rollup==='weighted')return values.length?values.reduce((a,b)=>a+b,0)/values.length:0;
+ return values.reduce((a,b)=>a+b,0);
+}
+function metricDisplay(value,series){
+ return value.toLocaleString(undefined,{maximumFractionDigits:2})+(series.unit==='percent'?'%':'');
+}
 function renderPerformanceKpis(){
  const container=$('biPerformanceKpis');container.replaceChildren();
  if(!current?.series)return;
@@ -303,8 +311,8 @@ function renderPerformanceKpis(){
   const card=document.createElement('div');card.className='bi-fin-total';
   const name=document.createElement('small');name.textContent=series.name;
   const total=document.createElement('strong');
-  const sum=series.points.reduce((acc,p)=>acc+Number(p.value||0),0);
-  total.textContent=sum.toLocaleString(undefined,{maximumFractionDigits:2});
+  const sum=metricSummary(series);
+  total.textContent=metricDisplay(sum,series);
   card.append(name,total);container.append(card);
  });
 }
@@ -333,12 +341,12 @@ function renderComparison(currentData,priorData){
  const previous=new Map(priorData.series.map(s=>[s.key,s]));
  const format=n=>n.toLocaleString(undefined,{maximumFractionDigits:2});
  currentData.series.forEach(series=>{
-  const now=series.points.reduce((sum,p)=>sum+Number(p.value||0),0);
-  const before=(previous.get(series.key)?.points||[]).reduce((sum,p)=>sum+Number(p.value||0),0);
+  const now=metricSummary(series);
+  const before=metricSummary(previous.get(series.key)||{points:[],rollup:series.rollup});
   const diff=now-before;
   const percent=before===0?(now===0?'0%':'N/A'):(diff/Math.abs(before)*100).toFixed(1)+'%';
   const row=body.insertRow();
-  [series.name,format(now),format(before),(diff>0?'+':'')+format(diff),percent].forEach(value=>{const td=row.insertCell();td.textContent=value});
+  [series.name,metricDisplay(now,series),metricDisplay(before,series),(diff>0?'+':'')+metricDisplay(diff,series),percent].forEach(value=>{const td=row.insertCell();td.textContent=value});
  });
 }
 function resetComparison(){
@@ -368,7 +376,7 @@ async function load(){
    const previousData=await responsePrior.json();if(!responsePrior.ok)throw Error(previousData.error||'Unable to load preceding period');
    if(id!==requestId||!$('biCompareEnabled').checked)return;
    renderComparison(data,previousData);
-   $('biCompareStatus').textContent='Current: '+opts.from+' to '+opts.to+' · Previous: '+prior.from+' to '+prior.to+'. Changes are differences in period totals.';
+   $('biCompareStatus').textContent='Current: '+opts.from+' to '+opts.to+' · Previous: '+prior.from+' to '+prior.to+'. Rates use the arithmetic mean of reported buckets; other metrics use period totals.';
   }catch(error){if(id===requestId&&error.name!=='AbortError'){$('biCompareStatus').textContent=error.message;resetComparison()}}
  }else{resetComparison()}
 
