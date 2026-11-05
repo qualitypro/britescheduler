@@ -21,21 +21,39 @@
     }
     return result;
    };
-   let saved=empty(),revision=0,queue=Promise.resolve(),editing=false,pointer=null;
+   let saved=empty(),revision=0,queue=Promise.resolve(),pointer=null;
    try{saved=clean(JSON.parse(localStorage.getItem(storageKey)||'null'))}catch(_e){}
    const cards=()=>Array.from(grid.querySelectorAll(':scope > [data-widget-id]'));
    const toolbar=document.createElement('div');
-   toolbar.className='brite-widget-toolbar';
-   const customize=document.createElement('button');
-   customize.type='button';customize.textContent='Customize widgets';customize.setAttribute('aria-pressed','false');
-   const reset=document.createElement('button');
-   reset.type='button';reset.textContent='Reset layout';reset.hidden=true;
+   toolbar.className='brite-widget-toolbar brite-widget-utility';
    const restore=document.createElement('div');
    restore.className='brite-widget-restore';restore.hidden=true;
+   const restoreToggle=document.createElement('button');
+   restoreToggle.type='button';restoreToggle.className='brite-widget-utility-toggle';
+   restoreToggle.textContent='⊞';
+   restoreToggle.title='Restore hidden widgets or reset layout';
+   restoreToggle.setAttribute('aria-label','Restore hidden widgets or reset dashboard layout');
+   restoreToggle.setAttribute('aria-expanded','false');
+   const menu=document.createElement('div');
+   menu.className='brite-widget-utility-menu';menu.hidden=true;
+   const reset=document.createElement('button');
+   reset.type='button';reset.textContent='Reset layout';
    const status=document.createElement('span');
-   status.className='brite-widget-status';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
-   toolbar.append(customize,reset,restore,status);
+   status.className='brite-widget-status';
+   status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+   menu.append(restore,reset);
+   toolbar.append(restoreToggle,menu,status);
    grid.before(toolbar);
+   restoreToggle.addEventListener('click',()=>{
+    menu.hidden=!menu.hidden;
+    restoreToggle.setAttribute('aria-expanded',String(!menu.hidden));
+   });
+   document.addEventListener('pointerdown',event=>{
+    if(!toolbar.contains(event.target)){
+     menu.hidden=true;restoreToggle.setAttribute('aria-expanded','false');
+    }
+   });
+   let pointer=null;
    const announce=message=>{status.textContent=message};
    const notify=()=>{grid.dispatchEvent(new CustomEvent('brite:widgets-changed',{bubbles:true}));window.dispatchEvent(new Event('resize'))};
    const cache=()=>{try{localStorage.setItem(storageKey,JSON.stringify(saved))}catch(_e){}};
@@ -59,10 +77,10 @@
      const id=card.dataset.widgetId;
      card.hidden=saved.hidden.includes(id);
      card.classList.toggle('brite-widget-wide',saved.wide.includes(id));
-     card.classList.toggle('brite-widget-editing',editing);
+     card.classList.toggle('brite-widget-editing',true);
      card.draggable=false;
      const controls=card.querySelector(':scope > .brite-widget-controls');
-     if(controls)controls.hidden=!editing;
+     if(controls)controls.hidden=false;
     }
     restore.replaceChildren();
     for(const id of saved.hidden){
@@ -75,7 +93,7 @@
      });
      restore.append(button);
     }
-    restore.hidden=!editing||saved.hidden.length===0;
+    restore.hidden=saved.hidden.length===0;
     notify();
    };
    const reorder=(source,target,before)=>{
@@ -102,20 +120,21 @@
     const id=card.dataset.widgetId;
     const name=card.dataset.widgetLabel||id;
     const controls=document.createElement('div');
-    controls.className='brite-widget-controls';controls.hidden=true;
+    controls.className='brite-widget-controls';
     const handle=document.createElement('button');
     handle.type='button';handle.className='brite-widget-handle';
-    handle.textContent='↕ Move';
+    handle.textContent='⠿';
+    handle.title='Drag to move · Alt + arrow keys';
     handle.setAttribute('aria-label','Move '+name+'; Alt and arrow keys to reorder');
     handle.addEventListener('keydown',event=>{
-     if(!editing||!event.altKey)return;
+     if(!event.altKey)return;
      if(['ArrowLeft','ArrowUp','ArrowRight','ArrowDown'].includes(event.key)){
       event.preventDefault();move(card,['ArrowLeft','ArrowUp'].includes(event.key)?-1:1);
      }
     });
     // Pointer Events support mouse, pen, and touch without dragging the card's content.
     handle.addEventListener('pointerdown',event=>{
-     if(!editing||event.button!==0)return;
+     if(event.button!==0)return;
      pointer={handle,card,id:event.pointerId,startX:event.clientX,startY:event.clientY,moved:false};
      handle.setPointerCapture(event.pointerId);
     });
@@ -138,29 +157,23 @@
     handle.addEventListener('pointercancel',stopPointer);
     handle.addEventListener('lostpointercapture',stopPointer);
     const width=document.createElement('button');
-    width.type='button';width.textContent='Resize';
+    width.type='button';width.textContent='□';width.title='Toggle widget width';
     width.setAttribute('aria-label','Toggle width of '+name);
     width.addEventListener('click',()=>{
      saved.wide=saved.wide.includes(id)?saved.wide.filter(value=>value!==id):[...saved.wide,id];
      render();persist();announce('Widget width saved.');
     });
     const hide=document.createElement('button');
-    hide.type='button';hide.textContent='Hide';
+    hide.type='button';hide.textContent='×';hide.title='Hide widget';
     hide.setAttribute('aria-label','Hide '+name);
     hide.addEventListener('click',()=>{
      saved.hidden=[...saved.hidden,id];render();persist();announce('Widget hidden; use Show to restore.');
     });
     controls.append(handle,width,hide);card.prepend(controls);
    }
-   customize.addEventListener('click',()=>{
-    editing=!editing;
-    customize.textContent=editing?'Done customizing':'Customize widgets';
-    customize.setAttribute('aria-pressed',String(editing));
-    reset.hidden=!editing;
-    render();
-   });
    reset.addEventListener('click',()=>{
     saved=empty();render();persist();announce('Default widget layout restored.');
+    menu.hidden=true;restoreToggle.setAttribute('aria-expanded','false');
    });
    render();
    if(endpoint){
