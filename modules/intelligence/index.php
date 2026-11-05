@@ -46,6 +46,29 @@ $biViewsEndpoint=app_url('/modules/intelligence/views.php');
  </div>
  <div class="bi-panel"><h2>Series data</h2><div style="overflow-x:auto"><table id="biTable"><thead></thead><tbody></tbody></table></div></div>
 </section>
+<style>
+#biExportDialog{width:min(1100px,calc(100vw - 28px));max-width:1100px;height:min(90dvh,900px);max-height:90dvh;padding:0;border:1px solid var(--brite-border);border-radius:16px;background:var(--brite-surface);color:var(--brite-text);box-shadow:0 24px 80px #0006;overflow:hidden}
+#biExportDialog::backdrop{background:rgba(12,20,35,.75)}
+#biExportDialog .bi-export-shell{display:flex;flex-direction:column;height:100%;min-height:0}
+#biExportDialog .bi-export-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--brite-border)}
+#biExportDialog .bi-export-actions{display:flex;align-items:center;gap:8px}
+#biExportDialog .bi-export-body{flex:1;min-height:0;display:grid;place-items:center;padding:12px;background:#e8edf3}
+#biExportDialog .bi-export-body img{display:block;max-width:100%;max-height:100%;object-fit:contain}
+#biExportDialog .bi-export-body iframe{width:100%;height:100%;border:0;background:#fff}
+@media(max-width:540px){#biExportDialog .bi-export-toolbar{padding:8px 10px}#biExportDialog .bi-export-body{padding:5px}}
+</style>
+<dialog id="biExportDialog" aria-labelledby="biExportTitle">
+ <div class="bi-export-shell">
+  <div class="bi-export-toolbar">
+   <strong id="biExportTitle">Intelligence export preview</strong>
+   <div class="bi-export-actions">
+    <button type="button" id="biExportDownload">Download</button>
+    <button type="button" id="biExportClose" aria-label="Close export preview">Close ×</button>
+   </div>
+  </div>
+  <div class="bi-export-body" id="biExportBody"></div>
+ </div>
+</dialog>
 <script>
 (() => {
 'use strict';
@@ -112,8 +135,30 @@ async function load(){
 function scheduleRefresh(){clearTimeout(refreshTimer);refreshTimer=setTimeout(load,180)}
 $('biMetrics').addEventListener('change',event=>{if(!event.target.matches('.bi-metric'))return;const selected=document.querySelectorAll('.bi-metric:checked');if(selected.length>8){event.target.checked=false;$('biStatus').textContent='Select a maximum of eight series.';return}scheduleRefresh()});
 controls.forEach(id=>$(id).addEventListener('change',scheduleRefresh));
-function download(blob,filename){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000)}
-function imageExport(type){if(!current)return;$('biChart').toBlob(b=>{if(b)download(b,'brite-intelligence.'+(type==='image/png'?'png':'jpg'))},type,.94)}
+let exportUrl=null,exportName=null;
+const exportDialog=$('biExportDialog'),exportBody=$('biExportBody');
+function closeExport(){if(exportDialog.open)exportDialog.close()}
+function releaseExport(){exportBody.replaceChildren();if(exportUrl){URL.revokeObjectURL(exportUrl);exportUrl=null}exportName=null}
+exportDialog.addEventListener('close',releaseExport);
+exportDialog.addEventListener('click',event=>{if(event.target===exportDialog)closeExport()});
+$('biExportClose').addEventListener('click',closeExport);
+$('biExportDownload').addEventListener('click',()=>{
+ if(!exportUrl||!exportName)return;
+ const a=document.createElement('a');a.href=exportUrl;a.download=exportName;document.body.append(a);a.click();a.remove();
+});
+function previewExport(blob,filename){
+ if(!blob||!blob.size){$('biStatus').textContent='Unable to generate export.';return}
+ closeExport();releaseExport();
+ exportUrl=URL.createObjectURL(blob);exportName=filename;
+ $('biExportTitle').textContent='Preview · '+filename;
+ const preview=document.createElement(blob.type==='application/pdf'?'iframe':'img');
+ preview.src=exportUrl;
+ if(preview.tagName==='IFRAME'){preview.title='PDF export preview'}else{preview.alt='Intelligence chart export preview'}
+ exportBody.append(preview);
+ if(typeof exportDialog.showModal==='function')exportDialog.showModal();
+ else $('biStatus').textContent='Preview dialog is not supported by this browser.';
+}
+function imageExport(type){if(!current)return;chart.toBlob(b=>previewExport(b,'brite-intelligence.'+(type==='image/png'?'png':'jpg')),type,.94)}
 function pdfExport(){
  if(!current)return;
  const data=chart.toDataURL('image/jpeg',.9).split(',')[1];
@@ -130,7 +175,7 @@ function pdfExport(){
  obj(5,'<< /Length '+encoder.encode(command).length+' >>\nstream\n'+command+'endstream');
  const xref=offset;add('xref\n0 6\n0000000000 65535 f \n');for(let i=1;i<=5;i++)add(String(positions[i]).padStart(10,'0')+' 00000 n \n');
  add('trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF');
- download(new Blob(chunks,{type:'application/pdf'}),'brite-intelligence.pdf');
+ previewExport(new Blob(chunks,{type:'application/pdf'}),'brite-intelligence.pdf');
 }
 $('biRun').addEventListener('click',load);
 $('biPng').addEventListener('click',()=>imageExport('image/png'));
