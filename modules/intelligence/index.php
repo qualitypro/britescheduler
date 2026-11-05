@@ -17,35 +17,6 @@ $biViewsEndpoint=app_url('/modules/intelligence/views.php');
 .bi-workspace .bi-metrics input[type=checkbox]{appearance:auto!important;-webkit-appearance:checkbox!important;display:inline-block!important;flex:0 0 auto;width:16px!important;height:16px!important;min-width:16px!important;margin:0;accent-color:var(--brite-accent,#2563eb);border-radius:2px!important;box-shadow:none!important}
 .bi-workspace .bi-metrics label:focus-within{outline:2px solid var(--brite-accent,#2563eb);outline-offset:2px}
 .bi-workspace .bi-toolbar input[type=date],.bi-workspace .bi-toolbar select{appearance:auto!important;-webkit-appearance:auto!important;min-height:36px;border:1px solid var(--brite-border);border-radius:5px;padding:5px 8px;background:var(--brite-surface);color:var(--brite-text);font:inherit}
-/* Override application-wide pill/chip selectors for the three BI filter controls. */
-section.bi-workspace .bi-toolbar label:has(> #biFrom),
-section.bi-workspace .bi-toolbar label:has(> #biTo),
-section.bi-workspace .bi-toolbar label:has(> #biInterval){
- display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:5px!important;
- width:auto!important;min-width:145px!important;padding:0!important;margin:0!important;
- background:transparent!important;border:0!important;border-radius:0!important;
- box-shadow:none!important;transform:none!important;overflow:visible!important;
- color:var(--brite-text)!important;text-transform:none!important;
-}
-section.bi-workspace #biFrom,
-section.bi-workspace #biTo,
-section.bi-workspace #biInterval{
- box-sizing:border-box!important;display:block!important;position:static!important;
- appearance:auto!important;-webkit-appearance:auto!important;
- width:100%!important;min-width:145px!important;max-width:220px!important;
- height:38px!important;min-height:38px!important;line-height:normal!important;
- padding:6px 10px!important;margin:0!important;
- border:1px solid var(--brite-border,#cbd5e1)!important;
- border-radius:0!important;background:var(--brite-surface,#fff)!important;
- background-image:none!important;box-shadow:none!important;
- color:var(--brite-text,#172033)!important;font-size:14px!important;
- font-weight:400!important;text-align:left!important;text-transform:none!important;
- cursor:default!important;clip-path:none!important;
-}
-section.bi-workspace #biInterval{cursor:pointer!important}
-section.bi-workspace #biFrom:focus-visible,
-section.bi-workspace #biTo:focus-visible,
-section.bi-workspace #biInterval:focus-visible{outline:2px solid #2563eb!important;outline-offset:2px!important}
 .bi-workspace .bi-toolbar button{border-radius:5px!important;min-height:36px;padding:6px 11px}
 .bi-workspace .bi-toolbar label{background:transparent!important;border:0!important;border-radius:0!important;padding:0!important;box-shadow:none!important}
 .bi-workspace .bi-metrics input{width:auto;min-width:0}
@@ -54,6 +25,57 @@ section.bi-workspace #biInterval:focus-visible{outline:2px solid #2563eb!importa
 .bi-workspace .bi-legend span{display:inline-flex;align-items:center;gap:5px}
 .bi-workspace .bi-legend i{width:9px;height:9px;border-radius:50%;display:inline-block}
 .bi-workspace .bi-note{font-size:.78rem;color:var(--brite-text-secondary)}
+
+/* BI configuration controls: consistently rectangular, never pills or chips. */
+section.bi-workspace .bi-toolbar,
+section.bi-workspace .bi-metrics{border-radius:0}
+section.bi-workspace .bi-toolbar label,
+section.bi-workspace .bi-metrics label{
+ border-radius:0!important;border:0!important;background:transparent!important;
+ box-shadow:none!important;clip-path:none!important;transform:none!important;
+ text-transform:none!important;
+}
+section.bi-workspace .bi-toolbar label{
+ display:flex!important;flex-direction:column!important;align-items:flex-start!important;
+ gap:5px!important;padding:0!important;margin:0!important;min-width:0!important;
+ width:auto!important;height:auto!important;line-height:1.4!important;
+}
+section.bi-workspace .bi-toolbar input[type="date"],
+section.bi-workspace .bi-toolbar select{
+ display:block!important;box-sizing:border-box!important;position:static!important;
+ appearance:auto!important;-webkit-appearance:auto!important;
+ min-width:145px!important;max-width:230px!important;width:100%!important;
+ height:38px!important;min-height:38px!important;max-height:38px!important;
+ padding:6px 9px!important;margin:0!important;line-height:normal!important;
+ border:1px solid var(--brite-border,#cbd5e1)!important;border-radius:0!important;
+ background:var(--brite-surface,#fff)!important;background-image:none!important;
+ color:var(--brite-text,#172033)!important;box-shadow:none!important;
+ font-size:14px!important;font-weight:400!important;text-align:left!important;
+ text-transform:none!important;clip-path:none!important;transform:none!important;
+}
+section.bi-workspace .bi-toolbar button,
+#biExportDialog button{
+ appearance:auto!important;-webkit-appearance:auto!important;
+ border-radius:0!important;box-shadow:none!important;
+ clip-path:none!important;transform:none!important;
+ min-height:36px!important;white-space:normal!important;
+}
+section.bi-workspace .bi-metrics label{
+ display:flex!important;flex-direction:row!important;align-items:center!important;
+ justify-content:flex-start!important;gap:9px!important;
+ width:100%!important;min-height:28px!important;padding:3px 0!important;
+ font-weight:400!important;text-align:left!important;
+}
+section.bi-workspace .bi-metrics input[type="checkbox"]{
+ appearance:checkbox!important;-webkit-appearance:checkbox!important;
+ border-radius:0!important;width:16px!important;height:16px!important;
+ flex:0 0 16px!important;box-shadow:none!important;
+}
+section.bi-workspace .bi-toolbar input:focus-visible,
+section.bi-workspace .bi-toolbar select:focus-visible,
+section.bi-workspace .bi-toolbar button:focus-visible{
+ outline:2px solid #2563eb!important;outline-offset:2px!important;
+}
 @media(max-width:760px){.bi-workspace .bi-layout{grid-template-columns:1fr}}
 </style>
 <section class="bi-workspace" aria-labelledby="biTitle">
