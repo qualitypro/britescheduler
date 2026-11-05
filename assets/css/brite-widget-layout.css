@@ -217,3 +217,27 @@
 @media(prefers-reduced-motion:reduce){
  .brite-widget-chrome>.brite-widget-controls{transition:none!important}
 }
+
+/* Drag feedback: lift the moving card and indicate a valid destination. */
+.brite-widget-grid>[data-widget-id].brite-widget-drag-active,
+.brite-dashboard-metrics>[data-widget-id].brite-widget-drag-active,
+.bi-widget-grid>[data-widget-id].brite-widget-drag-active{
+ position:relative!important;
+ z-index:50!important;
+ opacity:.9;
+ filter:drop-shadow(0 12px 18px rgba(15,23,42,.18));
+ cursor:grabbing!important;
+ will-change:transform;
+}
+.brite-widget-grid>[data-widget-id].brite-widget-drop-target,
+.brite-dashboard-metrics>[data-widget-id].brite-widget-drop-target,
+.bi-widget-grid>[data-widget-id].brite-widget-drop-target{
+ outline:2px solid var(--brite-accent,#2563eb)!important;
+ outline-offset:-3px!important;
+ background-image:linear-gradient(rgba(59,130,246,.055),rgba(59,130,246,.055));
+}
+.brite-widget-handle.brite-widget-dragging{cursor:grabbing!important;opacity:1!important}
+@media(prefers-reduced-motion:reduce){
+ .brite-widget-drag-active{filter:none!important}
+ .brite-widget-drop-target{background-image:none!important}
+}
