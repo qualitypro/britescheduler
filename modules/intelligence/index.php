@@ -161,7 +161,7 @@ function previewExport(blob,filename){
 function exportFilename(extension){
  const selection=safeSettings();
  const names=(current?.series||[]).map(series=>series.name);
- const slug=value=>String(value).normalize('NFKD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48);
+ const slug=value=>String(value).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48);
  const selected=names.length===1?slug(names[0]):names.length<=3?names.map(slug).join('-'):names.slice(0,2).map(slug).join('-')+'-plus-'+(names.length-2)+'-more';
  const period=selection.from+'-to-'+selection.to;
  return ['brite-intelligence',selected||'dashboard',period,slug(selection.interval)].join('_')+'.'+extension;
