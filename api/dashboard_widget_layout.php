@@ -26,6 +26,12 @@ $allowed=[
 if(!isset($allowed[$key])||!in_array($role,$allowed[$key],true)){
  json_response(['error'=>'Dashboard unavailable'],403);
 }
+if(str_starts_with($key,'intelligence_')){
+ require_once dirname(__DIR__).'/app/ModuleRegistry.php';
+ if(!isset(ModuleRegistry::activeFor($tenant)['intelligence'])){
+  json_response(['error'=>'Intelligence module unavailable'],403);
+ }
+}
 if($method!=='GET'){
  $csrf=(string)($_SERVER['HTTP_X_CSRF_TOKEN']??'');
  if(!hash_equals(csrf_token(),$csrf))json_response(['error'=>'Invalid CSRF token'],403);
