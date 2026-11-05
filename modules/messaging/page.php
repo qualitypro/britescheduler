@@ -37,24 +37,60 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
  border-radius:6px!important;justify-self:start;padding:10px 18px!important;
 }
 @media(max-width:760px){.msg-workspace{grid-template-columns:1fr;min-height:0}.msg-history{max-height:360px}}
+
+/* Cycle 75L: compact, task-focused messaging workspace. */
+.msg-workspace{grid-template-columns:minmax(220px,290px) minmax(0,1fr);gap:10px;min-height:430px}
+.msg-pane{padding:12px;border-radius:9px}
+.msg-pane h2{font-size:1.05rem;line-height:1.3;margin:0 0 8px}
+.msg-pane h3{font-size:.98rem;margin:0 0 8px}
+.msg-thread{gap:2px;padding:9px 10px;margin-bottom:5px;border-radius:7px}
+.msg-thread:hover{background:rgba(100,116,139,.08)}
+.msg-thread:focus-visible{outline:2px solid #2563eb;outline-offset:1px}
+.msg-thread-name{font-size:.94rem}
+.msg-thread-subject{font-size:.85rem}
+.msg-thread-preview,.msg-thread-meta{font-size:.77rem}
+.msg-history{gap:8px;min-height:180px;max-height:360px;padding:10px;border-radius:7px}
+.msg-bubble{padding:8px 10px;border-radius:9px;max-width:88%;font-size:.91rem}
+.msg-bubble p{margin:5px 0}
+.msg-form{gap:8px}
+#msgCreate label,#msgReply label{gap:3px;font-size:.88rem}
+#msgCreate input,#msgCreate select,#msgCreate textarea,#msgReply textarea{min-height:36px;padding:7px 9px!important;border-radius:5px!important}
+#msgCreate textarea{min-height:88px}
+.brite-app .brite-content form#msgReply.msg-inline-reply textarea#msgReplyBody{min-height:76px!important;padding:8px 10px!important;border-radius:5px!important;background:var(--brite-surface,#fff)!important;color:var(--brite-text,#0f172a)!important}
+#msgCreate button[type=submit],#msgReply button[type=submit]{min-height:36px!important;padding:7px 13px!important}
+.msg-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.msg-actions button{min-height:34px;padding:6px 10px;border-radius:6px}
+.msg-actions .msg-primary{background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:600}
+.msg-actions .msg-secondary{background:transparent;color:inherit}
+.msg-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+.msg-toolbar h2{margin:0}
+.msg-help{font-size:.78rem;color:var(--brite-muted,#64748b);margin:0}
+#msgStatus:empty{display:none}
+#msgStatus:not(:empty){margin:0;padding:5px 9px;border-left:3px solid #64748b;font-size:.84rem}
+#msgThreadSearch{width:100%;min-height:34px;box-sizing:border-box;margin:0 0 8px;border-radius:6px!important;padding:6px 9px!important}
+#msgCompose .muted{font-size:.82rem;margin:0 0 10px}
+#msgDetail>h2{margin-bottom:9px}
+#msgReply{margin-top:9px!important}
+#msgReply .msg-actions{justify-content:flex-end}
+@media(max-width:760px){.msg-workspace{grid-template-columns:1fr;min-height:0}.msg-history{max-height:310px}.msg-pane{padding:10px}}
 </style>
-<section class="card" data-brite-pills="off" style="display:grid;gap:16px">
- <div><h1>Messages</h1><p class="muted">Private conversations within your organization. Clients and contractors can contact the tenant owner by default; direct client–contractor messaging becomes available after a quote request or scheduled assignment.</p></div>
+<section class="card" data-brite-pills="off" style="display:grid;gap:10px">
+ <div><h1 style="margin:0 0 4px">Messages</h1><p class="muted" style="margin:0;font-size:.85rem">Private conversations within your organization. Clients and contractors can contact the tenant owner by default; direct client–contractor messaging becomes available after a quote request or scheduled assignment.</p></div>
  <p id="msgStatus" role="status" aria-live="polite"></p>
  <div class="msg-workspace">
   <aside class="msg-pane" aria-label="Conversations">
-   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap"><h2>Inbox</h2><button id="msgRefresh" type="button">Refresh</button></div>
-   <button id="msgNew" type="button" style="width:100%;margin-bottom:12px">+ New conversation</button>
+   <div class="msg-toolbar"><h2>Inbox</h2><button id="msgRefresh" type="button" class="msg-secondary" title="Refresh conversations">↻ Refresh</button></div>
+   <button id="msgNew" type="button" class="msg-primary" style="width:100%;margin-bottom:8px">+ New conversation</button><label for="msgThreadSearch" class="brite-sr-only">Search conversations</label><input id="msgThreadSearch" type="search" placeholder="Find a conversation…" autocomplete="off">
    <div id="msgThreads" aria-label="Conversation list"></div>
   </aside>
   <div class="msg-pane">
    <div id="msgCompose" hidden>
-    <h2>New conversation</h2><p class="muted">Only eligible recipients appear below. Client–contractor messaging requires a previous quote request or appointment assignment.</p>
+    <div class="msg-toolbar"><h2>New conversation</h2><button id="msgCancelCompose" type="button" class="msg-secondary">Cancel</button></div><p class="muted">Only eligible recipients appear below. Client–contractor messaging requires a previous quote request or appointment assignment.</p>
     <form id="msgCreate" class="msg-form">
      <label>Send to <select name="recipient_id" id="msgRecipients" required></select></label>
      <label>Subject <input name="subject" maxlength="180" required></label>
      <label>Message <textarea name="body" rows="5" maxlength="5000" required></textarea></label>
-     <button type="submit">Send message</button>
+     <div class="msg-actions"><button type="submit" class="msg-primary">Send message</button></div>
     </form>
    </div>
    <div id="msgDetail">
@@ -62,7 +98,7 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
     <div id="msgMessages" class="msg-history" aria-live="polite"><p>Select a conversation from your inbox.</p></div>
     <form id="msgReply" class="msg-form msg-inline-reply" hidden style="margin-top:14px">
      <label for="msgReplyBody">Write a reply</label><textarea id="msgReplyBody" name="body" maxlength="5000" rows="4" required placeholder="Write your message here. Ctrl+Enter to send."></textarea>
-     <button type="submit">Send reply</button>
+     <div class="msg-actions"><span class="msg-help">Ctrl/⌘ + Enter to send</span><button type="submit" class="msg-primary">Send reply</button></div>
     </form>
    </div>
   </div>
@@ -81,4 +117,4 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
  <?php endif; ?>
  <details><summary>Notification preferences</summary><label style="display:flex;gap:10px;align-items:center;margin-top:12px"><input type="checkbox" id="msgInApp"> Enable in-app message notifications</label><p class="muted">This setting is saved for your account and tenant. Email and SMS delivery are not enabled in this version.</p></details>
 </section>
-<script defer src="<?=htmlspecialchars(app_url('/modules/messaging/messaging.js?v=75h'),ENT_QUOTES,'UTF-8')?>"></script>
+<script defer src="<?=htmlspecialchars(app_url('/modules/messaging/messaging.js?v=75l'),ENT_QUOTES,'UTF-8')?>"></script>
