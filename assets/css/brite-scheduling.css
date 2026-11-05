@@ -1916,3 +1916,20 @@ label:has(+ #endsAt),
  #calendar .fc-daygrid-day-number{padding:3px;font-size:.68rem}
  #calendar .brite-event-client,#calendar .brite-event-contractors{display:none}
 }
+
+/* Cycle 89B: eliminate nested calendar vertical scrolling without hiding events. */
+#scheduleCalendarPanel .scheduler-layout>.card{min-height:0!important}
+#calendar .fc-view-harness,#calendar .fc-scrollgrid,#calendar .fc-scrollgrid-section-body,#calendar .fc-timegrid-body{min-height:0}
+#calendar .fc-timegrid-slot{height:1.35em}
+#calendar .fc-timegrid-slot-label-cushion{font-size:.66rem;padding:0 3px}
+#calendar .fc-timegrid-axis-cushion{font-size:.66rem}
+#calendar .fc-daygrid-more-link{font-size:.7rem;font-weight:700}
+#calendar .fc-popover{max-height:min(65dvh,480px);max-width:min(90vw,340px);overflow-y:auto}
+#calendar .fc-popover-body{max-height:calc(min(65dvh,480px) - 40px);overflow-y:auto}
+@media(min-width:900px) and (min-height:500px){
+ #calendar .fc-scroller-harness{min-height:0}
+ #calendar .fc-timegrid-body .fc-timegrid-slots table{height:100%}
+ #calendar .fc-timegrid-slot{height:1.25em}
+ #calendar .fc-scroller{scrollbar-width:none}
+ #calendar .fc-scroller::-webkit-scrollbar{width:0;height:0}
+}
