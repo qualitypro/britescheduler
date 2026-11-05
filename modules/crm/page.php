@@ -43,6 +43,37 @@ try {
    if(!in_array($status,['new','contacted','qualified','converted','lost'],true))throw new RuntimeException('Invalid status.');
    $q=$db->prepare('UPDATE crm_leads SET status=? WHERE id=? AND tenant_id=?');$q->execute([$status,$id,$tid]);
    if(!$q->rowCount()&&!$checkLink('crm_leads','id',$id))throw new RuntimeException('Lead not found.');
+  }elseif($action==='lead_convert'){
+   $id=(int)($_POST['id']??0);
+   if($id<1)throw new RuntimeException('Invalid lead.');
+   $db->beginTransaction();
+   try {
+    $q=$db->prepare('SELECT * FROM crm_leads WHERE tenant_id=? AND id=? FOR UPDATE');
+    $q->execute([$tid,$id]);$lead=$q->fetch(PDO::FETCH_ASSOC);
+    if(!$lead)throw new RuntimeException('Lead not found.');
+    if($lead['client_id']){
+     $q=$db->prepare('SELECT 1 FROM clients WHERE tenant_id=? AND id=?');
+     $q->execute([$tid,$lead['client_id']]);
+     if(!$q->fetchColumn())throw new RuntimeException('Linked customer no longer exists.');
+     $clientId=(int)$lead['client_id'];
+    }else{
+     $name=trim((string)$lead['name']);
+     $parts=preg_split('/\\s+/', $name, 2);
+     $first=substr((string)($parts[0]??''),0,100);
+     $last=substr((string)($parts[1]??''),0,100);
+     if($first==='')throw new RuntimeException('Lead name is required.');
+     $q=$db->prepare("INSERT INTO clients(tenant_id,first_name,last_name,email,phone,notes,status) VALUES(?,?,?,?,?,?,'active')");
+     $q->execute([$tid,$first,$last,$lead['email'],$lead['phone'],$lead['notes']]);
+     $clientId=(int)$db->lastInsertId();
+    }
+    $q=$db->prepare("UPDATE crm_leads SET client_id=?,status='converted' WHERE tenant_id=? AND id=?");
+    $q->execute([$clientId,$tid,$id]);
+    $q=$db->prepare('UPDATE crm_opportunities SET client_id=? WHERE tenant_id=? AND lead_id=? AND client_id IS NULL');
+    $q->execute([$clientId,$tid,$id]);
+    $q=$db->prepare('INSERT INTO crm_activities(tenant_id,lead_id,client_id,kind,body,created_by) VALUES(?,?,?,\'note\',\'Lead converted to scheduling customer\',?)');
+    $q->execute([$tid,$id,$clientId,$uid]);
+    $db->commit();
+   }catch(Throwable $e){$db->rollBack();throw $e;}
   }elseif($action==='opportunity_create'){
    $title=$required('title');$lead=$link('lead_id','crm_leads');$client=$link('client_id','clients');
    if(!$lead&&!$client)throw new RuntimeException('Select a lead or customer.');
@@ -73,7 +104,7 @@ try {
  }
 } catch(Throwable $e){$flash=$e instanceof PDOException?'CRM storage unavailable. Apply migration 030_crm_module.sql.':$e->getMessage();}
 try{
- $q=$db->prepare('SELECT id,name,email,phone,source,status,notes,updated_at FROM crm_leads WHERE tenant_id=? ORDER BY updated_at DESC LIMIT 150');$q->execute([$tid]);$leads=$q->fetchAll(PDO::FETCH_ASSOC);
+ $q=$db->prepare('SELECT id,name,email,phone,source,status,client_id,notes,updated_at FROM crm_leads WHERE tenant_id=? ORDER BY updated_at DESC LIMIT 150');$q->execute([$tid]);$leads=$q->fetchAll(PDO::FETCH_ASSOC);
  $q=$db->prepare('SELECT id,first_name,last_name,company_name,email,phone,status FROM clients WHERE tenant_id=? ORDER BY last_name,first_name LIMIT 150');$q->execute([$tid]);$customers=$q->fetchAll(PDO::FETCH_ASSOC);
  $q=$db->prepare('SELECT o.*,l.name lead_name,CONCAT(c.first_name," ",c.last_name) client_name FROM crm_opportunities o LEFT JOIN crm_leads l ON l.id=o.lead_id AND l.tenant_id=o.tenant_id LEFT JOIN clients c ON c.id=o.client_id AND c.tenant_id=o.tenant_id WHERE o.tenant_id=? ORDER BY o.updated_at DESC LIMIT 150');$q->execute([$tid]);$opportunities=$q->fetchAll(PDO::FETCH_ASSOC);
  $q=$db->prepare('SELECT a.*,l.name lead_name,CONCAT(c.first_name," ",c.last_name) client_name,o.title opportunity_title FROM crm_activities a LEFT JOIN crm_leads l ON l.id=a.lead_id AND l.tenant_id=a.tenant_id LEFT JOIN clients c ON c.id=a.client_id AND c.tenant_id=a.tenant_id LEFT JOIN crm_opportunities o ON o.id=a.opportunity_id AND o.tenant_id=a.tenant_id WHERE a.tenant_id=? ORDER BY a.created_at DESC LIMIT 150');$q->execute([$tid]);$activities=$q->fetchAll(PDO::FETCH_ASSOC);
@@ -103,7 +134,7 @@ $customerOptions=static function(?int $selected=null)use($customers,$esc):void {
  <p class="crm-muted">Counts for leads, customers, opportunities and activities reflect the most recent 150 records in each list. Quote requests and appointments are tenant-wide totals.</p>
  <?php elseif($tab==='leads'): ?>
  <div class="crm-grid"><div class="crm-panel"><h2>Add lead</h2><form method="post" class="crm-form"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="action" value="lead_create"><input type="hidden" name="tab" value="leads"><label>Name<input name="name" maxlength="190" required></label><label>Email<input name="email" type="email" maxlength="190"></label><label>Phone<input name="phone" maxlength="40"></label><label>Source<input name="source" maxlength="80" placeholder="Website, referral, phone…"></label><label>Notes<textarea name="notes" maxlength="5000"></textarea></label><button type="submit">Add lead</button></form></div>
- <div class="crm-panel"><h2>Leads</h2><div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Name</th><th>Contact</th><th>Source</th><th>Status</th></tr></thead><tbody><?php foreach($leads as $r): ?><tr><td><strong><?=$esc($r['name'])?></strong></td><td><?=$esc($r['email'])?><div class="crm-muted"><?=$esc($r['phone'])?></div></td><td><?=$esc($r['source'])?></td><td><form method="post" class="crm-inline"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="tab" value="leads"><input type="hidden" name="action" value="lead_status"><input type="hidden" name="id" value="<?=(int)$r['id']?>"><select name="status" aria-label="Status for <?=$esc($r['name'])?>"><?php foreach(['new','contacted','qualified','converted','lost'] as $v): ?><option value="<?=$v?>" <?=$r['status']===$v?'selected':''?>><?=ucfirst($v)?></option><?php endforeach; ?></select><button type="submit">Save</button></form></td></tr><?php endforeach; ?></tbody></table><?php if(!$leads): ?><p class="crm-muted">No leads yet.</p><?php endif; ?></div></div></div>
+ <div class="crm-panel"><h2>Leads</h2><div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Name</th><th>Contact</th><th>Source</th><th>Status</th></tr></thead><tbody><?php foreach($leads as $r): ?><tr><td><strong><?=$esc($r['name'])?></strong></td><td><?=$esc($r['email'])?><div class="crm-muted"><?=$esc($r['phone'])?></div></td><td><?=$esc($r['source'])?></td><td><form method="post" class="crm-inline"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="tab" value="leads"><input type="hidden" name="action" value="lead_status"><input type="hidden" name="id" value="<?=(int)$r['id']?>"><select name="status" aria-label="Status for <?=$esc($r['name'])?>"><?php foreach(['new','contacted','qualified','converted','lost'] as $v): ?><option value="<?=$v?>" <?=$r['status']===$v?'selected':''?>><?=ucfirst($v)?></option><?php endforeach; ?></select><button type="submit">Save</button></form><?php if($r['status']!=='converted'): ?><form method="post" class="crm-convert-form" style="margin-top:5px" onsubmit="return confirm('Create a scheduling customer from this lead?')"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="action" value="lead_convert"><input type="hidden" name="tab" value="leads"><input type="hidden" name="id" value="<?=(int)$r['id']?>"><button type="submit">Convert to customer</button></form><?php elseif($r['client_id']): ?><small class="crm-muted">Customer #<?=(int)$r['client_id']?></small><?php endif; ?></td></tr><?php endforeach; ?></tbody></table><?php if(!$leads): ?><p class="crm-muted">No leads yet.</p><?php endif; ?></div></div></div>
  <?php elseif($tab==='customers'): ?>
  <div class="crm-panel"><h2>Existing scheduling customers</h2><p class="crm-muted">Customer records are shared with the core scheduling platform; no duplicate CRM contacts are created.</p><div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Customer</th><th>Email</th><th>Phone</th><th>Status</th></tr></thead><tbody><?php foreach($customers as $r): ?><tr><td><strong><?=$esc(trim($r['first_name'].' '.$r['last_name']))?></strong><div class="crm-muted"><?=$esc($r['company_name'])?></div></td><td><?=$esc($r['email'])?></td><td><?=$esc($r['phone'])?></td><td><?=$esc($r['status'])?></td></tr><?php endforeach; ?></tbody></table></div></div>
  <?php elseif($tab==='pipeline'): ?>
