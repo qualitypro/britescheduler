@@ -174,6 +174,7 @@ require __DIR__.'/partials/app_header.php';
 
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-workspace-tabs.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-widget-layout.js'),ENT_QUOTES,'UTF-8')?>"></script>
+<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-widget-layout.css'),ENT_QUOTES,'UTF-8')?>">
 <style>
 .brite-widget-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px}
 .brite-widget-toolbar button,.brite-widget-controls button{border:1px solid var(--brite-border,#cbd5e1);border-radius:5px;background:var(--brite-surface,#fff);color:var(--brite-text,#172033);padding:5px 9px;cursor:pointer;font:inherit;font-size:.78rem}
