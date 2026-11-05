@@ -109,3 +109,28 @@
 @media(prefers-reduced-motion:reduce){
  .brite-widget-chrome>.brite-widget-controls{transition:none}
 }
+
+/* Precise corner anchoring: no layout space and no vertical centering. */
+.brite-widget-grid>[data-widget-id]>.brite-widget-chrome,
+.brite-dashboard-metrics>[data-widget-id]>.brite-widget-chrome,
+.bi-widget-grid>[data-widget-id]>.brite-widget-chrome{
+ position:absolute!important;top:4px!important;right:4px!important;
+ bottom:auto!important;left:auto!important;
+ width:max-content!important;height:max-content!important;
+ max-width:calc(100% - 8px)!important;
+ margin:0!important;padding:0!important;
+ flex:none!important;align-self:auto!important;z-index:20!important;
+}
+.brite-widget-chrome>.brite-widget-launcher{
+ width:20px!important;height:20px!important;min-width:20px!important;
+ min-height:20px!important;max-width:20px!important;
+ padding:0!important;margin:0!important;flex:none!important;
+ border-radius:4px!important;font-size:16px!important;line-height:1!important;
+}
+.brite-widget-chrome>.brite-widget-controls{flex:none!important}
+@media(pointer:coarse){
+ .brite-widget-chrome>.brite-widget-launcher{
+  width:26px!important;height:26px!important;
+  min-width:26px!important;min-height:26px!important;max-width:26px!important;
+ }
+}
