@@ -180,6 +180,20 @@ section.bi-workspace .bi-fin-table{max-width:100%}
  section.bi-workspace #biChart,section.bi-workspace #biFinChart{max-height:290px}
 }
 </style>
+<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-widget-layout.css'),ENT_QUOTES,'UTF-8')?>">
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-widget-layout.js'),ENT_QUOTES,'UTF-8')?>"></script>
+<style>
+/* Intelligence widget containers retain the existing BI chart/selector layout. */
+.bi-workspace .bi-widget-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;min-width:0}
+.bi-workspace .bi-widget-grid>.bi-widget{grid-column:span 2;min-width:0}
+.bi-workspace .bi-widget-grid>.bi-widget.brite-widget-wide{grid-column:span 1}
+.bi-workspace .bi-widget>.brite-widget-controls{margin-bottom:10px}
+.bi-workspace .bi-widget-grid .bi-widget[hidden]{display:none!important}
+.bi-workspace .bi-widget .bi-panel{min-width:0}
+.bi-workspace .bi-widget-grid>.bi-widget>.bi-panel{height:100%;box-sizing:border-box}
+.bi-workspace .bi-widget-grid .bi-fin-totals{min-width:0}
+@media(max-width:1100px){.bi-workspace .bi-widget-grid>.bi-widget.brite-widget-wide{grid-column:span 2}}
+</style>
 <section class="bi-workspace" aria-labelledby="biTitle" data-brite-pills="off">
  <div class="bi-heading"><h1 id="biTitle">Intelligence</h1><p class="muted">Tenant-scoped business analytics</p></div>
  <div class="bi-tabs" role="tablist" aria-label="Intelligence workspaces">
@@ -709,4 +723,54 @@ if(finTab){
  })();
 }
 })();
+</script>
+
+<script>
+/* Keep BI's existing chart and series elements intact: move complete panels,
+   not their controls, so existing BI handlers and exports keep their references. */
+document.addEventListener('DOMContentLoaded',function(){
+ if(!window.BriteWidgetLayout)return;
+ const makeWorkspace=(panelId,key,definitions)=>{
+  const panel=document.getElementById(panelId);
+  if(!panel)return;
+  const resolved=definitions.map(([id,label,selector])=>[id,label,panel.querySelector(selector)]);
+  if(resolved.some(entry=>!entry[2]))return;
+  const grid=document.createElement('div');
+  grid.className='bi-widget-grid';
+  grid.id='biWidgetGrid-'+key;
+  resolved[0][2].before(grid);
+  resolved.forEach(([id,label,node])=>{
+   const wrapper=document.createElement('section');
+   wrapper.className='bi-widget';
+   wrapper.dataset.widgetId=id;
+   wrapper.dataset.widgetLabel=label;
+   wrapper.setAttribute('aria-label',label+' widget');
+   wrapper.append(node);
+   grid.append(wrapper);
+  });
+  window.BriteWidgetLayout.mount(grid,{
+   scope: <?=json_encode((string)($tenant['tenant_id']??0).'.'.(string)($user['id']??0),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>+'.intelligence_'+key,
+   defaultOrder:definitions.map(entry=>entry[0]),
+   endpoint: <?=json_encode(app_url('/api/dashboard_widget_layout.php?dashboard=intelligence_'),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>+key,
+   csrf: <?=json_encode(csrf_token(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>
+  });
+ };
+ makeWorkspace('biPanelPerformance','performance',[
+  ['analysis','Performance analysis','.bi-layout'],
+  ['comparison','Period comparison','.bi-layout + .bi-panel'],
+  ['series_data','Series data','.bi-panel:has(#biTable)']
+ ]);
+ // The series table is nested; move its containing panel instead.
+ const financial=document.getElementById('biPanelFinancial');
+ if(financial){
+  makeWorkspace('biPanelFinancial','financial',[
+   ['configuration','Financial configuration','.bi-panel:has(#biFinMetrics)'],
+   ['totals','Financial totals','#biFinTotals'],
+   ['chart','Financial chart','.bi-fin-plot'],
+   ['forecast','Next-period outlook','.bi-panel:has(#biFinForecastTable)'],
+   ['series_data','Financial series','.bi-panel:has(#biFinTable)']
+  ]);
+ }
+ window.dispatchEvent(new Event('resize'));
+});
 </script>
