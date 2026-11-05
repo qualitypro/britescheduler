@@ -18,7 +18,10 @@ try {
  if(!in_array($method,['POST','DELETE'],true)){http_response_code(405);exit;}
  $csrf=$_SERVER['HTTP_X_CSRF_TOKEN']??'';
  if(!hash_equals(csrf_token(),$csrf)){http_response_code(403);echo json_encode(['error'=>'Invalid CSRF token']);exit;}
- $body=json_decode(file_get_contents('php://input'),true,32,JSON_THROW_ON_ERROR);
+ $raw=file_get_contents('php://input',false,null,0,16385);
+ if($raw===false||strlen($raw)>16384)throw new InvalidArgumentException('Request body exceeds 16 KiB');
+ $body=json_decode($raw,true,32,JSON_THROW_ON_ERROR);
+ if(!is_array($body))throw new InvalidArgumentException('Invalid request body');
  $name=trim((string)($body['name']??''));
  if($name===''||strlen($name)>100)throw new InvalidArgumentException('View name must be 1–100 characters');
  if($method==='DELETE'){
@@ -31,6 +34,7 @@ try {
  if(!is_array($metrics)||count($metrics)<1||count($metrics)>8||!in_array($interval,['day','week','month'],true))throw new InvalidArgumentException('Invalid series selection');
  foreach($metrics as $metric){if(!is_string($metric)||!preg_match('/^[a-z][a-z0-9_.-]{1,100}$/D',$metric))throw new InvalidArgumentException('Invalid metric key');}
  foreach(['from','to'] as $field){$date=(string)($config[$field]??'');$dt=DateTimeImmutable::createFromFormat('!Y-m-d',$date);if(!$dt||$dt->format('Y-m-d')!==$date)throw new InvalidArgumentException('Invalid date');}
+ if($config['from']>$config['to']||(new DateTimeImmutable($config['from']))->diff(new DateTimeImmutable($config['to']))->days>730)throw new InvalidArgumentException('Date range must be 0–730 days');
  $json=json_encode(['metrics'=>array_values(array_unique($metrics)),'interval'=>$interval,'from'=>$config['from'],'to'=>$config['to']],JSON_THROW_ON_ERROR);
  if(strlen($json)>8192)throw new InvalidArgumentException('Configuration too large');
  $q=$pdo->prepare('INSERT INTO intelligence_saved_views(tenant_id,user_id,name,config_json) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE config_json=VALUES(config_json),updated_at=CURRENT_TIMESTAMP');
