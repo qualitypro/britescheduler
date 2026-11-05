@@ -16,6 +16,7 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
 .msg-review-item{display:grid;gap:5px;width:100%;text-align:left;margin:8px 0;padding:12px;border:1px solid #cbd5e1;border-radius:9px;background:transparent}.msg-review-item small{color:#64748b}.msg-form{display:grid;gap:12px}.msg-form input,.msg-form select,.msg-form textarea{width:100%;box-sizing:border-box}
 
 /* Messaging forms: conventional rectangular fields instead of global pill styling. */
+.brite-app .brite-content #msgReply #msgReplyBody{border-radius:4px!important;appearance:none!important;-webkit-appearance:none!important;clip-path:none!important;background-image:none!important;}
 #msgCreate label,#msgReply label,#msgOwnerReview>label{display:grid;gap:6px;font-weight:600}
 #msgCreate input,#msgCreate select,#msgCreate textarea,
 #msgReply textarea,#msgReviewSearch{
@@ -58,7 +59,7 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
     <h2 id="msgHeading">Select a conversation</h2>
     <div id="msgMessages" class="msg-history" aria-live="polite"><p>Select a conversation from your inbox.</p></div>
     <form id="msgReply" class="msg-form" hidden style="margin-top:14px">
-     <label>Reply <textarea name="body" maxlength="5000" rows="3" required placeholder="Type your reply…"></textarea></label>
+     <label>Reply <textarea id="msgReplyBody" name="body" maxlength="5000" rows="3" required placeholder="Type your reply…" style="border-radius:4px!important;appearance:none!important;-webkit-appearance:none!important;display:block;width:100%;box-sizing:border-box"></textarea></label>
      <button type="submit">Send reply</button>
     </form>
    </div>
