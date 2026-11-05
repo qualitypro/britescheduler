@@ -38,7 +38,7 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
 }
 @media(max-width:760px){.msg-workspace{grid-template-columns:1fr;min-height:0}.msg-history{max-height:360px}}
 </style>
-<section class="card" style="display:grid;gap:16px">
+<section class="card" data-brite-pills="off" style="display:grid;gap:16px">
  <div><h1>Messages</h1><p class="muted">Your private conversations with clients, contractors and team members. Select a conversation to see the full exchange.</p></div>
  <p id="msgStatus" role="status" aria-live="polite"></p>
  <div class="msg-workspace">
