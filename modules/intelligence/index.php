@@ -103,9 +103,70 @@ section.bi-workspace .bi-toolbar button:focus-visible{
 .bi-fin-table th,.bi-fin-table td{text-align:right;padding:8px 10px;white-space:nowrap}
 .bi-fin-table th:first-child,.bi-fin-table td:first-child{text-align:left}
 @media(max-width:760px){.bi-workspace .bi-layout{grid-template-columns:1fr}}
+
+/* Intelligence density pass: scoped to this module, preserve native accessible controls. */
+section.bi-workspace{gap:8px;font-size:.84rem;line-height:1.35}
+section.bi-workspace .bi-workspace{gap:8px}
+section.bi-workspace .bi-heading{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px}
+section.bi-workspace .bi-heading h1{font-size:1.3rem;line-height:1.2;margin:0}
+section.bi-workspace .bi-heading p{font-size:.74rem;margin:0}
+section.bi-workspace .bi-panel{padding:10px 12px;border-radius:7px}
+section.bi-workspace .bi-panel h2{font-size:.95rem;line-height:1.3;margin:0 0 6px}
+section.bi-workspace .bi-subtitle{font-size:.72rem;font-weight:400;color:var(--brite-text-secondary)}
+section.bi-workspace .bi-tabs{gap:2px;padding:0}
+section.bi-workspace .bi-tabs button{min-height:29px!important;padding:4px 10px!important;font-size:.76rem!important;gap:5px}
+section.bi-workspace .bi-tab-icon{width:13px;height:13px}
+section.bi-workspace .bi-toolbar,section.bi-workspace .bi-fin-config{gap:6px 8px;align-items:end}
+section.bi-workspace .bi-toolbar label,section.bi-workspace .bi-fin-config label{font-size:.7rem!important;gap:3px!important;line-height:1.2!important}
+section.bi-workspace .bi-toolbar input[type=date],section.bi-workspace .bi-toolbar select,
+section.bi-workspace .bi-fin-config input[type=date],section.bi-workspace .bi-fin-config select{
+ height:30px!important;min-height:30px!important;max-height:30px!important;
+ min-width:112px!important;max-width:160px!important;width:auto!important;
+ padding:3px 6px!important;font-size:12px!important;line-height:1.2!important
+}
+section.bi-workspace #biViewList,section.bi-workspace #biFinViewList{min-width:140px!important;max-width:200px!important}
+section.bi-workspace #biInterval,section.bi-workspace #biFinInterval{min-width:78px!important}
+section.bi-workspace .bi-toolbar button,section.bi-workspace .bi-fin-config button{
+ min-height:30px!important;height:30px!important;padding:4px 8px!important;
+ font-size:.73rem!important;line-height:1.1!important;white-space:nowrap!important
+}
+section.bi-workspace .bi-toolbar button:disabled,section.bi-workspace .bi-fin-config button:disabled{opacity:.45;cursor:not-allowed}
+section.bi-workspace .bi-layout{grid-template-columns:minmax(175px,215px) minmax(0,1fr);gap:8px}
+section.bi-workspace .bi-metrics{gap:2px;max-height:360px;scrollbar-width:thin}
+section.bi-workspace .bi-metrics h3{font-size:.76rem;margin:8px 0 2px}
+section.bi-workspace .bi-metrics label{min-height:24px!important;padding:2px 0!important;gap:6px!important;font-size:.76rem;line-height:1.2!important}
+section.bi-workspace .bi-metrics input[type=checkbox],section.bi-workspace .bi-fin-metrics input[type=checkbox]{width:14px!important;height:14px!important;min-width:14px!important;flex:0 0 14px!important}
+section.bi-workspace .bi-fin-metrics{grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:2px 10px}
+section.bi-workspace .bi-fin-metrics label{font-size:.75rem!important;padding:3px 0!important;gap:6px!important;line-height:1.2!important}
+section.bi-workspace .bi-fin-help{margin:7px 0 5px}
+section.bi-workspace .bi-fin-totals{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px}
+section.bi-workspace .bi-fin-total{padding:7px 9px}
+section.bi-workspace .bi-fin-total strong{font-size:1rem;line-height:1.2}
+section.bi-workspace .bi-fin-total small{font-size:.69rem;margin-bottom:2px}
+section.bi-workspace .bi-note{font-size:.71rem;line-height:1.3;margin:4px 0}
+section.bi-workspace .bi-legend{gap:4px 10px;font-size:.7rem}
+section.bi-workspace .bi-legend i{width:8px;height:8px}
+section.bi-workspace #biChart,section.bi-workspace #biFinChart{max-height:390px;object-fit:contain;object-position:top center}
+section.bi-workspace table{font-size:.73rem;width:100%;border-collapse:collapse}
+section.bi-workspace table th,section.bi-workspace table td{padding:5px 7px}
+section.bi-workspace .bi-fin-table{max-width:100%}
+@media(max-width:850px){
+ section.bi-workspace .bi-layout{grid-template-columns:1fr}
+ section.bi-workspace .bi-metrics{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));max-height:190px;gap:2px 8px}
+ section.bi-workspace .bi-metrics h3{grid-column:1/-1}
+}
+@media(max-width:520px){
+ section.bi-workspace .bi-toolbar,section.bi-workspace .bi-fin-config{gap:6px}
+ section.bi-workspace .bi-toolbar label,section.bi-workspace .bi-fin-config label{flex:1 1 105px!important}
+ section.bi-workspace .bi-toolbar input[type=date],section.bi-workspace .bi-toolbar select,
+ section.bi-workspace .bi-fin-config input[type=date],section.bi-workspace .bi-fin-config select{width:100%!important;max-width:none!important;min-width:0!important}
+ section.bi-workspace .bi-fin-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ section.bi-workspace .bi-fin-totals{grid-template-columns:repeat(2,minmax(0,1fr))}
+ section.bi-workspace #biChart,section.bi-workspace #biFinChart{max-height:290px}
+}
 </style>
 <section class="bi-workspace" aria-labelledby="biTitle" data-brite-pills="off">
- <div><h1 id="biTitle">Intelligence</h1><p class="muted">Tenant-scoped, multi-series business analytics.</p></div>
+ <div class="bi-heading"><h1 id="biTitle">Intelligence</h1><p class="muted">Tenant-scoped business analytics</p></div>
  <div class="bi-tabs" role="tablist" aria-label="Intelligence workspaces">
   <button type="button" id="biTabPerformance" role="tab" aria-selected="true" aria-controls="biPanelPerformance"><svg class="bi-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18h18M5 15l5-6 4 3 5-8"/></svg>Performance</button>
   <?php if($biFinancialAccess): ?><button type="button" id="biTabFinancial" role="tab" aria-selected="false" aria-controls="biPanelFinancial" tabindex="-1"><svg class="bi-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 10h18M16 15h2"/></svg>Financial</button><?php endif; ?>
@@ -123,7 +184,7 @@ section.bi-workspace .bi-toolbar button:focus-visible{
   <button type="button" id="biPdf">PDF</button>
  </div>
  <div class="bi-layout">
-  <aside class="bi-panel"><h2>Available series</h2><p class="bi-note">Select up to eight metrics. Charts refresh automatically when settings change. All queries are restricted to your tenant.</p><div id="biMetrics" class="bi-metrics" role="group" aria-label="Available metric series">Loading metrics…</div></aside>
+  <aside class="bi-panel"><h2>Available series <small class="bi-subtitle">· up to 8</small></h2><div id="biMetrics" class="bi-metrics" role="group" aria-label="Available metric series">Loading metrics…</div></aside>
   <div class="bi-panel">
    <h2>Performance analysis</h2><p id="biStatus" class="bi-note" role="status" aria-live="polite">Select metrics to begin.</p>
    <canvas id="biChart" width="1100" height="540" role="img" aria-label="Intelligence multi-series trend chart"></canvas>
@@ -136,7 +197,7 @@ section.bi-workspace .bi-toolbar button:focus-visible{
  <?php if($biFinancialAccess): ?>
  <div id="biPanelFinancial" class="bi-workspace" role="tabpanel" aria-labelledby="biTabFinancial" hidden>
   <div class="bi-panel">
-   <h2>Financial chart configuration</h2>
+   <h2>Financial configuration</h2>
    <div class="bi-fin-config">
     <label>From <input type="date" id="biFinFrom" value="<?=date('Y-m-01',strtotime('-5 months'))?>"></label>
     <label>To <input type="date" id="biFinTo" value="<?=date('Y-m-d')?>"></label>
@@ -148,7 +209,7 @@ section.bi-workspace .bi-toolbar button:focus-visible{
     <button type="button" id="biFinJpg" disabled>JPG</button>
     <button type="button" id="biFinPdf" disabled>PDF</button>
    </div>
-   <p class="bi-note">Select up to six dollar-valued series. Charts refresh automatically. Open and lost opportunities are estimates based on service list prices, not booked revenue.</p>
+   <p class="bi-note bi-fin-help">Select up to six series · Auto-refresh · Opportunity values are estimates, not booked revenue.</p>
    <div id="biFinMetrics" class="bi-fin-metrics" role="group" aria-label="Financial metric selection">Loading financial metrics…</div>
   </div>
   <div id="biFinTotals" class="bi-fin-totals" aria-label="Selected financial totals"></div>
