@@ -28,7 +28,7 @@ async function load(){
    const details=node('div');details.append(node('h3',mod.name+' · v'+mod.version),node('p',mod.description||'No description'));
    const label=node('label');label.style.cssText='display:flex;align-items:center;gap:9px;font-weight:650';
    const checkbox=node('input');checkbox.type='checkbox';checkbox.checked=!!mod.enabled;
-   checkbox.setAttribute('aria-label','Activate '+mod.name);checkbox.style.cssText='width:20px;height:20px';
+   checkbox.setAttribute('aria-label','Activate '+mod.name);checkbox.dataset.briteSwitch='on';
    label.append(checkbox,node('span','Active'));
    header.append(details,label);
    const heading=node('strong','Role access');
@@ -38,7 +38,7 @@ async function load(){
    const inputs=[];
    for(const role of Object.keys(roleLabels)){
     const item=node('label');item.style.cssText='display:flex;align-items:center;gap:9px;padding:10px;border:1px solid #8994a455;border-radius:8px';
-    const input=node('input');input.type='checkbox';input.value=role;
+    const input=node('input');input.type='checkbox';input.value=role;input.dataset.briteSwitch='on';
     input.checked=(mod.allowed_roles||[]).includes(role);
     input.disabled=!mod.enabled||!(mod.supported_roles||[]).includes(role);
     if(!(mod.supported_roles||[]).includes(role))item.title='Not supported by this module';
