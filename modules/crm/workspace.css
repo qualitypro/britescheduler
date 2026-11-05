@@ -61,3 +61,14 @@ body:has(.crm-shell) .brite-page-content{min-width:0;max-width:100%;box-sizing:b
 .crm-shell .crm-main-tab-label{min-width:0;overflow-wrap:anywhere}
 @media(max-width:700px){.crm-shell nav.crm-main-tabs{grid-template-columns:repeat(3,minmax(0,1fr))!important}.crm-shell nav.crm-main-tabs>a{padding:6px 4px!important;font-size:.7rem!important;gap:4px}.crm-shell .crm-main-tab-icon{width:14px;height:14px;flex-basis:14px}.crm-shell .crm-main-tab-icon svg{width:14px;height:14px}}
 @media(max-width:360px){.crm-shell nav.crm-main-tabs{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+
+/* Cycle 88E: secondary tabs share the compact CRM main-tab design language. */
+.crm-shell .crm-workspace-nav{display:flex;flex-direction:column;gap:4px!important;padding:6px!important;border-radius:8px}
+.crm-shell .crm-workspace-nav button{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:7px!important;min-height:34px;padding:7px 9px!important;border:1px solid transparent!important;border-radius:6px!important;font-size:.76rem!important;font-weight:500;line-height:1.2!important;letter-spacing:0;white-space:normal!important;text-align:left;transition:background-color .12s ease,border-color .12s ease}
+.crm-shell .crm-workspace-nav button[aria-selected=true]{font-weight:700!important;border-color:#2563eb!important;background:rgba(37,99,235,.09)!important;box-shadow:inset 3px 0 #2563eb}
+.crm-shell .crm-workspace-nav button:hover:not([aria-selected=true]){background:rgba(100,116,139,.09);border-color:#cbd5e1!important}
+.crm-shell .crm-workspace-nav .crm-nav-symbol{width:15px!important;height:15px!important;flex:0 0 15px!important}
+.crm-shell .crm-workspace-nav .crm-nav-symbol svg{width:15px!important;height:15px!important}
+@media(max-width:800px){.crm-shell .crm-workspace-nav{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,130px),1fr));gap:4px!important}.crm-shell .crm-workspace-nav button{width:100%!important;min-width:0;justify-content:flex-start;padding:7px!important}}
+@media(max-width:430px){.crm-shell .crm-workspace-nav{grid-template-columns:repeat(2,minmax(0,1fr))!important}.crm-shell .crm-workspace-nav button{font-size:.7rem!important;gap:5px!important;padding:6px!important}.crm-shell .crm-workspace-nav .crm-nav-symbol{width:14px!important;height:14px!important;flex-basis:14px!important}.crm-shell .crm-workspace-nav .crm-nav-symbol svg{width:14px!important;height:14px!important}}
+@media(prefers-reduced-motion:reduce){.crm-shell .crm-workspace-nav button{transition:none}}
