@@ -270,7 +270,7 @@ function exportTableCsv(tableId,filename){
  const safeCell=cell=>{
   let value=cell.textContent||'';
   // Prevent spreadsheet formula evaluation for exported tenant/module labels.
-  if(/^[\\s\\uFEFF]*[=+@-]/.test(value))value="'"+value;
+  if(/^[\s\uFEFF]*[=+@-]/.test(value))value="'"+value;
   return '"'+value.replace(/"/g,'""')+'"';
  };
  const rows=[...table.querySelectorAll('tr')].map(row=>[...row.querySelectorAll('th,td')].map(safeCell).join(','));
