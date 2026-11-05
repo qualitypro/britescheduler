@@ -312,7 +312,9 @@ require __DIR__.'/partials/app_header.php';
             if (window.BriteWidgetLayout) {
                 window.BriteWidgetLayout.mount(container, {
                     scope: <?=json_encode((string)(Auth::tenant()['id'] ?? '0').'.'.(string)(Auth::requireUser()['id'] ?? '0').'.operations',JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>,
-                    defaultOrder: metrics.map(metric => metric.key)
+                    defaultOrder: metrics.map(metric => metric.key),
+                    endpoint: <?=json_encode(app_url('/api/dashboard_widget_layout.php?dashboard=operations'),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>,
+                    csrf: <?=json_encode(csrf_token(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>
                 });
             }
             container.hidden = false;
