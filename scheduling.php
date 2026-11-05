@@ -780,7 +780,7 @@ require __DIR__.'/partials/app_header.php';
 </style>
 
 <link rel="stylesheet"
-      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89b'))?>">
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89c'))?>">
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'), ENT_QUOTES, 'UTF-8')?>">
 
@@ -3515,6 +3515,8 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                 expandRows: true,
                 dayMaxEventRows: 2,
                 dayMaxEvents: 2,
+                fixedWeekCount: false,
+                moreLinkClick: 'popover',
                 slotMinTime: '00:00:00',
                 slotMaxTime: '24:00:00',
                 slotDuration: '02:00:00',
@@ -3522,6 +3524,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                 scrollTime: '00:00:00',
                 scrollTimeReset: false,
                 stickyHeaderDates: false,
+                viewDidMount: () => requestAnimationFrame(queueCalendarFit),
                 firstDay: calendarPreferences.week_starts_on === 'monday' ? 1 : 0,
                 eventTimeFormat: {
                     hour: '2-digit',
@@ -3640,15 +3643,16 @@ document.addEventListener('DOMContentLoaded',async ()=>{
         let lastCalendarMode = '';
         function fitScheduleCalendar() {
             if (!calendar || scheduleCalendarPanel?.hidden) return;
-            const compact = !window.matchMedia('(min-width:900px) and (min-height:500px)').matches;
-            // Use measured available pixels rather than percentage heights:
-            // FullCalendar's nested scrollgrid otherwise creates a second
-            // vertical scrollbar even when the outer panel fits.
+            const monthView = calendar.view.type === 'dayGridMonth';
             const cardBounds = calendarCard?.getBoundingClientRect();
-            const available = compact
-                ? Math.max(280, Math.floor(window.innerHeight - (cardBounds?.top || 0) - 18))
-                : Math.max(240, Math.floor((cardBounds?.height || 0) - 18));
-            const target = compact ? 'auto' : available;
+            const desktop = window.matchMedia('(min-width:900px) and (min-height:500px)').matches;
+            // Month always occupies the available viewport. Week/day keep
+            // FullCalendar's internal vertical time-grid scrolling.
+            const available = desktop
+                ? Math.max(240, Math.floor((cardBounds?.height || 0) - 18))
+                : Math.max(240, Math.floor(window.innerHeight - (cardBounds?.top || 0) - 18));
+            const target = monthView || desktop ? available : 'auto';
+            scheduleWorkspace?.classList.toggle('brite-month-viewport', monthView);
             if (target !== lastCalendarMode) {
                 lastCalendarMode = target;
                 calendar.setOption('height', target);
