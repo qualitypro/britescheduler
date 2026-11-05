@@ -780,7 +780,7 @@ require __DIR__.'/partials/app_header.php';
 </style>
 
 <link rel="stylesheet"
-      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89a'))?>">
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89b'))?>">
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'), ENT_QUOTES, 'UTF-8')?>">
 
