@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once dirname(__DIR__,2).'/app/bootstrap.php';
 require_once dirname(__DIR__,2).'/app/ModuleRegistry.php';
+require_once __DIR__.'/Providers.php';
 header('Content-Type: application/json; charset=utf-8');
 try {
     Auth::requireUser();
@@ -22,6 +23,8 @@ try {
         'outstanding'=>['name'=>'Outstanding balance','source'=>'Finance','table'=>'invoices','date'=>'created_at','expr'=>'ROUND(SUM(balance_due),2)'],
         'payments'=>['name'=>'Successful payments','source'=>'Finance','table'=>'payments','date'=>'paid_at','expr'=>"ROUND(SUM(CASE WHEN status='succeeded' THEN amount ELSE 0 END),2)"],
     ];
+    $pdo=Database::connection();
+    $metrics=array_merge($metrics,IntelligenceProviders::discover($pdo,$tenant));
     $catalog=array_map(static fn($k,$m)=>['key'=>$k,'name'=>$m['name'],'source'=>$m['source']],array_keys($metrics),array_values($metrics));
     if (($_GET['action']??'')==='catalog') {
         echo json_encode(['metrics'=>$catalog],JSON_THROW_ON_ERROR); exit;
@@ -42,7 +45,7 @@ try {
         'week'=>'DATE_FORMAT(DATE_SUB(%s,INTERVAL WEEKDAY(%s) DAY),\'%Y-%m-%d\')',
         default=>'DATE_FORMAT(%s,\'%Y-%m\')'
     };
-    $pdo=Database::connection();$series=[];
+    $series=[];
     foreach($keys as $key){
         $m=$metrics[$key];$date=$m['date'];
         $group=sprintf($bucket,$date,$date);
