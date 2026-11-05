@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once dirname(__DIR__).'/app/bootstrap.php';
+require_once dirname(__DIR__).'/app/CrmQuoteSync.php';
 $user=Auth::requireUser();
 $tenant=Auth::requireRole('client');
 $tid=(int)$tenant['tenant_id'];$pdo=Database::connection();
@@ -74,6 +75,7 @@ try {
  $requestId=(int)$pdo->lastInsertId();
  $q=$pdo->prepare('INSERT INTO contractor_quote_request_photos(tenant_id,request_id,storage_key,mime_type) VALUES(?,?,?,?)');
  foreach($stored as $p)$q->execute([$tid,$requestId,$p['key'],$p['mime']]);
+ CrmQuoteSync::sync($pdo,$tid,$requestId,(int)$user['id']);
  $pdo->commit();
  json_response(['ok'=>true,'request_id'=>$requestId,'status'=>'submitted'],201);
 } catch(Throwable $e) {
