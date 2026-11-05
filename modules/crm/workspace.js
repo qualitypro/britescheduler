@@ -3,6 +3,16 @@
 const root=document.querySelector('.crm-shell');
 if(!root)return;
 const tab=new URLSearchParams(location.search).get('tab')||'overview';
+// Card labels keep table data understandable when columns collapse.
+root.querySelectorAll('.crm-table').forEach(table=>{
+ const headings=Array.from(table.querySelectorAll('thead th')).map(th=>th.textContent.trim());
+ table.querySelectorAll('tbody tr').forEach(row=>{
+  Array.from(row.children).forEach((cell,index)=>{
+   if(cell.tagName==='TD' && headings[index])cell.setAttribute('data-crm-label',headings[index]);
+  });
+ });
+});
+
 const layouts={
  leads:[['Browse leads','Add lead']],
  pipeline:[['Opportunities','Add opportunity']],
