@@ -2142,3 +2142,71 @@ body>.brite-event-expanded{color:#fff}
 #appointmentDetailsDialog #appointmentDetailsContent::-webkit-scrollbar-thumb{
  background:var(--brite-border-strong);border-radius:999px;
 }
+
+/* Cycle 89M: compact, scrollbar-free details on ordinary viewports. */
+#appointmentDetailsDialog[open]{
+ width:min(720px,calc(100vw - 24px));
+ padding:18px 22px;
+ gap:0;
+ overflow:hidden!important;
+}
+#appointmentDetailsDialog .appointment-dialog-header{
+ padding-bottom:10px;margin-bottom:12px;
+}
+#appointmentDetailsDialog .appointment-dialog-header h2{
+ font-size:1.12rem;
+}
+#appointmentDetailsDialog #appointmentDetailsContent{
+ overflow:visible;
+ flex:0 1 auto;
+ min-height:0;
+ padding:0;
+ margin:0;
+ scrollbar-width:none;
+}
+#appointmentDetailsDialog .appointment-details-compact{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:10px 18px;margin:0;
+}
+#appointmentDetailsDialog .appointment-details-field{
+ min-width:0;padding:0;display:block;
+}
+#appointmentDetailsDialog .appointment-details-wide{
+ grid-column:1 / -1;
+}
+#appointmentDetailsDialog .appointment-details-field dt{
+ font-size:.68rem;line-height:1.25;
+ text-transform:uppercase;letter-spacing:.055em;
+ margin:0 0 3px;
+}
+#appointmentDetailsDialog .appointment-details-field dd{
+ font-size:.85rem;line-height:1.35;
+ margin:0;overflow-wrap:anywhere;
+}
+#appointmentDetailsDialog .appointment-details-actions{
+ margin-top:14px;padding-top:12px;
+ border-top:1px solid var(--brite-border);
+ gap:8px;
+}
+#appointmentDetailsDialog .appointment-details-actions button{
+ padding:8px 11px;font-size:.8rem;
+}
+#appointmentDetailsDialog #appointmentDetailsEditStatus:empty{display:none}
+#appointmentDetailsDialog #appointmentDetailsEditStatus:not(:empty){
+ margin:8px 0 0;font-size:.75rem;
+}
+@media(max-width:480px){
+ #appointmentDetailsDialog[open]{padding:14px 16px}
+ #appointmentDetailsDialog .appointment-details-compact{
+  grid-template-columns:minmax(0,1fr);gap:8px;
+ }
+ #appointmentDetailsDialog .appointment-details-wide{grid-column:auto}
+ #appointmentDetailsDialog .appointment-details-actions{
+  justify-content:flex-start;
+ }
+}
+/* Short viewports retain access to content instead of cutting it off. */
+@media(max-height:540px){
+ #appointmentDetailsDialog[open]{overflow-y:auto!important}
+ #appointmentDetailsDialog #appointmentDetailsContent{flex:0 0 auto}
+}
