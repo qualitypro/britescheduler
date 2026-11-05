@@ -1995,3 +1995,25 @@ body.brite-schedule-month-mode .brite-content{width:100%;max-width:none!importan
 #schedulingWorkspace:not(.brite-month-viewport) #calendar .brite-event-contractors{display:block;font-size:12px}
 #schedulingWorkspace:not(.brite-month-viewport) #calendar .fc-timegrid-event{min-height:26px}
 #schedulingWorkspace:not(.brite-month-viewport) #calendar .fc-scroller{overflow-y:auto}
+
+/* Cycle 89F: week/day extend to viewport bottom, time slots remain scrollable. */
+body.brite-schedule-timegrid-mode .brite-workspace{height:100dvh;min-height:0;overflow:hidden}
+body.brite-schedule-timegrid-mode .brite-content{width:100%;max-width:none!important;padding:8px 12px!important;min-height:0;overflow:hidden}
+#schedulingWorkspace:not(.brite-month-viewport){
+ height:var(--brite-calendar-workspace-height,calc(100dvh - 90px))!important;
+ min-height:0!important;
+ max-height:var(--brite-calendar-workspace-height,calc(100dvh - 90px))!important;
+ gap:8px;overflow:hidden;
+}
+#schedulingWorkspace:not(.brite-month-viewport)>.brite-tab-toolbar{flex:0 0 auto}
+#schedulingWorkspace:not(.brite-month-viewport)>.brite-tab-panels,
+#schedulingWorkspace:not(.brite-month-viewport) #scheduleCalendarPanel:not([hidden]),
+#schedulingWorkspace:not(.brite-month-viewport) #scheduleCalendarPanel .scheduler-layout,
+#schedulingWorkspace:not(.brite-month-viewport) #scheduleCalendarPanel .scheduler-layout>.card{
+ display:flex!important;flex-direction:column;flex:1 1 auto;min-height:0!important;height:auto!important;overflow:hidden!important;
+}
+#schedulingWorkspace:not(.brite-month-viewport) #calendar{flex:1 1 auto;min-height:0!important;overflow:hidden}
+#schedulingWorkspace:not(.brite-month-viewport) #calendar .fc-scroller{overflow-y:auto}
+@media(max-width:680px){
+ body.brite-schedule-timegrid-mode .brite-content{padding:5px!important}
+}
