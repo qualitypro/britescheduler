@@ -44,6 +44,7 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
 .msg-pane h2{font-size:1.05rem;line-height:1.3;margin:0 0 8px}
 .msg-pane h3{font-size:.98rem;margin:0 0 8px}
 .msg-thread{gap:2px;padding:9px 10px;margin-bottom:5px;border-radius:7px}
+.msg-thread[hidden]{display:none!important}
 .msg-thread:hover{background:rgba(100,116,139,.08)}
 .msg-thread:focus-visible{outline:2px solid #2563eb;outline-offset:1px}
 .msg-thread-name{font-size:.94rem}
