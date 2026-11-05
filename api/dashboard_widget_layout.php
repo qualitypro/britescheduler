@@ -16,7 +16,11 @@ if(!in_array($method,['GET','PUT','DELETE'],true)){
 $key=(string)($_GET['dashboard']??'');
 if(!preg_match('/^[a-z][a-z0-9_-]{1,63}$/D',$key))json_response(['error'=>'Invalid dashboard'],422);
 $role=(string)($tenant['role']??'');
-$allowed=['operations'=>['owner','admin','scheduler','accounting']];
+$allowed=[
+ 'operations'=>['owner','admin','scheduler','accounting'],
+ 'contractor'=>['contractor'],
+ 'client'=>['client']
+];
 if(!isset($allowed[$key])||!in_array($role,$allowed[$key],true)){
  json_response(['error'=>'Dashboard unavailable'],403);
 }
@@ -41,7 +45,12 @@ if($raw===false||strlen($raw)>8192)json_response(['error'=>'Layout exceeds 8 KiB
 $layout=json_decode($raw,true);
 if(!is_array($layout)||array_is_list($layout)||array_diff(array_keys($layout),['order','hidden','wide'])||
    count($layout)!==3)json_response(['error'=>'Invalid layout object'],422);
-$validKeys=['clients','contractors','appointments_today','appointments_week','receivables','payments_month'];
+$widgets=[
+ 'operations'=>['clients','contractors','appointments_today','appointments_week','receivables','payments_month'],
+ 'contractor'=>['assigned_appointments','business'],
+ 'client'=>['appointments','invoices','outstanding_balance']
+];
+$validKeys=$widgets[$key];
 foreach(['order','hidden','wide'] as $field){
  $ids=$layout[$field]??null;
  if(!is_array($ids)||!array_is_list($ids)||count($ids)>count($validKeys)||
