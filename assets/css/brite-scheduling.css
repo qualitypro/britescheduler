@@ -2036,3 +2036,36 @@ body.brite-schedule-timegrid-mode .brite-content{width:100%;max-width:none!impor
  .brite-calendar-event-preview{animation:brite-event-preview-in .12s ease-out}
  @keyframes brite-event-preview-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
 }
+
+/* Cycle 89H: the original appointment card grows on hover, not a tooltip. */
+#calendar .brite-expanded-event-placeholder{display:block;pointer-events:none}
+body>.fc-event.brite-event-expanded,
+body>.brite-event-expanded{
+ position:fixed!important;z-index:1200!important;box-sizing:border-box;
+ overflow-y:auto!important;overflow-x:hidden!important;
+ padding:9px 11px!important;border-radius:11px!important;
+ box-shadow:0 18px 42px rgba(15,23,42,.30),0 0 0 2px rgba(255,255,255,.7);
+ cursor:pointer;white-space:normal!important;
+}
+body>.brite-event-expanded .brite-calendar-event,
+body>.brite-event-expanded .brite-event-heading{
+ display:block!important;height:auto!important;max-height:none!important;
+ overflow:visible!important;white-space:normal!important;
+}
+body>.brite-event-expanded .brite-event-title,
+body>.brite-event-expanded .brite-event-client,
+body>.brite-event-expanded .brite-event-contractors{
+ display:block!important;overflow:visible!important;
+ white-space:normal!important;text-overflow:clip!important;
+ font-size:12px!important;line-height:1.45!important;
+}
+body>.brite-event-expanded .brite-event-expanded-details{
+ display:grid;gap:4px;margin-top:9px;padding-top:9px;
+ border-top:1px solid currentColor;font-size:12px;line-height:1.4;
+ overflow-wrap:anywhere;
+}
+body>.brite-event-expanded .brite-event-expanded-details strong{font-weight:750}
+@media(prefers-reduced-motion:no-preference){
+ body>.brite-event-expanded{animation:brite-expand-event .14s ease-out}
+ @keyframes brite-expand-event{from{opacity:.8;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+}
