@@ -9,6 +9,7 @@ declare(strict_types=1);
 final class IntelligenceProviders {
     public static function discover(PDO $pdo,array $tenant): array {
         $result=[];
+        $schemaCache=[];
         foreach(ModuleRegistry::activeFor($tenant) as $key=>$module){
             if($key==='intelligence')continue;
             $path=dirname($module['page_path']).'/intelligence-metrics.json';
@@ -31,8 +32,12 @@ final class IntelligenceProviders {
                    !preg_match('/^[a-z][a-z0-9_]*$/D',$column)||
                    !in_array($agg,['count','sum','avg'],true)||
                    $name===''||strlen($name)>100)continue;
-                $q=$pdo->prepare('SELECT COLUMN_NAME,DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?');
-                $q->execute([$table]);$cols=$q->fetchAll(PDO::FETCH_KEY_PAIR);
+                if(!array_key_exists($table,$schemaCache)){
+                    $q=$pdo->prepare('SELECT COLUMN_NAME,DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?');
+                    $q->execute([$table]);
+                    $schemaCache[$table]=$q->fetchAll(PDO::FETCH_KEY_PAIR);
+                }
+                $cols=$schemaCache[$table];
                 if(!isset($cols['tenant_id'],$cols[$date],$cols[$column]))continue;
                 if(!in_array($cols[$date],['date','datetime','timestamp'],true))continue;
                 if($agg!=='count'&&!in_array($cols[$column],['int','bigint','smallint','tinyint','decimal','float','double','mediumint'],true))continue;
