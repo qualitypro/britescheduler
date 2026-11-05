@@ -173,6 +173,19 @@ require __DIR__.'/partials/app_header.php';
 </section>
 
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-workspace-tabs.js'),ENT_QUOTES,'UTF-8')?>"></script>
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-widget-layout.js'),ENT_QUOTES,'UTF-8')?>"></script>
+<style>
+.brite-widget-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+.brite-widget-toolbar button,.brite-widget-controls button{border:1px solid var(--brite-border,#cbd5e1);border-radius:5px;background:var(--brite-surface,#fff);color:var(--brite-text,#172033);padding:5px 9px;cursor:pointer;font:inherit;font-size:.78rem}
+.brite-widget-toolbar button:focus-visible,.brite-widget-controls button:focus-visible{outline:2px solid var(--brite-accent,#2563eb);outline-offset:2px}
+.brite-widget-controls{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.brite-widget-controls[hidden]{display:none!important}
+.brite-widget-handle{cursor:grab!important;touch-action:none}
+.brite-widget-status{font-size:.76rem;color:var(--brite-text-secondary,#64748b)}
+.brite-dashboard-metrics .brite-widget-wide{grid-column:span 2}
+.brite-dashboard-metrics [hidden]{display:none!important}
+@media(max-width:650px){.brite-dashboard-metrics .brite-widget-wide{grid-column:span 1}}
+</style>
 
 <script>
 (function () {
@@ -255,6 +268,8 @@ require __DIR__.'/partials/app_header.php';
     function createMetric(metric, data) {
         const card = document.createElement('article');
         card.className = 'brite-dashboard-metric';
+        card.dataset.widgetId = metric.key;
+        card.dataset.widgetLabel = metric.label;
 
         const top = document.createElement('div');
         top.className = 'brite-dashboard-metric-top';
@@ -294,6 +309,12 @@ require __DIR__.'/partials/app_header.php';
             });
 
             container.replaceChildren(...cards);
+            if (window.BriteWidgetLayout) {
+                window.BriteWidgetLayout.mount(container, {
+                    scope: <?=json_encode((string)(Auth::tenant()['id'] ?? '0').'.'.(string)(Auth::requireUser()['id'] ?? '0').'.operations',JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>,
+                    defaultOrder: metrics.map(metric => metric.key)
+                });
+            }
             container.hidden = false;
             status.hidden = true;
         })
