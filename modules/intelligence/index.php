@@ -144,6 +144,10 @@ section.bi-workspace .bi-toolbar button:focus-visible{
     <label>To <input type="date" id="biFinTo" value="<?=date('Y-m-d')?>"></label>
     <label>Interval <select id="biFinInterval"><option value="day">Day</option><option value="week">Week</option><option value="month" selected>Month</option></select></label>
     <button type="button" id="biFinRun">Update financial chart</button>
+    <label>Saved view <select id="biFinViewList"><option value="">Choose view…</option></select></label>
+    <button type="button" id="biFinSave">Save view</button>
+    <button type="button" id="biFinLoad" disabled>Load view</button>
+    <button type="button" id="biFinDelete" disabled>Delete view</button>
     <button type="button" id="biFinPng" disabled>PNG</button>
     <button type="button" id="biFinJpg" disabled>JPG</button>
     <button type="button" id="biFinPdf" disabled>PDF</button>
@@ -343,6 +347,60 @@ if(finTab){
    tabs[next].focus();activateTab(tabs[next]);
   });
  });
+ const financialViewPrefix='Financial · ';
+ let financialViews=[];
+ const financialViewName=name=>financialViewPrefix+name;
+ function syncFinancialViewActions(){
+  const name=$('biFinViewList').value;
+  const exists=!!name&&financialViews.some(v=>v.name===name);
+  $('biFinLoad').disabled=!exists;
+  $('biFinDelete').disabled=!exists;
+  $('biFinDelete').title=exists?'Delete selected financial view':'Select a saved financial view to delete';
+ }
+ async function refreshFinancialViews(selected=''){
+  const response=await fetch(viewsEndpoint,{credentials:'same-origin',headers:{Accept:'application/json'}});
+  const data=await response.json();
+  if(!response.ok)throw Error(data.error||'Unable to list financial views');
+  financialViews=(data.views||[]).filter(v=>v.name.startsWith(financialViewPrefix));
+  const list=$('biFinViewList');
+  list.replaceChildren(new Option('Choose view…',''));
+  financialViews.forEach(v=>list.add(new Option(v.name.slice(financialViewPrefix.length),v.name)));
+  list.value=financialViews.some(v=>v.name===selected)?selected:'';
+  syncFinancialViewActions();
+ }
+ $('biFinViewList').addEventListener('change',syncFinancialViewActions);
+ $('biFinSave').addEventListener('click',async()=>{
+  const currentName=$('biFinViewList').value.replace(/^Financial · /,'');
+  const entered=prompt('Name this financial Intelligence view:',currentName||'My financial dashboard');
+  if(entered===null)return;
+  const name=entered.trim();
+  if(!name){$('biFinStatus').textContent='Enter a name to save this view.';return}
+  if(!document.querySelector('.bi-fin-metric:checked')){$('biFinStatus').textContent='Select a financial metric before saving.';return}
+  try{
+   const config={...finOptions(),view_type:'financial'};
+   await mutateView('POST',financialViewName(name),config);
+   await refreshFinancialViews(financialViewName(name));
+   $('biFinStatus').textContent='Saved financial view: '+name;
+  }catch(error){$('biFinStatus').textContent=error.message}
+ });
+ $('biFinLoad').addEventListener('click',async()=>{
+  const selected=$('biFinViewList').value;
+  const view=financialViews.find(v=>v.name===selected);
+  if(!view)return;
+  const config=view.config||{};
+  ['from','to','interval'].forEach(key=>{const id={from:'biFinFrom',to:'biFinTo',interval:'biFinInterval'}[key];if(config[key])$(id).value=config[key]});
+  document.querySelectorAll('.bi-fin-metric').forEach(el=>el.checked=Array.isArray(config.metrics)&&config.metrics.includes(el.value));
+  await loadFinancial();
+ });
+ $('biFinDelete').addEventListener('click',async()=>{
+  const name=$('biFinViewList').value;
+  if(!financialViews.some(v=>v.name===name)||!confirm('Delete financial view '+name.slice(financialViewPrefix.length)+'?'))return;
+  try{
+   await mutateView('DELETE',name,null);
+   await refreshFinancialViews();
+   $('biFinStatus').textContent='Financial view deleted.';
+  }catch(error){$('biFinStatus').textContent=error.message}
+ });
  const finCanvas=$('biFinChart'),finCtx=finCanvas.getContext('2d');
  const usd=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(value);
  const axisUsd=value=>Math.abs(value)>=1000000?'USD '+(value/1000000).toFixed(1)+'m':Math.abs(value)>=1000?'USD '+(value/1000).toFixed(1)+'k':usd(value);
@@ -446,6 +504,7 @@ if(finTab){
     input.checked=['revenue_received','outstanding','opportunity_open','opportunity_lost'].includes(item.key);
     label.title=item.description;label.append(input,document.createTextNode(item.name));holder.append(label);
    });
+   try{await refreshFinancialViews()}catch(error){$('biFinStatus').textContent=error.message}
    if(finTab.getAttribute('aria-selected')==='true')loadFinancial();
   }catch(error){$('biFinStatus').textContent=error.message;$('biFinMetrics').textContent='Financial metrics unavailable.'}
  })();
