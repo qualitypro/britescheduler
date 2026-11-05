@@ -144,6 +144,9 @@ section.bi-workspace .bi-toolbar button:focus-visible{
     <label>To <input type="date" id="biFinTo" value="<?=date('Y-m-d')?>"></label>
     <label>Interval <select id="biFinInterval"><option value="day">Day</option><option value="week">Week</option><option value="month" selected>Month</option></select></label>
     <button type="button" id="biFinRun">Update financial chart</button>
+    <button type="button" id="biFinPng" disabled>PNG</button>
+    <button type="button" id="biFinJpg" disabled>JPG</button>
+    <button type="button" id="biFinPdf" disabled>PDF</button>
    </div>
    <p class="bi-note">Select up to six dollar-valued series. Open and lost opportunities are estimates based on service list prices, not booked revenue.</p>
    <div id="biFinMetrics" class="bi-fin-metrics" role="group" aria-label="Financial metric selection">Loading financial metrics…</div>
@@ -283,10 +286,10 @@ function exportFilename(extension){
  const period=selection.from+'-to-'+selection.to;
  return ['brite-intelligence',selected||'dashboard',period,slug(selection.interval)].join('_')+'.'+extension;
 }
-function imageExport(type){if(!current)return;const filename=exportFilename(type==='image/png'?'png':'jpg');chart.toBlob(b=>previewExport(b,filename),type,.94)}
-function pdfExport(){
- if(!current)return;
- const data=chart.toDataURL('image/jpeg',.9).split(',')[1];
+function imageExport(type,source=chart,filename=null){if(source===chart&&!current)return;const name=filename||exportFilename(type==='image/png'?'png':'jpg');source.toBlob(b=>previewExport(b,name),type,.94)}
+function pdfExport(source=chart,filename=null){
+ if(source===chart&&!current)return;
+ const data=source.toDataURL('image/jpeg',.9).split(',')[1];
  const raw=atob(data),bytes=Uint8Array.from(raw,c=>c.charCodeAt(0));
  const encoder=new TextEncoder(),chunks=[];let offset=0;const positions=[0];
  const add=x=>{const b=typeof x==='string'?encoder.encode(x):x;chunks.push(b);offset+=b.length};
@@ -296,11 +299,12 @@ function pdfExport(){
  obj(2,'<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
  obj(3,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 792 612] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>');
  positions[4]=offset;add('4 0 obj\n<< /Type /XObject /Subtype /Image /Width 1100 /Height 540 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+bytes.length+' >>\nstream\n');add(bytes);add('\nendstream\nendobj\n');
- const command='q 740 0 0 363 26 130 cm /Im0 Do Q\n';
+ const scale=Math.min(740/source.width,560/source.height);const dw=source.width*scale,dh=source.height*scale;
+ const command='q '+dw.toFixed(2)+' 0 0 '+dh.toFixed(2)+' '+((792-dw)/2).toFixed(2)+' '+((612-dh)/2).toFixed(2)+' cm /Im0 Do Q\n';
  obj(5,'<< /Length '+encoder.encode(command).length+' >>\nstream\n'+command+'endstream');
  const xref=offset;add('xref\n0 6\n0000000000 65535 f \n');for(let i=1;i<=5;i++)add(String(positions[i]).padStart(10,'0')+' 00000 n \n');
  add('trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF');
- previewExport(new Blob(chunks,{type:'application/pdf'}),exportFilename('pdf'));
+ previewExport(new Blob(chunks,{type:'application/pdf'}),filename||exportFilename('pdf'));
 }
 $('biRun').addEventListener('click',load);
 $('biPng').addEventListener('click',()=>imageExport('image/png'));
@@ -398,7 +402,7 @@ if(finTab){
  async function loadFinancial(){
   const seq=++finSeq;if(finRequest)finRequest.abort();finRequest=new AbortController();
   const options=finOptions();
-  if(!options.metrics.length){finCurrent=null;renderFinancial();renderFinancialDetails();$('biFinStatus').textContent='Select a financial metric.';return}
+  if(!options.metrics.length){finCurrent=null;['biFinPng','biFinJpg','biFinPdf'].forEach(id=>$(id).disabled=true);renderFinancial();renderFinancialDetails();$('biFinStatus').textContent='Select a financial metric.';return}
   $('biFinStatus').textContent='Loading financial metrics…';
   try{
    const query=new URLSearchParams({...options,metrics:options.metrics.join(',')});
@@ -407,12 +411,25 @@ if(finTab){
    if(!response.ok)throw Error(data.error||'Unable to load financial metrics');
    if(seq!==finSeq)return;
    finCurrent=data;finLoaded=true;renderFinancial();renderFinancialDetails();
+   ['biFinPng','biFinJpg','biFinPdf'].forEach(id=>$(id).disabled=false);
    $('biFinStatus').textContent='Loaded '+data.series.length+' dollar-valued series · '+data.from+' through '+data.to;
   }catch(error){if(seq===finSeq&&error.name!=='AbortError')$('biFinStatus').textContent=error.message}
  }
  function scheduleFinancial(){clearTimeout(finTimer);finTimer=setTimeout(loadFinancial,180)}
  ['biFinFrom','biFinTo','biFinInterval'].forEach(id=>$(id).addEventListener('change',scheduleFinancial));
  $('biFinRun').addEventListener('click',loadFinancial);
+
+ const finFilename=ext=>{
+  const options=finOptions();
+  const slug=value=>String(value).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,45);
+  const names=(finCurrent?.series||[]).map(s=>slug(s.name));
+  const segment=names.length===1?names[0]:names.length<=3?names.join('-'):names.slice(0,2).join('-')+'-plus-'+(names.length-2);
+  return ['brite-intelligence-financial',segment||'overview',options.from+'-to-'+options.to,slug(options.interval)].join('_')+'.'+ext;
+ };
+ $('biFinPng').addEventListener('click',()=>{if(finCurrent)imageExport('image/png',finCanvas,finFilename('png'))});
+ $('biFinJpg').addEventListener('click',()=>{if(finCurrent)imageExport('image/jpeg',finCanvas,finFilename('jpg'))});
+ $('biFinPdf').addEventListener('click',()=>{if(finCurrent)pdfExport(finCanvas,finFilename('pdf'))});
+
  $('biFinMetrics').addEventListener('change',event=>{
   if(!event.target.matches('.bi-fin-metric'))return;
   if(document.querySelectorAll('.bi-fin-metric:checked').length>6){event.target.checked=false;return}
