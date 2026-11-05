@@ -78,7 +78,7 @@
      card.classList.toggle('brite-widget-wide',saved.wide.includes(id));
      card.classList.toggle('brite-widget-editing',true);
      card.draggable=false;
-     const controls=card.querySelector(':scope > .brite-widget-controls');
+     const controls=card.querySelector(':scope > .brite-widget-chrome > .brite-widget-controls');
      if(controls)controls.hidden=false;
     }
     restore.replaceChildren();
@@ -120,6 +120,30 @@
     const name=card.dataset.widgetLabel||id;
     const controls=document.createElement('div');
     controls.className='brite-widget-controls';
+    const launcher=document.createElement('button');
+    launcher.type='button';
+    launcher.className='brite-widget-launcher';
+    launcher.textContent='⋯';
+    launcher.title='Widget controls';
+    launcher.setAttribute('aria-label','Show controls for '+name);
+    launcher.setAttribute('aria-expanded','false');
+    launcher.setAttribute('aria-haspopup','true');
+    const chrome=document.createElement('div');
+    chrome.className='brite-widget-chrome';
+    const setExpanded=expanded=>{
+     chrome.classList.toggle('brite-widget-chrome-open',expanded);
+     launcher.setAttribute('aria-expanded',String(expanded));
+    };
+    launcher.addEventListener('click',()=>setExpanded(!chrome.classList.contains('brite-widget-chrome-open')));
+    chrome.addEventListener('focusout',event=>{
+     if(!chrome.contains(event.relatedTarget))setExpanded(false);
+    });
+    document.addEventListener('pointerdown',event=>{
+     if(!chrome.contains(event.target))setExpanded(false);
+    });
+    chrome.addEventListener('keydown',event=>{
+     if(event.key==='Escape'){setExpanded(false);launcher.focus();}
+    });
     const handle=document.createElement('button');
     handle.type='button';handle.className='brite-widget-handle';
     handle.textContent='⠿';
@@ -168,7 +192,9 @@
     hide.addEventListener('click',()=>{
      saved.hidden=[...saved.hidden,id];render();persist();announce('Widget hidden; use Show to restore.');
     });
-    controls.append(handle,width,hide);card.prepend(controls);
+    controls.append(handle,width,hide);
+    chrome.append(launcher,controls);
+    card.prepend(chrome);
    }
    reset.addEventListener('click',()=>{
     saved=empty();render();persist();announce('Default widget layout restored.');
