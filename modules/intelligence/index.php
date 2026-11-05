@@ -158,7 +158,15 @@ function previewExport(blob,filename){
  if(typeof exportDialog.showModal==='function')exportDialog.showModal();
  else $('biStatus').textContent='Preview dialog is not supported by this browser.';
 }
-function imageExport(type){if(!current)return;chart.toBlob(b=>previewExport(b,'brite-intelligence.'+(type==='image/png'?'png':'jpg')),type,.94)}
+function exportFilename(extension){
+ const selection=safeSettings();
+ const names=(current?.series||[]).map(series=>series.name);
+ const slug=value=>String(value).normalize('NFKD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48);
+ const selected=names.length===1?slug(names[0]):names.length<=3?names.map(slug).join('-'):names.slice(0,2).map(slug).join('-')+'-plus-'+(names.length-2)+'-more';
+ const period=selection.from+'-to-'+selection.to;
+ return ['brite-intelligence',selected||'dashboard',period,slug(selection.interval)].join('_')+'.'+extension;
+}
+function imageExport(type){if(!current)return;const filename=exportFilename(type==='image/png'?'png':'jpg');chart.toBlob(b=>previewExport(b,filename),type,.94)}
 function pdfExport(){
  if(!current)return;
  const data=chart.toDataURL('image/jpeg',.9).split(',')[1];
@@ -175,7 +183,7 @@ function pdfExport(){
  obj(5,'<< /Length '+encoder.encode(command).length+' >>\nstream\n'+command+'endstream');
  const xref=offset;add('xref\n0 6\n0000000000 65535 f \n');for(let i=1;i<=5;i++)add(String(positions[i]).padStart(10,'0')+' 00000 n \n');
  add('trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF');
- previewExport(new Blob(chunks,{type:'application/pdf'}),'brite-intelligence.pdf');
+ previewExport(new Blob(chunks,{type:'application/pdf'}),exportFilename('pdf'));
 }
 $('biRun').addEventListener('click',load);
 $('biPng').addEventListener('click',()=>imageExport('image/png'));
