@@ -247,11 +247,21 @@ $customerOptions=static function(?int $selected=null)use($customers,$esc):void {
 <style>
 .crm-shell{display:grid;gap:12px}.crm-tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid #cbd5e1}.crm-tabs a{white-space:nowrap;text-decoration:none;color:inherit;padding:10px 13px;border-bottom:3px solid transparent}.crm-tabs a[aria-current=page]{font-weight:700;border-bottom-color:#2563eb;background:rgba(37,99,235,.07)}.crm-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px}.crm-stat{border:1px solid #cbd5e1;border-radius:8px;padding:12px}.crm-stat strong{font-size:1.55rem;display:block}.crm-grid{display:grid;grid-template-columns:minmax(240px,320px) minmax(0,1fr);gap:12px}.crm-panel{border:1px solid #cbd5e1;border-radius:9px;padding:12px;min-width:0}.crm-form{display:grid;gap:9px}.crm-form label{display:grid;gap:3px;font-size:.88rem;font-weight:600}.crm-form input,.crm-form select,.crm-form textarea{width:100%;min-height:36px;box-sizing:border-box;border-radius:5px!important;padding:7px 9px!important}.crm-form textarea{min-height:72px}.crm-form button{justify-self:start}.crm-table-wrap{overflow-x:auto}.crm-table{width:100%;border-collapse:collapse;font-size:.88rem}.crm-table th,.crm-table td{padding:8px;border-bottom:1px solid #cbd5e1;text-align:left;vertical-align:middle}.crm-inline{display:flex;gap:6px;align-items:center}.crm-inline select{min-width:110px;max-width:160px}.crm-inline button{padding:6px 8px}.crm-muted{font-size:.83rem;color:var(--brite-muted,#64748b)}.crm-pill{display:inline-block;border:1px solid #cbd5e1;border-radius:6px;padding:2px 7px}.crm-shell [hidden]{display:none!important}.crm-customer-row[hidden]{display:none!important}@media(max-width:760px){.crm-grid{grid-template-columns:1fr}.crm-tabs a{padding:9px}}
 </style>
-<link rel="stylesheet" href="<?=$esc(app_url('/modules/crm/workspace.css?v=88c'))?>">
+<link rel="stylesheet" href="<?=$esc(app_url('/modules/crm/workspace.css?v=88d'))?>">
 <section class="card crm-shell" data-brite-pills="off">
  <div><h1 style="margin:0">CRM</h1><p class="crm-muted" style="margin:4px 0 0">Customers, leads, opportunities and follow-ups in one tenant workspace.</p></div>
  <?php if($flash): ?><p role="status" class="crm-pill"><?=$esc($flash==='saved'?'Changes saved.':$flash)?></p><?php endif; ?>
- <nav class="crm-tabs" aria-label="CRM sections"><?php foreach($tabs as $key=>$label): ?><a href="<?=$esc($base.'&tab='.$key)?>" <?=$tab===$key?'aria-current="page"':''?>><?=$esc($label)?></a><?php endforeach; ?></nav>
+ <nav class="crm-tabs crm-main-tabs" aria-label="CRM sections"><?php foreach($tabs as $key=>$label): ?><a href="<?=$esc($base.'&tab='.$key)?>" <?=$tab===$key?'aria-current="page"':''?>"><span class="crm-main-tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><?php switch($key):
+case 'overview': ?><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="10" width="8" height="11" rx="1"/><?php break;
+case 'leads': ?><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M18 8h4M18 12h4"/><?php break;
+case 'customers': ?><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M5.5 17c0-2 1.5-3 3.5-3s3.5 1 3.5 3M15 9h4M15 13h4"/><?php break;
+case 'pipeline': ?><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/><?php break;
+case 'activities': ?><path d="M2 12h5l3-7 4 14 3-7h5"/><?php break;
+case 'reports': ?><path d="M3 20V4M3 20h18M7 16v-5M12 16V7M17 16V4"/><?php break;
+case 'segments': ?><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2"/><path d="M2 20v-2a6 6 0 0 1 12 0v2M15 15a4 4 0 0 1 7 3v2"/><?php break;
+case 'smart': ?><path d="m12 2 2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5z"/><?php break;
+case 'tasks': ?><path d="M4 7l2 2 4-4M13 7h8M4 16l2 2 4-4M13 16h8"/><?php break;
+endswitch; ?></svg></span><span class="crm-main-tab-label"><?=$esc($label)?></span></a><?php endforeach; ?></nav>
  <?php if($tab==='overview'):
  $openLeads=count(array_filter($leads,static fn($r)=>!in_array($r['status'],['converted','lost'],true)));
  $openOpps=array_filter($opportunities,static fn($r)=>!in_array($r['stage'],['won','lost'],true));
