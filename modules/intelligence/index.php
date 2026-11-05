@@ -142,6 +142,12 @@ section.bi-workspace .bi-toolbar button,section.bi-workspace .bi-fin-config butt
 section.bi-workspace .bi-toolbar button:disabled,section.bi-workspace .bi-fin-config button:disabled{opacity:.45;cursor:not-allowed}
 section.bi-workspace .bi-layout{grid-template-columns:minmax(175px,215px) minmax(0,1fr);gap:8px}
 section.bi-workspace .bi-metrics{gap:2px;max-height:none;min-height:0;flex:1 1 auto;align-content:start;overflow-y:auto;scrollbar-width:thin}
+/* The analysis panel sets the row height; the metric list scrolls inside it. */
+@media(min-width:851px){
+ section.bi-workspace .bi-layout{align-items:start}
+ section.bi-workspace .bi-series-panel{box-sizing:border-box;height:0;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+ section.bi-workspace .bi-series-panel #biMetrics{flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto;align-content:start}
+}
 section.bi-workspace .bi-metrics h3{font-size:.76rem;margin:8px 0 2px}
 section.bi-workspace .bi-metrics label{min-height:24px!important;padding:2px 0!important;gap:6px!important;font-size:.76rem;line-height:1.2!important}
 section.bi-workspace .bi-metrics input[type=checkbox],section.bi-workspace .bi-fin-metrics input[type=checkbox]{width:14px!important;height:14px!important;min-width:14px!important;flex:0 0 14px!important}
@@ -194,7 +200,7 @@ section.bi-workspace .bi-fin-table{max-width:100%}
   <button type="button" id="biCsv">CSV data</button>
  </div>
  <div class="bi-layout">
-  <aside class="bi-panel"><h2>Available series <small class="bi-subtitle">· up to 8</small></h2><div id="biMetrics" class="bi-metrics" role="group" aria-label="Available metric series">Loading metrics…</div></aside>
+  <aside class="bi-panel bi-series-panel"><h2>Available series <small class="bi-subtitle">· up to 8</small></h2><div id="biMetrics" class="bi-metrics" role="group" aria-label="Available metric series">Loading metrics…</div></aside>
   <div class="bi-panel">
    <h2>Performance analysis</h2><p id="biStatus" class="bi-note" role="status" aria-live="polite">Select metrics to begin.</p>
    <div id="biPerformanceKpis" class="bi-fin-totals" aria-label="Performance metric summary"></div>
@@ -261,6 +267,31 @@ section.bi-workspace .bi-fin-table{max-width:100%}
   <div class="bi-export-body" id="biExportBody"></div>
  </div>
 </dialog>
+<script>
+/* Match the Available Series viewport to the neighboring chart card, including
+   responsive resizes and chart/KPI changes, without letting the list set row height. */
+(function(){
+ const layout=document.querySelector('.bi-workspace .bi-layout');
+ if(!layout)return;
+ const selector=layout.querySelector('.bi-series-panel');
+ const analysis=layout.querySelector('.bi-panel:not(.bi-series-panel)');
+ if(!selector||!analysis)return;
+ const sync=()=>{
+  if(window.matchMedia('(max-width:850px)').matches){
+   selector.style.height='';
+   return;
+  }
+  const height=Math.ceil(analysis.getBoundingClientRect().height);
+  if(height>0)selector.style.height=height+'px';
+ };
+ if(typeof ResizeObserver!=='undefined'){
+  const observer=new ResizeObserver(sync);
+  observer.observe(analysis);
+ }
+ window.addEventListener('resize',sync,{passive:true});
+ sync();
+})();
+</script>
 <script>
 (() => {
 'use strict';
