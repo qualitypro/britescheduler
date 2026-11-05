@@ -18,6 +18,9 @@ try {
         'no_shows'=>['name'=>'No-show appointments','source'=>'Scheduling','table'=>'appointments','date'=>'starts_at','expr'=>"SUM(CASE WHEN status='no_show' THEN 1 ELSE 0 END)"],
         'confirmed'=>['name'=>'Confirmed appointments','source'=>'Scheduling','table'=>'appointments','date'=>'starts_at','expr'=>"SUM(CASE WHEN status='confirmed' THEN 1 ELSE 0 END)"],
         'in_progress'=>['name'=>'In-progress appointments','source'=>'Scheduling','table'=>'appointments','date'=>'starts_at','expr'=>"SUM(CASE WHEN status='in_progress' THEN 1 ELSE 0 END)"],
+        'completion_rate'=>['name'=>'Completion rate (%)','source'=>'Scheduling · rates','table'=>'appointments','date'=>'starts_at','expr'=>"ROUND(100*SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END)/NULLIF(COUNT(*),0),2)",'unit'=>'percent','rollup'=>'weighted'],
+        'cancellation_rate'=>['name'=>'Cancellation rate (%)','source'=>'Scheduling · rates','table'=>'appointments','date'=>'starts_at','expr'=>"ROUND(100*SUM(CASE WHEN status='cancelled' THEN 1 ELSE 0 END)/NULLIF(COUNT(*),0),2)",'unit'=>'percent','rollup'=>'weighted'],
+        'no_show_rate'=>['name'=>'No-show rate (%)','source'=>'Scheduling · rates','table'=>'appointments','date'=>'starts_at','expr'=>"ROUND(100*SUM(CASE WHEN status='no_show' THEN 1 ELSE 0 END)/NULLIF(COUNT(*),0),2)",'unit'=>'percent','rollup'=>'weighted'],
         'completed_hours'=>['name'=>'Completed service hours','source'=>'Scheduling','table'=>'appointments','date'=>'starts_at','expr'=>"ROUND(SUM(CASE WHEN status='completed' THEN GREATEST(TIMESTAMPDIFF(MINUTE,starts_at,ends_at),0) ELSE 0 END)/60,2)"],
         'cancelled_hours'=>['name'=>'Cancelled service hours','source'=>'Scheduling','table'=>'appointments','date'=>'starts_at','expr'=>"ROUND(SUM(CASE WHEN status='cancelled' THEN GREATEST(TIMESTAMPDIFF(MINUTE,starts_at,ends_at),0) ELSE 0 END)/60,2)"],
         'scheduled_hours'=>['name'=>'Scheduled hours','source'=>'Scheduling','table'=>'appointments','date'=>'starts_at','expr'=>'ROUND(SUM(GREATEST(TIMESTAMPDIFF(MINUTE,starts_at,ends_at),0))/60,2)'],
@@ -30,7 +33,7 @@ try {
     ];
     $pdo=Database::connection();
     $metrics=array_merge($metrics,IntelligenceProviders::discover($pdo,$tenant));
-    $catalog=array_map(static fn($k,$m)=>['key'=>$k,'name'=>$m['name'],'source'=>$m['source']],array_keys($metrics),array_values($metrics));
+    $catalog=array_map(static fn($k,$m)=>['key'=>$k,'name'=>$m['name'],'source'=>$m['source'],'unit'=>$m['unit']??'number','rollup'=>$m['rollup']??'sum'],array_keys($metrics),array_values($metrics));
     if (($_GET['action']??'')==='catalog') {
         echo json_encode(['metrics'=>$catalog],JSON_THROW_ON_ERROR); exit;
     }
@@ -56,7 +59,7 @@ try {
         $group=sprintf($bucket,$date,$date);
         $sql="SELECT $group AS bucket, {$m['expr']} AS value FROM {$m['table']} WHERE tenant_id=? AND $date >= ? AND $date < DATE_ADD(?,INTERVAL 1 DAY) GROUP BY bucket ORDER BY bucket";
         $stmt=$pdo->prepare($sql);$stmt->execute([$tid,$from,$to]);
-        $series[]=['key'=>$key,'name'=>$m['name'],'source'=>$m['source'],'points'=>array_map(static fn($r)=>['bucket'=>$r['bucket'],'value'=>(float)$r['value']],$stmt->fetchAll(PDO::FETCH_ASSOC))];
+        $series[]=['key'=>$key,'name'=>$m['name'],'source'=>$m['source'],'unit'=>$m['unit']??'number','rollup'=>$m['rollup']??'sum','points'=>array_map(static fn($r)=>['bucket'=>$r['bucket'],'value'=>(float)$r['value']],$stmt->fetchAll(PDO::FETCH_ASSOC))];
     }
     header('Cache-Control: no-store');
     echo json_encode(['from'=>$from,'to'=>$to,'interval'=>$interval,'series'=>$series],JSON_THROW_ON_ERROR);
