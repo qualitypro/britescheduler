@@ -3,6 +3,8 @@ declare(strict_types=1);
 if (!defined('BRITE_MODULE_DISPATCH')) { http_response_code(403); exit; }
 $biEndpoint=app_url('/modules/intelligence/metrics.php');
 $biViewsEndpoint=app_url('/modules/intelligence/views.php');
+$biFinancialEndpoint=app_url('/modules/intelligence/financial.php');
+$biFinancialAccess=in_array((string)($tenant['role']??''),['owner','admin','accounting'],true);
 ?>
 <style>
 .bi-workspace{display:grid;gap:14px;min-width:0;color:var(--brite-text)}
@@ -76,10 +78,39 @@ section.bi-workspace .bi-toolbar select:focus-visible,
 section.bi-workspace .bi-toolbar button:focus-visible{
  outline:2px solid #2563eb!important;outline-offset:2px!important;
 }
+
+/* Compact, accessible BI navigation and native financial configuration fields. */
+.bi-tabs{display:flex;gap:4px;border-bottom:1px solid var(--brite-border);padding:0 2px;flex-wrap:wrap}
+.bi-tabs button{border:1px solid var(--brite-border)!important;border-bottom:0!important;border-radius:4px 4px 0 0!important;padding:6px 12px!important;min-height:32px!important;background:var(--brite-surface)!important;color:var(--brite-text)!important;font-size:.82rem!important;display:inline-flex;align-items:center;gap:7px}
+.bi-tabs button[aria-selected="true"]{font-weight:700!important;box-shadow:inset 0 3px var(--brite-accent,#2563eb)!important}
+.bi-tabs button:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+.bi-tab-icon{width:15px;height:15px;display:inline-block;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bi-workspace [hidden]{display:none!important}
+.bi-fin-config{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.bi-fin-config label{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:5px!important;font-size:.8rem;font-weight:650;padding:0!important;margin:0!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+.bi-fin-config input[type=date],.bi-fin-config select{appearance:auto!important;-webkit-appearance:auto!important;box-sizing:border-box!important;border:1px solid var(--brite-border)!important;border-radius:0!important;box-shadow:none!important;background:var(--brite-surface)!important;color:var(--brite-text)!important;height:38px!important;padding:6px 9px!important;min-width:150px!important;font:inherit}
+.bi-fin-config button{border-radius:0!important;min-height:38px}
+.bi-fin-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.bi-fin-metrics label{display:flex!important;align-items:center!important;gap:8px!important;border:0!important;border-radius:0!important;background:transparent!important;padding:5px 0!important;font-size:.85rem}
+.bi-fin-metrics input[type=checkbox]{appearance:checkbox!important;-webkit-appearance:checkbox!important;width:16px!important;height:16px!important;flex:0 0 16px!important;border-radius:0!important;box-shadow:none!important}
+.bi-fin-totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.bi-fin-total{border:1px solid var(--brite-border);padding:12px;min-width:0}
+.bi-fin-total strong{display:block;font-size:1.2rem;overflow-wrap:anywhere}
+.bi-fin-total small{display:block;color:var(--brite-text-secondary);margin-bottom:4px}
+.bi-fin-plot{overflow:hidden;min-width:0}
+.bi-fin-plot canvas{width:100%;height:auto;max-width:100%}
+.bi-fin-table{overflow-x:auto}
+.bi-fin-table th,.bi-fin-table td{text-align:right;padding:8px 10px;white-space:nowrap}
+.bi-fin-table th:first-child,.bi-fin-table td:first-child{text-align:left}
 @media(max-width:760px){.bi-workspace .bi-layout{grid-template-columns:1fr}}
 </style>
 <section class="bi-workspace" aria-labelledby="biTitle" data-brite-pills="off">
  <div><h1 id="biTitle">Intelligence</h1><p class="muted">Tenant-scoped, multi-series business analytics.</p></div>
+ <div class="bi-tabs" role="tablist" aria-label="Intelligence workspaces">
+  <button type="button" id="biTabPerformance" role="tab" aria-selected="true" aria-controls="biPanelPerformance"><svg class="bi-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18h18M5 15l5-6 4 3 5-8"/></svg>Performance</button>
+  <?php if($biFinancialAccess): ?><button type="button" id="biTabFinancial" role="tab" aria-selected="false" aria-controls="biPanelFinancial" tabindex="-1"><svg class="bi-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 10h18M16 15h2"/></svg>Financial</button><?php endif; ?>
+ </div>
+ <div id="biPanelPerformance" role="tabpanel" aria-labelledby="biTabPerformance" class="bi-workspace"> 
  <div class="bi-panel bi-toolbar">
   <label>From <input type="date" id="biFrom" value="<?=date('Y-m-01',strtotime('-5 months'))?>"></label>
   <label>To <input type="date" id="biTo" value="<?=date('Y-m-d')?>"></label>
@@ -103,6 +134,31 @@ section.bi-workspace .bi-toolbar button:focus-visible{
   </div>
  </div>
  <div class="bi-panel"><h2>Series data</h2><div style="overflow-x:auto"><table id="biTable"><thead></thead><tbody></tbody></table></div></div>
+ </div>
+ <?php if($biFinancialAccess): ?>
+ <div id="biPanelFinancial" class="bi-workspace" role="tabpanel" aria-labelledby="biTabFinancial" hidden>
+  <div class="bi-panel">
+   <h2>Financial chart configuration</h2>
+   <div class="bi-fin-config">
+    <label>From <input type="date" id="biFinFrom" value="<?=date('Y-m-01',strtotime('-5 months'))?>"></label>
+    <label>To <input type="date" id="biFinTo" value="<?=date('Y-m-d')?>"></label>
+    <label>Interval <select id="biFinInterval"><option value="day">Day</option><option value="week">Week</option><option value="month" selected>Month</option></select></label>
+    <button type="button" id="biFinRun">Update financial chart</button>
+   </div>
+   <p class="bi-note">Select up to six dollar-valued series. Open and lost opportunities are estimates based on service list prices, not booked revenue.</p>
+   <div id="biFinMetrics" class="bi-fin-metrics" role="group" aria-label="Financial metric selection">Loading financial metrics…</div>
+  </div>
+  <div id="biFinTotals" class="bi-fin-totals" aria-label="Selected financial totals"></div>
+  <div class="bi-panel bi-fin-plot">
+   <h2>Financial performance · USD</h2>
+   <p id="biFinStatus" class="bi-note" role="status" aria-live="polite">Loading financial series…</p>
+   <canvas id="biFinChart" width="1100" height="520" role="img" aria-label="Financial dollar-value chart"></canvas>
+   <div id="biFinLegend" class="bi-legend"></div>
+   <p id="biFinNote" class="bi-note"></p>
+  </div>
+  <div class="bi-panel"><h2>Financial series · dollar values</h2><div class="bi-fin-table"><table id="biFinTable"><thead></thead><tbody></tbody></table></div></div>
+ </div>
+ <?php endif; ?>
 </section>
 <style>
 #biExportDialog{width:min(1100px,calc(100vw - 28px));max-width:1100px;height:min(90dvh,900px);max-height:90dvh;padding:0;border:1px solid var(--brite-border);border-radius:16px;background:var(--brite-surface);color:var(--brite-text);box-shadow:0 24px 80px #0006;overflow:hidden}
@@ -132,6 +188,7 @@ section.bi-workspace .bi-toolbar button:focus-visible{
 'use strict';
 const endpoint=<?=json_encode($biEndpoint,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;
 const viewsEndpoint=<?=json_encode($biViewsEndpoint,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;
+const financialEndpoint=<?=json_encode($biFinancialEndpoint,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;
 const csrf=<?=json_encode(csrf_token(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;
 const $=id=>document.getElementById(id);
 let savedViews=[];
@@ -264,5 +321,119 @@ $('biDelete').addEventListener('click',async()=>{const name=$('biViewList').valu
  await load();
  }catch(e){$('biStatus').textContent=e.message}
 })();
+
+const finTab=$('biTabFinancial');
+if(finTab){
+ const performanceTab=$('biTabPerformance');
+ const tabs=[performanceTab,finTab];
+ const activateTab=tab=>{
+  tabs.forEach(t=>{const active=t===tab;t.setAttribute('aria-selected',String(active));t.tabIndex=active?0:-1;$(t.getAttribute('aria-controls')).hidden=!active});
+  if(tab===finTab&&!finLoaded)loadFinancial();
+ };
+ tabs.forEach((tab,i)=>{
+  tab.addEventListener('click',()=>activateTab(tab));
+  tab.addEventListener('keydown',event=>{
+   if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+   event.preventDefault();
+   const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(i+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;
+   tabs[next].focus();activateTab(tabs[next]);
+  });
+ });
+ const finCanvas=$('biFinChart'),finCtx=finCanvas.getContext('2d');
+ const usd=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(value);
+ const axisUsd=value=>Math.abs(value)>=1000000?'
++(value/1000000).toFixed(1)+'m':Math.abs(value)>=1000?'
++(value/1000).toFixed(1)+'k':usd(value);
+ let finCurrent=null,finRequest=null,finTimer=null,finLoaded=false,finSeq=0;
+ const finColors=['#2563eb','#059669','#d97706','#9333ea','#dc2626','#0891b2'];
+ const finOptions=()=>({from:$('biFinFrom').value,to:$('biFinTo').value,interval:$('biFinInterval').value,metrics:[...document.querySelectorAll('.bi-fin-metric:checked')].map(el=>el.value)});
+ function renderFinancial(){
+  const w=finCanvas.width,h=finCanvas.height,ctx=finCtx;
+  ctx.clearRect(0,0,w,h);ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
+  if(!finCurrent?.series?.length)return;
+  const series=finCurrent.series,buckets=[...new Set(series.flatMap(s=>s.points.map(p=>p.bucket)))].sort();
+  const left=105,right=w-30,top=45,bottom=h-85;
+  const max=Math.max(1,...series.flatMap(s=>s.points.map(p=>p.value)));
+  const ceiling=max*1.12;
+  ctx.font='14px system-ui';ctx.textAlign='right';ctx.strokeStyle='#e2e8f0';ctx.fillStyle='#475569';
+  for(let i=0;i<=5;i++){const y=bottom-(bottom-top)*i/5;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.stroke();ctx.fillText(axisUsd(ceiling*i/5),left-12,y+5)}
+  ctx.textAlign='center';
+  buckets.forEach((bucket,i)=>{if(i%Math.max(1,Math.ceil(buckets.length/9))===0){const x=left+(right-left)*(i+.5)/Math.max(1,buckets.length);ctx.fillText(bucket,x,bottom+28)}});
+  const slot=(right-left)/Math.max(1,buckets.length);
+  const barWidth=Math.min(28,slot/Math.max(1,series.length+1));
+  series.forEach((s,j)=>{
+   const values=new Map(s.points.map(p=>[p.bucket,p.value]));
+   ctx.fillStyle=finColors[j%finColors.length];
+   buckets.forEach((bucket,i)=>{
+    const val=values.get(bucket)||0;
+    const height=(bottom-top)*Math.max(0,val)/ceiling;
+    const x=left+slot*i+slot/2+(j-(series.length-1)/2)*barWidth;
+    ctx.fillRect(x-barWidth*.45,bottom-height,barWidth*.9,height);
+   });
+  });
+  ctx.textAlign='left';
+ }
+ function renderFinancialDetails(){
+  const totals=$('biFinTotals'),legend=$('biFinLegend'),table=$('biFinTable');
+  totals.replaceChildren();legend.replaceChildren();table.tHead?.replaceChildren();table.tBodies[0]?.replaceChildren();
+  if(!finCurrent)return;
+  const series=finCurrent.series,buckets=[...new Set(series.flatMap(s=>s.points.map(p=>p.bucket)))].sort();
+  series.forEach((item,i)=>{
+   const card=document.createElement('div');card.className='bi-fin-total';
+   const name=document.createElement('small');name.textContent=item.name;
+   const amount=document.createElement('strong');amount.textContent=usd(item.total);
+   card.append(name,amount);totals.append(card);
+   const entry=document.createElement('span'),dot=document.createElement('i');
+   dot.style.background=finColors[i%finColors.length];entry.append(dot,document.createTextNode(item.name));legend.append(entry);
+  });
+  const head=table.tHead||table.createTHead(),row=head.insertRow();
+  ['Period',...series.map(item=>item.name)].forEach(label=>{const cell=document.createElement('th');cell.textContent=label;row.append(cell)});
+  const body=table.tBodies[0]||table.createTBody();
+  buckets.forEach(bucket=>{
+   const row=body.insertRow();row.insertCell().textContent=bucket;
+   series.forEach(item=>{const value=item.points.find(p=>p.bucket===bucket)?.value??0;row.insertCell().textContent=usd(value)});
+  });
+  const totalRow=body.insertRow();totalRow.insertCell().textContent='Period total';
+  series.forEach(item=>totalRow.insertCell().textContent=usd(item.total));
+  $('biFinNote').textContent=finCurrent.valuation_note||'';
+ }
+ async function loadFinancial(){
+  const seq=++finSeq;if(finRequest)finRequest.abort();finRequest=new AbortController();
+  const options=finOptions();
+  if(!options.metrics.length){finCurrent=null;renderFinancial();renderFinancialDetails();$('biFinStatus').textContent='Select a financial metric.';return}
+  $('biFinStatus').textContent='Loading financial metrics…';
+  try{
+   const query=new URLSearchParams({...options,metrics:options.metrics.join(',')});
+   const response=await fetch(financialEndpoint+'?'+query,{credentials:'same-origin',headers:{Accept:'application/json'},signal:finRequest.signal});
+   const data=await response.json();
+   if(!response.ok)throw Error(data.error||'Unable to load financial metrics');
+   if(seq!==finSeq)return;
+   finCurrent=data;finLoaded=true;renderFinancial();renderFinancialDetails();
+   $('biFinStatus').textContent='Loaded '+data.series.length+' dollar-valued series · '+data.from+' through '+data.to;
+  }catch(error){if(seq===finSeq&&error.name!=='AbortError')$('biFinStatus').textContent=error.message}
+ }
+ function scheduleFinancial(){clearTimeout(finTimer);finTimer=setTimeout(loadFinancial,180)}
+ ['biFinFrom','biFinTo','biFinInterval'].forEach(id=>$(id).addEventListener('change',scheduleFinancial));
+ $('biFinRun').addEventListener('click',loadFinancial);
+ $('biFinMetrics').addEventListener('change',event=>{
+  if(!event.target.matches('.bi-fin-metric'))return;
+  if(document.querySelectorAll('.bi-fin-metric:checked').length>6){event.target.checked=false;return}
+  scheduleFinancial();
+ });
+ (async()=>{
+  try{
+   const response=await fetch(financialEndpoint+'?action=catalog',{credentials:'same-origin',headers:{Accept:'application/json'}});
+   const data=await response.json();if(!response.ok)throw Error(data.error||'Financial catalog unavailable');
+   const holder=$('biFinMetrics');holder.replaceChildren();
+   data.metrics.forEach(item=>{
+    const label=document.createElement('label'),input=document.createElement('input');
+    input.type='checkbox';input.className='bi-fin-metric';input.value=item.key;
+    input.checked=['revenue_received','outstanding','opportunity_open','opportunity_lost'].includes(item.key);
+    label.title=item.description;label.append(input,document.createTextNode(item.name));holder.append(label);
+   });
+   if(finTab.getAttribute('aria-selected')==='true')loadFinancial();
+  }catch(error){$('biFinStatus').textContent=error.message;$('biFinMetrics').textContent='Financial metrics unavailable.'}
+ })();
+}
 })();
 </script>
