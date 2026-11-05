@@ -117,7 +117,6 @@ section.bi-workspace .bi-toolbar button:focus-visible{
   <label>Interval <select id="biInterval"><option value="day">Day</option><option value="week">Week</option><option value="month" selected>Month</option></select></label>
   <label>Saved view <select id="biViewList"><option value="">Choose view…</option></select></label>
   <button type="button" id="biSave">Save view</button>
-  <button type="button" id="biLoad">Load view</button>
   <button type="button" id="biDelete" disabled title="Select a saved view to delete">Delete view</button>
   <button type="button" id="biPng">PNG</button>
   <button type="button" id="biJpg">JPG</button>
@@ -144,7 +143,6 @@ section.bi-workspace .bi-toolbar button:focus-visible{
     <label>Interval <select id="biFinInterval"><option value="day">Day</option><option value="week">Week</option><option value="month" selected>Month</option></select></label>
     <label>Saved view <select id="biFinViewList"><option value="">Choose view…</option></select></label>
     <button type="button" id="biFinSave">Save view</button>
-    <button type="button" id="biFinLoad" disabled>Load view</button>
     <button type="button" id="biFinDelete" disabled>Delete view</button>
     <button type="button" id="biFinPng" disabled>PNG</button>
     <button type="button" id="biFinJpg" disabled>JPG</button>
@@ -197,8 +195,8 @@ const financialEndpoint=<?=json_encode($biFinancialEndpoint,JSON_HEX_TAG|JSON_HE
 const csrf=<?=json_encode(csrf_token(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;
 const $=id=>document.getElementById(id);
 let savedViews=[];
-function syncViewActions(){const selected=$('biViewList').value;const exists=!!selected&&savedViews.some(v=>v.name===selected);$('biDelete').disabled=!exists;$('biLoad').disabled=!exists;$('biDelete').title=exists?'Delete selected saved view':'Select a saved view to delete';}
-$('biViewList').addEventListener('change',syncViewActions);
+function syncViewActions(){const selected=$('biViewList').value;const exists=!!selected&&savedViews.some(v=>v.name===selected);$('biDelete').disabled=!exists;$('biDelete').title=exists?'Delete selected saved view':'Select a saved view to delete';}
+$('biViewList').addEventListener('change',async()=>{syncViewActions();const view=savedViews.find(v=>v.name===$('biViewList').value);if(view){applyView(view.config);await load()}});
 async function refreshViews(){const r=await fetch(viewsEndpoint,{credentials:'same-origin'});const d=await r.json();if(!r.ok)throw Error(d.error||'Unable to list views');savedViews=(d.views||[]).filter(v=>!v.name.startsWith('Financial · '));const sel=$('biViewList');sel.replaceChildren(new Option('Choose view…',''));savedViews.forEach(v=>sel.add(new Option(v.name,v.name)));syncViewActions();}
 function applyView(c){if(!c)return;['from','to','interval'].forEach(k=>{const id={from:'biFrom',to:'biTo',interval:'biInterval'}[k];if(c[k])$(id).value=c[k]});document.querySelectorAll('.bi-metric').forEach(el=>el.checked=Array.isArray(c.metrics)&&c.metrics.includes(el.value));}
 async function mutateView(method,name,config){const r=await fetch(viewsEndpoint,{method,credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify({name,config})});const d=await r.json();if(!r.ok)throw Error(d.error||'Unable to save view');await refreshViews();$('biViewList').value=method==='DELETE'?'':name;syncViewActions();}
@@ -312,7 +310,6 @@ $('biPng').addEventListener('click',()=>imageExport('image/png'));
 $('biJpg').addEventListener('click',()=>imageExport('image/jpeg'));
 $('biPdf').addEventListener('click',pdfExport);
 $('biSave').addEventListener('click',async()=>{const name=prompt('Name this Intelligence view:',$('biViewList').value||'My dashboard');if(!name)return;try{await mutateView('POST',name,safeSettings());$('biStatus').textContent='Saved view: '+name}catch(e){$('biStatus').textContent=e.message}});
-$('biLoad').addEventListener('click',async()=>{const v=savedViews.find(v=>v.name===$('biViewList').value);if(!v)return;applyView(v.config);await load()});
 $('biDelete').addEventListener('click',async()=>{const name=$('biViewList').value;if(!savedViews.some(v=>v.name===name)||!confirm('Delete view '+name+'?'))return;try{await mutateView('DELETE',name,null);$('biStatus').textContent='View deleted.'}catch(e){$('biStatus').textContent=e.message}});
 (async()=>{
  try{
@@ -350,7 +347,6 @@ if(finTab){
  function syncFinancialViewActions(){
   const name=$('biFinViewList').value;
   const exists=!!name&&financialViews.some(v=>v.name===name);
-  $('biFinLoad').disabled=!exists;
   $('biFinDelete').disabled=!exists;
   $('biFinDelete').title=exists?'Delete selected financial view':'Select a saved financial view to delete';
  }
@@ -365,7 +361,15 @@ if(finTab){
   list.value=financialViews.some(v=>v.name===selected)?selected:'';
   syncFinancialViewActions();
  }
- $('biFinViewList').addEventListener('change',syncFinancialViewActions);
+ $('biFinViewList').addEventListener('change',async()=>{
+  syncFinancialViewActions();
+  const view=financialViews.find(v=>v.name===$('biFinViewList').value);
+  if(!view)return;
+  const config=view.config||{};
+  ['from','to','interval'].forEach(key=>{const id={from:'biFinFrom',to:'biFinTo',interval:'biFinInterval'}[key];if(config[key])$(id).value=config[key]});
+  document.querySelectorAll('.bi-fin-metric').forEach(el=>el.checked=Array.isArray(config.metrics)&&config.metrics.includes(el.value));
+  await loadFinancial();
+ });
  $('biFinSave').addEventListener('click',async()=>{
   const currentName=$('biFinViewList').value.replace(/^Financial · /,'');
   const entered=prompt('Name this financial Intelligence view:',currentName||'My financial dashboard');
@@ -379,15 +383,6 @@ if(finTab){
    await refreshFinancialViews(financialViewName(name));
    $('biFinStatus').textContent='Saved financial view: '+name;
   }catch(error){$('biFinStatus').textContent=error.message}
- });
- $('biFinLoad').addEventListener('click',async()=>{
-  const selected=$('biFinViewList').value;
-  const view=financialViews.find(v=>v.name===selected);
-  if(!view)return;
-  const config=view.config||{};
-  ['from','to','interval'].forEach(key=>{const id={from:'biFinFrom',to:'biFinTo',interval:'biFinInterval'}[key];if(config[key])$(id).value=config[key]});
-  document.querySelectorAll('.bi-fin-metric').forEach(el=>el.checked=Array.isArray(config.metrics)&&config.metrics.includes(el.value));
-  await loadFinancial();
  });
  $('biFinDelete').addEventListener('click',async()=>{
   const name=$('biFinViewList').value;
