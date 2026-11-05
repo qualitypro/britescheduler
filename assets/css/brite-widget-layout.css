@@ -91,19 +91,22 @@
  max-width:100%!important;
  height:30px!important;
  margin:0!important;
- padding:2px 6px!important;
+ padding:2px 12px!important;
  z-index:20!important;
  display:flex!important;
  align-items:center!important;
  justify-content:flex-end!important;
  flex:none!important;
  overflow:hidden!important;
+ border-radius:inherit!important;
+ background:transparent!important;
  cursor:default;
 }
+/* Preserve the card's rounded corners: only the action buttons gain a hover surface. */
 .brite-widget-chrome:hover,
 .brite-widget-chrome:focus-within,
 .brite-widget-chrome.brite-widget-chrome-open{
- background:var(--brite-surface,#fff);
+ background:transparent!important;
 }
 .brite-widget-chrome:focus-visible{
  outline:2px solid var(--brite-accent,#2563eb);
