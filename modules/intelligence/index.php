@@ -104,6 +104,11 @@ section.bi-workspace .bi-toolbar button:focus-visible{
 .bi-fin-table th:first-child,.bi-fin-table td:first-child{text-align:left}
 @media(max-width:760px){.bi-workspace .bi-layout{grid-template-columns:1fr}}
 
+.bi-compare-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.bi-compare-heading label{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;cursor:pointer}
+.bi-compare-heading input[type=checkbox]{appearance:checkbox!important;width:15px!important;height:15px!important;min-width:15px!important}
+#biCompareTable th,#biCompareTable td{text-align:right;white-space:nowrap}
+#biCompareTable th:first-child,#biCompareTable td:first-child{text-align:left}
 /* Intelligence density pass: scoped to this module, preserve native accessible controls. */
 section.bi-workspace{gap:8px;font-size:.84rem;line-height:1.35}
 section.bi-workspace .bi-workspace{gap:8px}
@@ -192,6 +197,7 @@ section.bi-workspace .bi-fin-table{max-width:100%}
    <p class="bi-note">Each series is independently normalized for visual comparison; exact values appear in the data table below.</p>
   </div>
  </div>
+ <div class="bi-panel"><div class="bi-compare-heading"><h2>Period comparison</h2><label><input id="biCompareEnabled" type="checkbox"> Compare with preceding equal-length period</label></div><p id="biCompareStatus" class="bi-note">Enable to compare selected metric totals with the immediately preceding period.</p><div class="bi-fin-table"><table id="biCompareTable"><thead></thead><tbody></tbody></table></div></div>
  <div class="bi-panel"><h2>Series data</h2><div style="overflow-x:auto"><table id="biTable"><thead></thead><tbody></tbody></table></div></div>
  </div>
  <?php if($biFinancialAccess): ?>
@@ -297,6 +303,34 @@ function showTable(){
  const legend=$('biLegend');legend.replaceChildren();
  series.forEach((s,i)=>{let span=document.createElement('span'),dot=document.createElement('i');dot.style.background=palette[i%palette.length];span.append(dot,document.createTextNode(s.name));legend.append(span)});
 }
+function previousPeriod(from,to){
+ const start=new Date(from+'T12:00:00Z'),end=new Date(to+'T12:00:00Z');
+ const days=Math.round((end-start)/86400000)+1;
+ const format=d=>d.toISOString().slice(0,10);
+ const priorEnd=new Date(start.getTime()-86400000);
+ const priorStart=new Date(start.getTime()-days*86400000);
+ return {from:format(priorStart),to:format(priorEnd)};
+}
+function renderComparison(currentData,priorData){
+ const table=$('biCompareTable'),head=table.tHead||table.createTHead(),body=table.tBodies[0]||table.createTBody();
+ head.replaceChildren();body.replaceChildren();
+ const h=head.insertRow();
+ ['Metric','Current','Previous','Change','Change %'].forEach(label=>{const th=document.createElement('th');th.textContent=label;h.append(th)});
+ const previous=new Map(priorData.series.map(s=>[s.key,s]));
+ const format=n=>n.toLocaleString(undefined,{maximumFractionDigits:2});
+ currentData.series.forEach(series=>{
+  const now=series.points.reduce((sum,p)=>sum+Number(p.value||0),0);
+  const before=(previous.get(series.key)?.points||[]).reduce((sum,p)=>sum+Number(p.value||0),0);
+  const diff=now-before;
+  const percent=before===0?(now===0?'0%':'N/A'):(diff/Math.abs(before)*100).toFixed(1)+'%';
+  const row=body.insertRow();
+  [series.name,format(now),format(before),(diff>0?'+':'')+format(diff),percent].forEach(value=>{const td=row.insertCell();td.textContent=value});
+ });
+}
+function resetComparison(){
+ const table=$('biCompareTable');table.tHead?.replaceChildren();table.tBodies[0]?.replaceChildren();
+}
+$('biCompareEnabled').addEventListener('change',()=>{if($('biCompareEnabled').checked)load();else{resetComparison();$('biCompareStatus').textContent='Comparison disabled.'}});
 async function load(){
  const id=++requestId;
  if(activeRequest)activeRequest.abort();
@@ -311,6 +345,19 @@ async function load(){
  const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load data');
  if(id!==requestId)return;
  current=data;paint();showTable();$('biStatus').textContent='Loaded '+data.series.length+' series · '+data.from+' through '+data.to;
+ if($('biCompareEnabled').checked){
+  const prior=previousPeriod(opts.from,opts.to);
+  $('biCompareStatus').textContent='Comparing '+prior.from+' through '+prior.to+'…';
+  try{
+   const queryPrior=new URLSearchParams({...opts,...prior,metrics:opts.metrics.join(',')});
+   const responsePrior=await fetch(endpoint+'?'+queryPrior,{credentials:'same-origin',headers:{Accept:'application/json'},signal:activeRequest.signal});
+   const previousData=await responsePrior.json();if(!responsePrior.ok)throw Error(previousData.error||'Unable to load preceding period');
+   if(id!==requestId||!$('biCompareEnabled').checked)return;
+   renderComparison(data,previousData);
+   $('biCompareStatus').textContent='Current: '+opts.from+' to '+opts.to+' · Previous: '+prior.from+' to '+prior.to+'. Changes are differences in period totals.';
+  }catch(error){if(id===requestId&&error.name!=='AbortError'){$('biCompareStatus').textContent=error.message;resetComparison()}}
+ }else{resetComparison()}
+
  }catch(e){if(id===requestId&&e.name!=='AbortError')$('biStatus').textContent=e.message}
 }
 function scheduleRefresh(){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>{const opts=safeSettings();if(opts.from&&opts.to&&opts.from<=opts.to)load()},250)}
