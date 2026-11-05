@@ -107,11 +107,11 @@ section.bi-workspace .bi-toolbar button:focus-visible{
 <style>
 #biExportDialog{width:min(1100px,calc(100vw - 28px));max-width:1100px;height:min(90dvh,900px);max-height:90dvh;padding:0;border:1px solid var(--brite-border);border-radius:16px;background:var(--brite-surface);color:var(--brite-text);box-shadow:0 24px 80px #0006;overflow:hidden}
 #biExportDialog::backdrop{background:rgba(12,20,35,.75)}
-#biExportDialog .bi-export-shell{display:flex;flex-direction:column;height:100%;min-height:0}
+#biExportDialog .bi-export-shell{display:flex;flex-direction:column;height:100%;min-height:0;min-width:0;overflow:hidden}
 #biExportDialog .bi-export-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--brite-border)}
 #biExportDialog .bi-export-actions{display:flex;align-items:center;gap:8px}
-#biExportDialog .bi-export-body{flex:1;min-height:0;display:grid;place-items:center;padding:12px;background:#e8edf3}
-#biExportDialog .bi-export-body img{display:block;max-width:100%;max-height:100%;object-fit:contain}
+#biExportDialog .bi-export-body{flex:1 1 auto;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:12px;background:#e8edf3;box-sizing:border-box}
+#biExportDialog .bi-export-body img{display:block;flex:0 1 auto;width:auto!important;height:auto!important;max-width:100%!important;max-height:100%!important;min-width:0;min-height:0;object-fit:contain!important;object-position:center;box-sizing:border-box}
 #biExportDialog .bi-export-body iframe{width:100%;height:100%;border:0;background:#fff}
 @media(max-width:540px){#biExportDialog .bi-export-toolbar{padding:8px 10px}#biExportDialog .bi-export-body{padding:5px}}
 </style>
@@ -213,7 +213,7 @@ function previewExport(blob,filename){
  $('biExportTitle').textContent='Preview · '+filename;
  const preview=document.createElement(blob.type==='application/pdf'?'iframe':'img');
  preview.src=exportUrl;
- if(preview.tagName==='IFRAME'){preview.title='PDF export preview'}else{preview.alt='Intelligence chart export preview'}
+ if(preview.tagName==='IFRAME'){preview.title='PDF export preview'}else{preview.alt='Intelligence chart export preview';preview.style.cssText='display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;object-position:center';}
  exportBody.append(preview);
  if(typeof exportDialog.showModal==='function')exportDialog.showModal();
  else $('biStatus').textContent='Preview dialog is not supported by this browser.';
