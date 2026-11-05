@@ -311,7 +311,7 @@ function paint(){
 }
 function metricSummary(series){
  const values=series.points.map(p=>Number(p.value||0));
- if(series.rollup==='weighted')return values.length?values.reduce((a,b)=>a+b,0)/values.length:0;
+ if(series.rollup==='weighted'){const weight=series.points.reduce((sum,p)=>sum+Number(p.weight||0),0);return weight?series.points.reduce((sum,p)=>sum+Number(p.value||0)*Number(p.weight||0),0)/weight:0;}
  return values.reduce((a,b)=>a+b,0);
 }
 function metricDisplay(value,series){
@@ -389,7 +389,7 @@ async function load(){
    const previousData=await responsePrior.json();if(!responsePrior.ok)throw Error(previousData.error||'Unable to load preceding period');
    if(id!==requestId||!$('biCompareEnabled').checked)return;
    renderComparison(data,previousData);
-   $('biCompareStatus').textContent='Current: '+opts.from+' to '+opts.to+' · Previous: '+prior.from+' to '+prior.to+'. Rates use the arithmetic mean of reported buckets; other metrics use period totals.';
+   $('biCompareStatus').textContent='Current: '+opts.from+' to '+opts.to+' · Previous: '+prior.from+' to '+prior.to+'. Rates are weighted by appointment counts; other metrics use period totals.';
   }catch(error){if(id===requestId&&error.name!=='AbortError'){$('biCompareStatus').textContent=error.message;resetComparison()}}
  }else{resetComparison()}
 
