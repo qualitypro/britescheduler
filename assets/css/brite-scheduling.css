@@ -1949,3 +1949,35 @@ label:has(+ #endsAt),
  #schedulingWorkspace.brite-month-viewport #scheduleCalendarPanel .scheduler-layout>.card{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden}
  #schedulingWorkspace.brite-month-viewport #calendar{flex:1 1 auto;min-height:0!important}
 }
+
+/* Cycle 89D — full-width, viewport-height month workspace. */
+body.brite-schedule-month-mode{overflow-y:hidden}
+body.brite-schedule-month-mode .brite-workspace{height:100dvh;min-height:0;overflow:hidden}
+body.brite-schedule-month-mode .brite-content{width:100%;max-width:none!important;padding:8px 12px!important;min-height:0;overflow:hidden}
+#schedulingWorkspace.brite-month-viewport{
+ height:var(--brite-month-workspace-height,calc(100dvh - 90px))!important;
+ min-height:0!important;
+ max-height:var(--brite-month-workspace-height,calc(100dvh - 90px))!important;
+ gap:8px;overflow:hidden;
+}
+#schedulingWorkspace.brite-month-viewport>.brite-tab-toolbar{flex:0 0 auto}
+#schedulingWorkspace.brite-month-viewport>.brite-tab-panels,
+#schedulingWorkspace.brite-month-viewport #scheduleCalendarPanel:not([hidden]),
+#schedulingWorkspace.brite-month-viewport #scheduleCalendarPanel .scheduler-layout,
+#schedulingWorkspace.brite-month-viewport #scheduleCalendarPanel .scheduler-layout>.card{
+ display:flex!important;flex-direction:column;flex:1 1 auto;min-height:0!important;height:auto!important;overflow:hidden!important;
+}
+#schedulingWorkspace.brite-month-viewport #calendar{flex:1 1 auto;min-height:0!important;overflow:hidden!important}
+#schedulingWorkspace.brite-month-viewport #calendar .fc-daygrid-body,
+#schedulingWorkspace.brite-month-viewport #calendar .fc-daygrid-body table{height:100%}
+#schedulingWorkspace.brite-month-viewport #calendar .fc-daygrid-day-frame{min-height:0!important}
+#schedulingWorkspace.brite-month-viewport #calendar .fc-daygrid-day-events{min-height:0!important}
+#schedulingWorkspace.brite-month-viewport #calendar .fc-daygrid-event{line-height:1.05}
+#schedulingWorkspace.brite-month-viewport #calendar .fc-daygrid-day-top{min-height:0}
+#schedulingWorkspace.brite-month-viewport #calendar .fc-scroller{overflow-y:hidden!important}
+@media(max-width:680px){
+ body.brite-schedule-month-mode .brite-content{padding:5px!important}
+ #schedulingWorkspace.brite-month-viewport{gap:4px}
+ #schedulingWorkspace.brite-month-viewport #calendar .fc-toolbar{margin-bottom:3px}
+ #schedulingWorkspace.brite-month-viewport #calendar .fc-col-header-cell-cushion{padding:3px 1px}
+}
