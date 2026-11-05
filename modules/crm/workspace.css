@@ -82,3 +82,45 @@ body:has(.crm-shell) .brite-page-content{min-width:0;max-width:100%;box-sizing:b
 .crm-shell .crm-smart-type-icon svg{display:block;width:15px;height:15px}
 .crm-shell .crm-smart-type-label{min-width:0;overflow-wrap:anywhere}
 @media(max-width:700px){.crm-shell nav.crm-smart-type-tabs{grid-template-columns:repeat(2,minmax(0,1fr))!important}.crm-shell nav.crm-smart-type-tabs>a{font-size:.7rem!important;padding:6px 4px!important}.crm-shell .crm-smart-type-icon{width:14px;height:14px;flex-basis:14px}.crm-shell .crm-smart-type-icon svg{width:14px;height:14px}}
+
+/* Cycle 88G: purpose-built, compact follow-up task management. */
+.crm-shell .crm-task-manager{display:grid;gap:12px}
+.crm-shell .crm-task-heading h2{margin:0 0 4px;font-size:1.12rem;line-height:1.3}
+.crm-shell .crm-task-heading p{margin:0;font-size:.8rem}
+.crm-shell .crm-task-manager .crm-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.crm-shell .crm-task-manager .crm-stat{min-width:0;padding:9px 11px;border:1px solid #cbd5e1;border-radius:7px}
+.crm-shell .crm-task-manager .crm-stat span{display:block;font-size:.73rem;line-height:1.25}
+.crm-shell .crm-task-manager .crm-stat strong{display:block;font-size:1.22rem;line-height:1.35}
+.crm-shell .crm-task-filters{display:flex;flex-wrap:wrap;align-items:end;gap:8px;padding:10px;border:1px solid #cbd5e1;border-radius:8px}
+.crm-shell .crm-task-filters label{display:grid;gap:4px;flex:1 1 150px;min-width:0;font-size:.73rem;font-weight:600}
+.crm-shell .crm-task-filters select{width:100%;min-height:33px;padding:5px 8px;font-size:.79rem}
+.crm-shell .crm-task-filters button{min-height:33px;padding:6px 14px;font-size:.78rem}
+.crm-shell .crm-task-list-wrap{overflow-x:hidden!important}
+.crm-shell .crm-task-list{table-layout:fixed;width:100%!important;min-width:0!important}
+.crm-shell .crm-task-list th{font-size:.72rem;letter-spacing:.01em}
+.crm-shell .crm-task-list th:nth-child(1){width:28%}
+.crm-shell .crm-task-list th:nth-child(2){width:15%}
+.crm-shell .crm-task-list th:nth-child(3){width:13%}
+.crm-shell .crm-task-list th:nth-child(4){width:44%}
+.crm-shell .crm-task-list td{vertical-align:top;padding:10px 8px;font-size:.79rem;overflow-wrap:anywhere}
+.crm-shell .crm-task-description strong{display:block;margin-bottom:4px;font-size:.83rem}
+.crm-shell .crm-task-description div{line-height:1.4}
+.crm-shell .crm-task-action-stack{display:grid;gap:7px;min-width:0}
+.crm-shell .crm-task-edit{display:grid;grid-template-columns:minmax(0,1fr) minmax(90px,.7fr) auto;align-items:end;gap:7px}
+.crm-shell .crm-task-edit label{display:grid;gap:3px;min-width:0;font-size:.71rem;font-weight:600}
+.crm-shell .crm-task-edit select{width:100%;min-width:0;max-width:100%;min-height:32px;padding:4px 6px;font-size:.76rem}
+.crm-shell .crm-task-edit button,.crm-shell .crm-task-repeat button,.crm-shell .crm-task-complete button{min-height:32px;padding:5px 9px;font-size:.75rem;white-space:normal}
+.crm-shell .crm-task-repeat{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+.crm-shell .crm-task-repeat label{display:flex;flex-wrap:wrap;align-items:center;gap:5px;font-size:.73rem}
+.crm-shell .crm-task-repeat input[type=number]{width:60px!important;max-width:60px!important;min-height:30px;padding:4px 5px;font-size:.76rem}
+.crm-shell .crm-task-complete{margin:0}
+.crm-shell .crm-task-complete button{width:auto}
+@media(max-width:1350px){
+ .crm-shell .crm-task-list thead{display:none}
+ .crm-shell .crm-task-list,.crm-shell .crm-task-list tbody,.crm-shell .crm-task-list tr,.crm-shell .crm-task-list td{display:block;width:100%!important;max-width:100%!important}
+ .crm-shell .crm-task-list tr{border:1px solid #cbd5e1;border-radius:8px;padding:10px;margin:0 0 9px}
+ .crm-shell .crm-task-list td{border:0;padding:4px 2px}
+ .crm-shell .crm-task-list td:nth-child(2),.crm-shell .crm-task-list td:nth-child(3){display:inline-block;width:auto!important;margin-right:12px}
+ .crm-shell .crm-task-list td:nth-child(4){margin-top:7px;padding-top:9px;border-top:1px solid #e2e8f0}
+}
+@media(max-width:600px){.crm-shell .crm-task-manager .crm-stats{gap:5px}.crm-shell .crm-task-manager .crm-stat{padding:7px}.crm-shell .crm-task-edit{grid-template-columns:repeat(2,minmax(0,1fr))}.crm-shell .crm-task-edit button{grid-column:1/-1}.crm-shell .crm-task-filters button{width:100%}}
