@@ -192,6 +192,7 @@ section.bi-workspace .bi-fin-table{max-width:100%}
   <aside class="bi-panel"><h2>Available series <small class="bi-subtitle">· up to 8</small></h2><div id="biMetrics" class="bi-metrics" role="group" aria-label="Available metric series">Loading metrics…</div></aside>
   <div class="bi-panel">
    <h2>Performance analysis</h2><p id="biStatus" class="bi-note" role="status" aria-live="polite">Select metrics to begin.</p>
+   <div id="biPerformanceKpis" class="bi-fin-totals" aria-label="Performance metric summary"></div>
    <canvas id="biChart" width="1100" height="540" role="img" aria-label="Intelligence multi-series trend chart"></canvas>
    <div id="biLegend" class="bi-legend"></div>
    <p class="bi-note">Each series is independently normalized for visual comparison; exact values appear in the data table below.</p>
@@ -294,6 +295,18 @@ function paint(){
  });
  ctx.font='13px system-ui';ctx.fillStyle='#64748b';ctx.fillText('Normalized to each series maximum',L,H-15);
 }
+function renderPerformanceKpis(){
+ const container=$('biPerformanceKpis');container.replaceChildren();
+ if(!current?.series)return;
+ current.series.forEach(series=>{
+  const card=document.createElement('div');card.className='bi-fin-total';
+  const name=document.createElement('small');name.textContent=series.name;
+  const total=document.createElement('strong');
+  const sum=series.points.reduce((acc,p)=>acc+Number(p.value||0),0);
+  total.textContent=sum.toLocaleString(undefined,{maximumFractionDigits:2});
+  card.append(name,total);container.append(card);
+ });
+}
 function showTable(){
  const series=current.series,buckets=[...new Set(series.flatMap(s=>s.points.map(p=>p.bucket)))].sort();
  const head=$('biTable').tHead||$('biTable').createTHead();head.replaceChildren();
@@ -336,7 +349,7 @@ async function load(){
  if(activeRequest)activeRequest.abort();
  activeRequest=new AbortController();
  const opts=safeSettings();
- if(!opts.metrics.length){current=null;paint();$('biLegend').replaceChildren();$('biTable').tHead?.replaceChildren();$('biTable').tBodies[0]?.replaceChildren();$('biStatus').textContent='Select at least one series.';return}
+ if(!opts.metrics.length){current=null;paint();$('biPerformanceKpis').replaceChildren();$('biLegend').replaceChildren();$('biTable').tHead?.replaceChildren();$('biTable').tBodies[0]?.replaceChildren();$('biStatus').textContent='Select at least one series.';return}
  if(opts.metrics.length>8){$('biStatus').textContent='Maximum eight series.';return}
  $('biStatus').textContent='Loading tenant metrics…';
  try{
@@ -344,7 +357,7 @@ async function load(){
  const response=await fetch(endpoint+'?'+query,{credentials:'same-origin',headers:{Accept:'application/json'},signal:activeRequest.signal});
  const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load data');
  if(id!==requestId)return;
- current=data;paint();showTable();$('biStatus').textContent='Loaded '+data.series.length+' series · '+data.from+' through '+data.to;
+ current=data;paint();showTable();renderPerformanceKpis();$('biStatus').textContent='Loaded '+data.series.length+' series · '+data.from+' through '+data.to;
  if($('biCompareEnabled').checked){
   const prior=previousPeriod(opts.from,opts.to);
   $('biCompareStatus').textContent='Comparing '+prior.from+' through '+prior.to+'…';
