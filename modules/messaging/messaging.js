@@ -4,6 +4,9 @@ const $=id=>document.getElementById(id);
 const base=(window.BRITE_BASE||'')+'/modules/messaging/api.php';
 let current=null,currentTitle='',busy=false,refreshing=false,selectionToken=0,composing=false;
 const status=message=>{$('msgStatus').textContent=message;};
+let threadCache=[];
+function filterThreads(){const term=$('msgThreadSearch').value.trim().toLocaleLowerCase();for(const button of $('msgThreads').querySelectorAll('.msg-thread'))button.hidden=!!term&&!button.dataset.search.includes(term);}
+$('msgThreadSearch').addEventListener('input',filterThreads);
 const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=String(text);return n;};
 async function call(action,data,params={}){
  const post=data instanceof FormData;
@@ -16,10 +19,10 @@ async function call(action,data,params={}){
  return result;
 }
 async function load(){
- const result=await call('list'),list=$('msgThreads');list.replaceChildren();
+ const result=await call('list'),list=$('msgThreads');threadCache=result.threads;list.replaceChildren();
  if(!result.threads.length){list.append(el('p','No conversations yet. Select New conversation to message another member of your organization.'));return result.threads;}
  for(const t of result.threads){
-  const button=el('button');button.type='button';button.className='msg-thread';
+  const button=el('button');button.type='button';button.className='msg-thread';button.dataset.search=[t.other_names,t.subject,t.last_body].filter(Boolean).join(' ').toLocaleLowerCase();
   if(Number(t.id)===Number(current))button.setAttribute('aria-current','true');
   const title=el('strong',t.other_names||t.subject);title.className='msg-thread-name';
   const subject=el('span',t.subject);subject.className='msg-thread-subject';
@@ -31,7 +34,7 @@ async function load(){
   button.addEventListener('click',()=>openThread(t.id,t.subject));
   list.append(button);
  }
- return result.threads;
+ filterThreads();return result.threads;
 }
 async function openThread(id,subject,{silent=false}={}){
  const requested=Number(id);if(!requested)return;
@@ -64,6 +67,7 @@ async function guarded(fn){
  try{await fn();}catch(e){status('Error: '+e.message);}finally{busy=false;}
 }
 $('msgNew').addEventListener('click',()=>guarded(async()=>{
+ if(composing){$('msgCreate').elements.recipient_id.focus();return;}
  const r=await call('recipients'),sel=$('msgRecipients');sel.replaceChildren();
  for(const p of r.recipients){
   const option=el('option',[p.first_name,p.last_name].filter(Boolean).join(' ')+' ('+p.role+')');
@@ -71,8 +75,11 @@ $('msgNew').addEventListener('click',()=>guarded(async()=>{
  }
  composing=true;++selectionToken;
  $('msgCompose').hidden=false;$('msgDetail').hidden=true;
+ $('msgCreate').querySelector('button[type="submit"]').disabled=!r.recipients.length;
+ if(r.recipients.length)sel.focus();
  status(r.recipients.length?'Choose a recipient and write your message.':'No eligible recipients. Ask your administrator to enable Messaging for the other role.');
 }));
+$('msgCancelCompose').addEventListener('click',()=>{composing=false;++selectionToken;$('msgCompose').hidden=true;$('msgDetail').hidden=false;status('Draft closed.');});
 $('msgCreate').addEventListener('submit',event=>{event.preventDefault();guarded(async()=>{
  const form=event.target,subject=form.elements.subject.value;
  const result=await call('create',new FormData(form));
@@ -99,7 +106,7 @@ Promise.all([load(),call('preferences').then(r=>{$('msgInApp').checked=r.in_app_
 .then(async([threads])=>{
  const requested=Number(new URLSearchParams(location.search).get('thread_id'));
  const selected=threads.find(t=>Number(t.id)===requested)||threads[0];
- if(selected)await openThread(selected.id,selected.subject,{silent:true});
+ if(selected&&!composing)await openThread(selected.id,selected.subject,{silent:true});
 })
 .catch(e=>status('Unable to load messages: '+e.message));
 // Poll only while visible; never overwrite an unsent reply or switch threads.
