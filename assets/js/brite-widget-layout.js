@@ -110,9 +110,13 @@
    };
    const reorder=(source,target,before)=>{
     if(!source||!target||source===target||source.hidden||target.hidden)return;
-    const ordered=cards().map(card=>card.dataset.widgetId).filter(id=>id!==source.dataset.widgetId);
-    const index=ordered.indexOf(target.dataset.widgetId);
-    ordered.splice(index+(before?0:1),0,source.dataset.widgetId);
+    const ordered=cards().map(card=>card.dataset.widgetId);
+    const sourceIndex=ordered.indexOf(source.dataset.widgetId);
+    const targetIndex=ordered.indexOf(target.dataset.widgetId);
+    if(sourceIndex<0||targetIndex<0)return;
+    // A highlighted card means a precise destination: exchange the two slots.
+    // This avoids the surprising one-slot offset of before/after insertion.
+    [ordered[sourceIndex],ordered[targetIndex]]=[ordered[targetIndex],ordered[sourceIndex]];
     saved.order=ordered;
     animateLayout(()=>render());persist();announce('Widget order saved.');
     source.querySelector('.brite-widget-handle')?.focus({preventScroll:true});
@@ -193,16 +197,21 @@
      drag.target=hovered&&hovered.parentElement===grid&&hovered!==card&&!hovered.hidden?hovered:null;
      if(drag.target){
       const bounds=drag.target.getBoundingClientRect();
-      drag.before=event.clientY<bounds.top+bounds.height/2;
+      drag.before=false;
       drag.target.classList.add('brite-widget-drop-target');
      }
     });
     handle.addEventListener('pointerup',event=>{
      const drag=pointer;
      if(!drag||drag.id!==event.pointerId)return;
-     const target=drag.target,before=drag.before,moved=drag.moved;
+     const moved=drag.moved;
+     // Re-evaluate on release so a fast final pointer movement cannot use a stale target.
+     card.style.pointerEvents='none';
+     const released=document.elementFromPoint(event.clientX,event.clientY)?.closest('[data-widget-id]');
+     card.style.pointerEvents='';
+     const target=released&&released.parentElement===grid&&released!==card&&!released.hidden?released:drag.target;
      stopPointer();
-     if(moved&&target)reorder(card,target,before);
+     if(moved&&target)reorder(card,target,false);
     });
     handle.addEventListener('pointercancel',stopPointer);
     handle.addEventListener('lostpointercapture',stopPointer);
