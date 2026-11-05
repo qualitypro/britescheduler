@@ -20,6 +20,13 @@ function activeRecipient(PDO $db,int $tid,int $uid): bool {
  $q=$db->prepare("SELECT 1 FROM tenant_memberships m JOIN users u ON u.id=m.user_id WHERE m.tenant_id=? AND m.user_id=? AND m.status='active' AND u.status='active' LIMIT 1");
  $q->execute([$tid,$uid]);return (bool)$q->fetchColumn();
 }
+if($method==='GET'&&$action==='notifications'){
+ $q=$db->prepare('SELECT COALESCE(SUM((SELECT COUNT(*) FROM module_messages m WHERE m.tenant_id=p.tenant_id AND m.thread_id=p.thread_id AND m.sender_id<>? AND m.id>COALESCE(p.last_read_message_id,0))),0) unread_count FROM module_message_participants p JOIN module_message_threads t ON t.id=p.thread_id AND t.tenant_id=p.tenant_id WHERE p.tenant_id=? AND p.user_id=?');
+ $q->execute([$uid,$tid,$uid]);$count=(int)$q->fetchColumn();
+ $q=$db->prepare("SELECT t.id,t.subject,(SELECT CONCAT(u.first_name,' ',u.last_name) FROM module_messages m JOIN users u ON u.id=m.sender_id WHERE m.tenant_id=t.tenant_id AND m.thread_id=t.id AND m.sender_id<>? AND m.id>COALESCE(p.last_read_message_id,0) ORDER BY m.id DESC LIMIT 1) sender, (SELECT m.created_at FROM module_messages m WHERE m.tenant_id=t.tenant_id AND m.thread_id=t.id AND m.sender_id<>? AND m.id>COALESCE(p.last_read_message_id,0) ORDER BY m.id DESC LIMIT 1) latest_at FROM module_message_participants p JOIN module_message_threads t ON t.id=p.thread_id AND t.tenant_id=p.tenant_id WHERE p.tenant_id=? AND p.user_id=? AND EXISTS(SELECT 1 FROM module_messages m WHERE m.tenant_id=p.tenant_id AND m.thread_id=p.thread_id AND m.sender_id<>? AND m.id>COALESCE(p.last_read_message_id,0)) ORDER BY t.updated_at DESC LIMIT 5");
+ $q->execute([$uid,$uid,$tid,$uid,$uid]);
+ json_response(['ok'=>true,'unread_count'=>$count,'threads'=>$q->fetchAll()]);
+}
 if($method==='GET'&&$action==='list'){
  $q=$db->prepare("SELECT t.id,t.subject,t.updated_at,(SELECT COUNT(*) FROM module_messages m WHERE m.thread_id=t.id AND m.tenant_id=t.tenant_id AND m.sender_id<>? AND m.id>COALESCE(p.last_read_message_id,0)) unread, (SELECT m.body FROM module_messages m WHERE m.tenant_id=t.tenant_id AND m.thread_id=t.id ORDER BY m.id DESC LIMIT 1) last_body, (SELECT GROUP_CONCAT(CONCAT(u.first_name,' ',u.last_name) ORDER BY u.first_name SEPARATOR ', ') FROM module_message_participants otherp JOIN users u ON u.id=otherp.user_id WHERE otherp.thread_id=t.id AND otherp.tenant_id=t.tenant_id AND otherp.user_id<>?) other_names FROM module_message_threads t JOIN module_message_participants p ON p.thread_id=t.id AND p.tenant_id=t.tenant_id WHERE t.tenant_id=? AND p.user_id=? ORDER BY t.updated_at DESC,t.id DESC LIMIT 100");
  $q->execute([$uid,$uid,$tid,$uid]);
