@@ -16,6 +16,8 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
 .msg-review-item{display:grid;gap:5px;width:100%;text-align:left;margin:8px 0;padding:12px;border:1px solid #cbd5e1;border-radius:9px;background:transparent}.msg-review-item small{color:#64748b}.msg-form{display:grid;gap:12px}.msg-form input,.msg-form select,.msg-form textarea{width:100%;box-sizing:border-box}
 
 /* Messaging forms: conventional rectangular fields instead of global pill styling. */
+.brite-app .brite-content form#msgReply.msg-inline-reply textarea#msgReplyBody{display:block!important;width:100%!important;min-height:120px!important;border-radius:0!important;border:1px solid #94a3b8!important;padding:12px!important;background:#fff!important;box-shadow:none!important;transform:none!important;clip-path:none!important;appearance:none!important;-webkit-appearance:none!important;resize:vertical!important}
+.brite-app .brite-content form#msgReply.msg-inline-reply button[type="submit"]{border-radius:4px!important;min-height:42px}
 .brite-app .brite-content #msgReply #msgReplyBody{border-radius:4px!important;appearance:none!important;-webkit-appearance:none!important;clip-path:none!important;background-image:none!important;}
 #msgCreate label,#msgReply label,#msgOwnerReview>label{display:grid;gap:6px;font-weight:600}
 #msgCreate input,#msgCreate select,#msgCreate textarea,
@@ -58,8 +60,8 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
    <div id="msgDetail">
     <h2 id="msgHeading">Select a conversation</h2>
     <div id="msgMessages" class="msg-history" aria-live="polite"><p>Select a conversation from your inbox.</p></div>
-    <form id="msgReply" class="msg-form" hidden style="margin-top:14px">
-     <label>Reply <textarea id="msgReplyBody" name="body" maxlength="5000" rows="3" required placeholder="Type your reply…" style="border-radius:4px!important;appearance:none!important;-webkit-appearance:none!important;display:block;width:100%;box-sizing:border-box"></textarea></label>
+    <form id="msgReply" class="msg-form msg-inline-reply" hidden style="margin-top:14px">
+     <label for="msgReplyBody">Write a reply</label><textarea id="msgReplyBody" name="body" maxlength="5000" rows="4" required placeholder="Write your message here. Ctrl+Enter to send."></textarea>
      <button type="submit">Send reply</button>
     </form>
    </div>
@@ -79,4 +81,4 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
  <?php endif; ?>
  <details><summary>Notification preferences</summary><label style="display:flex;gap:10px;align-items:center;margin-top:12px"><input type="checkbox" id="msgInApp"> Enable in-app message notifications</label><p class="muted">This setting is saved for your account and tenant. Email and SMS delivery are not enabled in this version.</p></details>
 </section>
-<script defer src="<?=htmlspecialchars(app_url('/modules/messaging/messaging.js?v=75d'),ENT_QUOTES,'UTF-8')?>"></script>
+<script defer src="<?=htmlspecialchars(app_url('/modules/messaging/messaging.js?v=75f'),ENT_QUOTES,'UTF-8')?>"></script>
