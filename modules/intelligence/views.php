@@ -8,11 +8,12 @@ try {
  $user=Auth::requireUser();$tenant=Auth::tenant();
  if(!isset(ModuleRegistry::activeFor($tenant)['intelligence'])){http_response_code(403);echo json_encode(['error'=>'Forbidden']);exit;}
  $pdo=Database::connection();$tid=(int)$tenant['tenant_id'];$uid=(int)$user['id'];
+ $financialAccess=in_array((string)($tenant['role']??''),['owner','admin','accounting'],true);
  $method=$_SERVER['REQUEST_METHOD']??'GET';
  if($method==='GET'){
   $q=$pdo->prepare('SELECT name,config_json,updated_at FROM intelligence_saved_views WHERE tenant_id=? AND user_id=? ORDER BY updated_at DESC LIMIT 40');
   $q->execute([$tid,$uid]);$views=[];
-  foreach($q->fetchAll(PDO::FETCH_ASSOC) as $row){$views[]=['name'=>$row['name'],'config'=>json_decode($row['config_json'],true),'updated_at'=>$row['updated_at']];}
+  foreach($q->fetchAll(PDO::FETCH_ASSOC) as $row){if(!$financialAccess&&str_starts_with((string)$row['name'],'Financial · '))continue;$views[]=['name'=>$row['name'],'config'=>json_decode($row['config_json'],true),'updated_at'=>$row['updated_at']];}
   echo json_encode(['views'=>$views],JSON_THROW_ON_ERROR);exit;
  }
  if(!in_array($method,['POST','DELETE'],true)){http_response_code(405);exit;}
@@ -24,6 +25,7 @@ try {
  if(!is_array($body))throw new InvalidArgumentException('Invalid request body');
  $name=trim((string)($body['name']??''));
  if($name===''||strlen($name)>100)throw new InvalidArgumentException('View name must be 1–100 characters');
+ if(str_starts_with($name,'Financial · ')&&!$financialAccess){http_response_code(403);echo json_encode(['error'=>'Financial views require elevated access']);exit;}
  if($method==='DELETE'){
   $q=$pdo->prepare('DELETE FROM intelligence_saved_views WHERE tenant_id=? AND user_id=? AND name=?');
   $q->execute([$tid,$uid,$name]);echo json_encode(['ok'=>true]);exit;
