@@ -2084,3 +2084,35 @@ body>.brite-event-expanded .brite-event-expanded-details{
 body>.brite-event-expanded .brite-event-expanded-details>div{
  white-space:normal!important;overflow-wrap:anywhere;
 }
+
+/* Cycle 89K: FullCalendar surfaces inherit the user's My Settings palette. */
+#calendar{
+ --fc-page-bg-color:var(--brite-surface);
+ --fc-neutral-bg-color:var(--brite-surface-muted);
+ --fc-neutral-text-color:var(--brite-text-secondary);
+ --fc-border-color:var(--brite-border);
+ --fc-today-bg-color:var(--brite-indigo-soft);
+ --fc-highlight-color:var(--brite-indigo-soft);
+ --fc-now-indicator-color:var(--brite-indigo);
+ --fc-button-bg-color:var(--brite-indigo);
+ --fc-button-border-color:var(--brite-indigo);
+ --fc-button-hover-bg-color:var(--brite-indigo-hover);
+ --fc-button-hover-border-color:var(--brite-indigo-hover);
+ --fc-button-active-bg-color:var(--brite-indigo-hover);
+ --fc-button-active-border-color:var(--brite-indigo-hover);
+ background:var(--brite-surface);color:var(--brite-text);
+}
+#calendar .fc-scrollgrid,#calendar .fc-view-harness,
+#calendar .fc-timegrid-slots,#calendar .fc-daygrid-day-frame{
+ background-color:var(--brite-surface);
+}
+#calendar .fc-day-today,
+#calendar .fc-day-today .fc-daygrid-day-frame{background:var(--brite-indigo-soft)}
+#calendar .fc-timegrid-slot-label,#calendar .fc-timegrid-axis,
+#calendar .fc-daygrid-day-number{color:var(--brite-text-secondary)}
+#calendar .fc-popover{
+ background:var(--brite-surface);color:var(--brite-text);
+ border-color:var(--brite-border);box-shadow:var(--brite-shadow-lg);
+}
+#calendar .fc-popover-header{background:var(--brite-surface-muted)}
+body>.brite-event-expanded{color:#fff}
