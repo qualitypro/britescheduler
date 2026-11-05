@@ -2,6 +2,7 @@
 declare(strict_types=1);
 if (!defined('BRITE_MODULE_DISPATCH')) { http_response_code(403); exit; }
 $biEndpoint=app_url('/modules/intelligence/metrics.php');
+$biViewsEndpoint=app_url('/modules/intelligence/views.php');
 ?>
 <style>
 .bi-workspace{display:grid;gap:14px;min-width:0;color:var(--brite-text)}
@@ -26,7 +27,10 @@ $biEndpoint=app_url('/modules/intelligence/metrics.php');
   <label>To <input type="date" id="biTo" value="<?=date('Y-m-d')?>"></label>
   <label>Interval <select id="biInterval"><option value="day">Day</option><option value="week">Week</option><option value="month" selected>Month</option></select></label>
   <button type="button" id="biRun">Update chart</button>
-  <button type="button" id="biSave">Save view locally</button>
+  <label>Saved view <select id="biViewList"><option value="">Choose view…</option></select></label>
+  <button type="button" id="biSave">Save view</button>
+  <button type="button" id="biLoad">Load view</button>
+  <button type="button" id="biDelete">Delete view</button>
   <button type="button" id="biPng">PNG</button>
   <button type="button" id="biJpg">JPG</button>
   <button type="button" id="biPdf">PDF</button>
@@ -46,7 +50,13 @@ $biEndpoint=app_url('/modules/intelligence/metrics.php');
 (() => {
 'use strict';
 const endpoint=<?=json_encode($biEndpoint,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;
+const viewsEndpoint=<?=json_encode($biViewsEndpoint,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;
+const csrf=<?=json_encode(csrf_token(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;
 const $=id=>document.getElementById(id);
+let savedViews=[];
+async function refreshViews(){const r=await fetch(viewsEndpoint,{credentials:'same-origin'});const d=await r.json();if(!r.ok)throw Error(d.error||'Unable to list views');savedViews=d.views||[];const sel=$('biViewList');sel.replaceChildren(new Option('Choose view…',''));savedViews.forEach(v=>sel.add(new Option(v.name,v.name)));}
+function applyView(c){if(!c)return;['from','to','interval'].forEach(k=>{const id={from:'biFrom',to:'biTo',interval:'biInterval'}[k];if(c[k])$(id).value=c[k]});document.querySelectorAll('.bi-metric').forEach(el=>el.checked=Array.isArray(c.metrics)&&c.metrics.includes(el.value));}
+async function mutateView(method,name,config){const r=await fetch(viewsEndpoint,{method,credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify({name,config})});const d=await r.json();if(!r.ok)throw Error(d.error||'Unable to save view');await refreshViews();$('biViewList').value=method==='DELETE'?'':name;}
 const palette=['#2563eb','#059669','#d97706','#9333ea','#db2777','#0891b2','#dc2626','#64748b'];
 const chart=$('biChart'),ctx=chart.getContext('2d');
 let current=null;
@@ -116,7 +126,9 @@ $('biRun').addEventListener('click',load);
 $('biPng').addEventListener('click',()=>imageExport('image/png'));
 $('biJpg').addEventListener('click',()=>imageExport('image/jpeg'));
 $('biPdf').addEventListener('click',pdfExport);
-$('biSave').addEventListener('click',()=>{try{localStorage.setItem('brite-intelligence-view',JSON.stringify(safeSettings()));$('biStatus').textContent='View preferences saved in this browser.'}catch(e){$('biStatus').textContent='Browser storage unavailable.'}});
+$('biSave').addEventListener('click',async()=>{const name=prompt('Name this Intelligence view:',$('biViewList').value||'My dashboard');if(!name)return;try{await mutateView('POST',name,safeSettings());$('biStatus').textContent='Saved view: '+name}catch(e){$('biStatus').textContent=e.message}});
+$('biLoad').addEventListener('click',async()=>{const v=savedViews.find(v=>v.name===$('biViewList').value);if(!v)return;applyView(v.config);await load()});
+$('biDelete').addEventListener('click',async()=>{const name=$('biViewList').value;if(!name||!confirm('Delete view '+name+'?'))return;try{await mutateView('DELETE',name,null);$('biStatus').textContent='View deleted.'}catch(e){$('biStatus').textContent=e.message}});
 (async()=>{
  try{
  const response=await fetch(endpoint+'?action=catalog',{credentials:'same-origin'});
@@ -125,6 +137,7 @@ $('biSave').addEventListener('click',()=>{try{localStorage.setItem('brite-intell
  const groups={};data.metrics.forEach(m=>(groups[m.source]??=[]).push(m));
  Object.entries(groups).forEach(([source,metrics])=>{const h=document.createElement('h3');h.textContent=source;holder.append(h);metrics.forEach(m=>{const l=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.className='bi-metric';input.value=m.key;input.checked=['appointments','completed'].includes(m.key);l.append(input,document.createTextNode(m.name));holder.append(l)})});
  try{const saved=JSON.parse(localStorage.getItem('brite-intelligence-view')||'null');if(saved){controls.forEach(id=>{const key={biFrom:'from',biTo:'to',biInterval:'interval'}[id];if(saved[key])$(id).value=saved[key]});document.querySelectorAll('.bi-metric').forEach(el=>el.checked=Array.isArray(saved.metrics)&&saved.metrics.includes(el.value))}}catch(e){}
+ try{await refreshViews()}catch(e){$('biStatus').textContent=e.message}
  await load();
  }catch(e){$('biStatus').textContent=e.message}
 })();
