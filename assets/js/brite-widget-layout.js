@@ -127,7 +127,10 @@
     const target=visible[index+direction];
     if(target)reorder(card,target,direction<0);
    };
-   const clearDropTarget=()=>defaultCards.forEach(card=>card.classList.remove('brite-widget-drop-target'));
+   const clearDropTarget=()=>defaultCards.forEach(card=>{
+    card.classList.remove('brite-widget-drop-target');
+    card.removeAttribute('data-widget-drop-label');
+   });
    const stopPointer=()=>{
     if(!pointer)return;
     pointer.card.style.transform='';
@@ -196,9 +199,8 @@
      card.style.pointerEvents='';
      drag.target=hovered&&hovered.parentElement===grid&&hovered!==card&&!hovered.hidden?hovered:null;
      if(drag.target){
-      const bounds=drag.target.getBoundingClientRect();
-      drag.before=false;
       drag.target.classList.add('brite-widget-drop-target');
+      drag.target.setAttribute('data-widget-drop-label','Swap with '+name);
      }
     });
     handle.addEventListener('pointerup',event=>{
@@ -209,11 +211,22 @@
      card.style.pointerEvents='none';
      const released=document.elementFromPoint(event.clientX,event.clientY)?.closest('[data-widget-id]');
      card.style.pointerEvents='';
-     const target=released&&released.parentElement===grid&&released!==card&&!released.hidden?released:drag.target;
+     const target=released&&released.parentElement===grid&&released!==card&&!released.hidden?released:null;
+     const dx=event.clientX-drag.startX,dy=event.clientY-drag.startY;
      stopPointer();
-     if(moved&&target)reorder(card,target,false);
+     if(moved&&target){reorder(card,target,false);return;}
+     if(moved){
+      if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+       card.animate([{transform:'translate3d('+dx+'px,'+dy+'px,0)',opacity:.9},{transform:'translate3d(0,0,0)',opacity:1}],
+        {duration:220,easing:'cubic-bezier(.2,.8,.2,1)'});
+      }
+      announce('Widget returned to its original position.');
+     }
     });
     handle.addEventListener('pointercancel',stopPointer);
+    handle.addEventListener('keydown',event=>{
+     if(event.key==='Escape'&&pointer){event.preventDefault();stopPointer();announce('Widget move cancelled.');}
+    });
     handle.addEventListener('lostpointercapture',stopPointer);
     const width=document.createElement('button');
     width.type='button';width.textContent='□';width.title='Toggle widget width';
