@@ -137,15 +137,31 @@
    const dropAt=(x,y,source)=>{
     const candidates=cards().filter(card=>card!==source&&!card.hidden);
     if(!candidates.length)return null;
-    // Pick the actual widget under the pointer; do not use a stale highlight.
-    source.style.pointerEvents='none';
-    const hit=document.elementFromPoint(x,y)?.closest('[data-widget-id]');
-    source.style.pointerEvents='';
-    if(!hit||hit.parentElement!==grid||!candidates.includes(hit))return null;
-    const rect=hit.getBoundingClientRect();
-    // For vertical layouts, the upper/lower half controls insertion.
-    // For multi-column grids, use the same rule within the hovered slot.
-    return {card:hit,before:y<rect.top+rect.height/2};
+    const bounds=grid.getBoundingClientRect();
+    // A valid drop includes the gaps between cards, not just their content.
+    if(x<bounds.left-24||x>bounds.right+24||y<bounds.top-24||y>bounds.bottom+24)return null;
+    // Use geometry rather than elementFromPoint: captured pointers, overlays,
+    // and the translated source card can otherwise obscure the destination.
+    const ranked=candidates.map(card=>{
+     const rect=card.getBoundingClientRect();
+     const nearestX=Math.max(rect.left,Math.min(x,rect.right));
+     const nearestY=Math.max(rect.top,Math.min(y,rect.bottom));
+     const distance=Math.hypot(x-nearestX,y-nearestY);
+     return {card,rect,distance};
+    }).sort((a,b)=>a.distance-b.distance);
+    const closest=ranked[0];
+    if(!closest)return null;
+    const {card,rect}=closest;
+    // For side-by-side cards use horizontal midpoint; for stacked cards,
+    // use vertical midpoint to determine the insertion edge.
+    const ordered=candidates;
+    const index=ordered.indexOf(card);
+    const prev=ordered[index-1]?.getBoundingClientRect();
+    const next=ordered[index+1]?.getBoundingClientRect();
+    const horizontal=(prev&&Math.abs(prev.top-rect.top)<rect.height*.45)||
+      (next&&Math.abs(next.top-rect.top)<rect.height*.45);
+    const before=horizontal?x<rect.left+rect.width/2:y<rect.top+rect.height/2;
+    return {card,before};
    };
    const stopPointer=()=>{
     if(!pointer)return;
@@ -224,7 +240,8 @@
      if(!drag||drag.id!==event.pointerId)return;
      const moved=drag.moved;
      // Re-evaluate on release so a fast final pointer movement cannot use a stale target.
-     const destination=dropAt(event.clientX,event.clientY,card);
+     const destination=dropAt(event.clientX,event.clientY,card)||
+      (drag.target?{card:drag.target,before:drag.before}:null);
      const dx=event.clientX-drag.startX,dy=event.clientY-drag.startY;
      stopPointer();
      if(moved&&destination){reorder(card,destination.card,destination.before);return;}
