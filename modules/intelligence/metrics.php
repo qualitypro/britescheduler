@@ -37,8 +37,11 @@ try {
     if (($_GET['action']??'')==='catalog') {
         echo json_encode(['metrics'=>$catalog],JSON_THROW_ON_ERROR); exit;
     }
-    $keys=array_values(array_unique(array_filter(explode(',',(string)($_GET['metrics']??'appointments,completed')))));
+    $requested=(string)($_GET['metrics']??'appointments,completed');
+    if(strlen($requested)>1024)throw new InvalidArgumentException('Metric selection is too long');
+    $keys=array_values(array_unique(array_filter(explode(',',$requested))));
     if (!$keys || count($keys)>8 || array_diff($keys,array_keys($metrics))) throw new InvalidArgumentException('Select 1–8 valid metrics');
+    if(!in_array($_SERVER['REQUEST_METHOD']??'GET',['GET','HEAD'],true)){http_response_code(405);echo json_encode(['error'=>'Method not allowed']);exit;}
     $interval=(string)($_GET['interval']??'month');
     if (!in_array($interval,['day','week','month'],true)) throw new InvalidArgumentException('Invalid interval');
     $from=(string)($_GET['from']??date('Y-m-01',strtotime('-5 months')));
