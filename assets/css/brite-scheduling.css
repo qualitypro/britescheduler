@@ -2116,3 +2116,29 @@ body>.brite-event-expanded .brite-event-expanded-details>div{
 }
 #calendar .fc-popover-header{background:var(--brite-surface-muted)}
 body>.brite-event-expanded{color:#fff}
+
+/* Cycle 89L: keep modal scrollbars inside the rounded dialog shell. */
+#appointmentDetailsDialog[open]{
+ display:flex;flex-direction:column;
+ overflow:hidden!important;
+ box-sizing:border-box;
+ max-height:calc(100dvh - 32px);
+}
+#appointmentDetailsDialog>.appointment-dialog-header,
+#appointmentDetailsDialog>.appointment-details-actions,
+#appointmentDetailsDialog>#appointmentDetailsEditStatus{
+ flex:0 0 auto;
+}
+#appointmentDetailsDialog #appointmentDetailsContent{
+ flex:1 1 auto;min-height:0;
+ overflow-y:auto;overflow-x:hidden;
+ scrollbar-width:thin;
+ scrollbar-color:var(--brite-border-strong) transparent;
+ padding-right:10px;
+ margin-right:-4px;
+}
+#appointmentDetailsDialog #appointmentDetailsContent::-webkit-scrollbar{width:7px}
+#appointmentDetailsDialog #appointmentDetailsContent::-webkit-scrollbar-track{background:transparent}
+#appointmentDetailsDialog #appointmentDetailsContent::-webkit-scrollbar-thumb{
+ background:var(--brite-border-strong);border-radius:999px;
+}
