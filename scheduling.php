@@ -780,7 +780,7 @@ require __DIR__.'/partials/app_header.php';
 </style>
 
 <link rel="stylesheet"
-      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89l'))?>">
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89m'))?>">
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'), ENT_QUOTES, 'UTF-8')?>">
 
@@ -1295,16 +1295,13 @@ function showAppointmentDetails(event) {
         ['Title', appointment.title || event.title || 'Appointment'],
         ...(role !== 'client' ? [[
             'Client',
-            [
-                appointment.client_first,
-                appointment.client_last
-            ].filter(Boolean).join(' ') || 'Not specified'
+            [appointment.client_first, appointment.client_last]
+                .filter(Boolean).join(' ') || 'Not specified'
         ]] : []),
         ['Service', appointment.service_name || 'Not specified'],
-        ['Start', appointmentDetailsDate(event.start)],
-        ['End', appointmentDetailsDate(event.end)],
-        ['Status', String(appointment.status || 'scheduled')
-            .replaceAll('_', ' ')],
+        ['Schedule', appointmentDetailsDate(event.start) +
+            (event.end ? ' – ' + appointmentDetailsDate(event.end) : '')],
+        ['Status', appointmentStatusLabel(appointment.status)],
         ['Location', appointment.location || 'Not specified'],
         ...(isManagementRole
             ? [['Contractors', contractorNames.join(', ') || 'Unassigned']]
@@ -1312,14 +1309,19 @@ function showAppointmentDetails(event) {
     ];
 
     const list = document.createElement('dl');
-    list.className = 'appointment-details-grid';
+    list.className = 'appointment-details-grid appointment-details-compact';
 
     for (const [label, value] of fields) {
+        const field = document.createElement('div');
+        field.className = 'appointment-details-field';
+        if (label === 'Title' || label === 'Schedule' || label === 'Location' ||
+            label === 'Contractors') field.classList.add('appointment-details-wide');
         const dt = document.createElement('dt');
         const dd = document.createElement('dd');
         dt.textContent = label;
         dd.textContent = value;
-        list.append(dt, dd);
+        field.append(dt, dd);
+        list.appendChild(field);
     }
 
     detailsContent.replaceChildren(list);
