@@ -780,7 +780,7 @@ require __DIR__.'/partials/app_header.php';
 </style>
 
 <link rel="stylesheet"
-      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89j'))?>">
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89k'))?>">
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'), ENT_QUOTES, 'UTF-8')?>">
 
@@ -3004,6 +3004,20 @@ const appointmentStatusColors = Object.freeze({
     no_show: '#b45309'
 });
 
+// Respect the authenticated user's My Settings palette when coloring events.
+// Status distinctions remain visible within each palette.
+const schedulerStatusPalettes = Object.freeze({
+    ocean: {tentative:'#64748b',scheduled:'#2563eb',confirmed:'#15803d',in_progress:'#0891b2',completed:'#475569',cancelled:'#dc2626',no_show:'#b45309'},
+    forest: {tentative:'#647b69',scheduled:'#15803d',confirmed:'#166534',in_progress:'#0f766e',completed:'#526b59',cancelled:'#b91c1c',no_show:'#a16207'},
+    midnight: {tentative:'#64748b',scheduled:'#4f46e5',confirmed:'#047857',in_progress:'#0369a1',completed:'#475569',cancelled:'#b91c1c',no_show:'#a16207'},
+    slate: {tentative:'#78716c',scheduled:'#b45309',confirmed:'#3f7550',in_progress:'#9a5b35',completed:'#57534e',cancelled:'#b91c1c',no_show:'#92400e'}
+});
+function schedulerEventColor(status) {
+    const palette = document.body.dataset.briteTheme || 'ocean';
+    const colors = schedulerStatusPalettes[palette] || schedulerStatusPalettes.ocean;
+    return colors[status] || colors.scheduled;
+}
+
 function appointmentStatusLabel(status) {
     return String(status || 'scheduled')
         .replaceAll('_', ' ')
@@ -3110,12 +3124,10 @@ async function loadEvents(info,success,failure){
             end:calendarEventDateTime(a.ends_at),
 
             backgroundColor:
-                appointmentStatusColors[a.status] ||
-                appointmentStatusColors.scheduled,
+                schedulerEventColor(a.status),
 
             borderColor:
-                appointmentStatusColors[a.status] ||
-                appointmentStatusColors.scheduled,
+                schedulerEventColor(a.status),
 
             textColor: '#ffffff',
 
