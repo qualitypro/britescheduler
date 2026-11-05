@@ -780,7 +780,7 @@ require __DIR__.'/partials/app_header.php';
 </style>
 
 <link rel="stylesheet"
-      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89h'))?>">
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89i'))?>">
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'), ENT_QUOTES, 'UTF-8')?>">
 
@@ -3574,18 +3574,27 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             expandedEvent = {element, placeholder, style, focusTarget, extra};
             element.classList.add('brite-event-expanded');
             element.setAttribute('aria-expanded', 'true');
-            const width = Math.min(360, Math.max(245, rect.width), window.innerWidth - 20);
+            // Let the original event grow to its natural content height.
+            // If details are unusually long, scale the whole expanded card
+            // to fit the viewport rather than adding an inner scrollbar.
+            const margin = 10;
+            const width = Math.min(460, Math.max(285, rect.width), window.innerWidth - margin * 2);
             element.style.setProperty('width', width + 'px', 'important');
-            element.style.setProperty('height', 'auto', 'important');
-            element.style.setProperty('min-height', '115px', 'important');
-            element.style.setProperty('max-height', 'min(65dvh, 440px)', 'important');
-            const height = element.getBoundingClientRect().height;
-            const left = Math.max(10, Math.min(rect.left, window.innerWidth - width - 10));
-            const top = rect.top + height <= window.innerHeight - 10
-                ? rect.top
-                : Math.max(10, window.innerHeight - height - 10);
+            element.style.setProperty('height', 'max-content', 'important');
+            element.style.setProperty('min-height', '0', 'important');
+            element.style.setProperty('max-height', 'none', 'important');
+            element.style.setProperty('overflow', 'visible', 'important');
+            element.style.setProperty('transform-origin', 'top left', 'important');
+            element.style.setProperty('transform', 'none', 'important');
+            const naturalHeight = element.getBoundingClientRect().height;
+            const scale = Math.min(1, (window.innerHeight - margin * 2) / Math.max(1, naturalHeight));
+            const visibleWidth = width * scale;
+            const visibleHeight = naturalHeight * scale;
+            const left = Math.max(margin, Math.min(rect.left, window.innerWidth - visibleWidth - margin));
+            const top = Math.max(margin, Math.min(rect.top, window.innerHeight - visibleHeight - margin));
             element.style.setProperty('left', left + 'px', 'important');
             element.style.setProperty('top', top + 'px', 'important');
+            element.style.setProperty('transform', 'scale(' + scale + ')', 'important');
             if (focusTarget) element.focus({preventScroll:true});
         }
         function scheduleEventPreview(info) {
