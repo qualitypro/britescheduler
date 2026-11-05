@@ -31,7 +31,9 @@ try {
  $config=$body['config']??null;
  if(!is_array($config))throw new InvalidArgumentException('Invalid view configuration');
  $metrics=$config['metrics']??null;$interval=$config['interval']??null;
- if(!is_array($metrics)||count($metrics)<1||count($metrics)>8||!in_array($interval,['day','week','month'],true))throw new InvalidArgumentException('Invalid series selection');
+ if(!is_array($metrics)||!array_is_list($metrics)||count($metrics)<1||count($metrics)>8||!in_array($interval,['day','week','month'],true))throw new InvalidArgumentException('Invalid series selection');
+ if(count(array_unique($metrics,SORT_REGULAR))!==count($metrics))throw new InvalidArgumentException('Duplicate metrics are not allowed');
+ if(str_starts_with($name,'Financial · ') && count($metrics)>6)throw new InvalidArgumentException('Financial views support up to six series');
  foreach($metrics as $metric){if(!is_string($metric)||!preg_match('/^[a-z][a-z0-9_.-]{1,100}$/D',$metric))throw new InvalidArgumentException('Invalid metric key');}
  foreach(['from','to'] as $field){$date=(string)($config[$field]??'');$dt=DateTimeImmutable::createFromFormat('!Y-m-d',$date);if(!$dt||$dt->format('Y-m-d')!==$date)throw new InvalidArgumentException('Invalid date');}
  if($config['from']>$config['to']||(new DateTimeImmutable($config['from']))->diff(new DateTimeImmutable($config['to']))->days>730)throw new InvalidArgumentException('Date range must be 0–730 days');
