@@ -21,8 +21,8 @@ function activeRecipient(PDO $db,int $tid,int $uid): bool {
  $q->execute([$tid,$uid]);return (bool)$q->fetchColumn();
 }
 if($method==='GET'&&$action==='list'){
- $q=$db->prepare('SELECT t.id,t.subject,t.updated_at,(SELECT COUNT(*) FROM module_messages m WHERE m.thread_id=t.id AND m.tenant_id=t.tenant_id AND m.sender_id<>? AND m.id>COALESCE(p.last_read_message_id,0)) unread FROM module_message_threads t JOIN module_message_participants p ON p.thread_id=t.id AND p.tenant_id=t.tenant_id WHERE t.tenant_id=? AND p.user_id=? ORDER BY t.updated_at DESC,t.id DESC LIMIT 100');
- $q->execute([$uid,$tid,$uid]);
+ $q=$db->prepare('SELECT t.id,t.subject,t.updated_at,(SELECT COUNT(*) FROM module_messages m WHERE m.thread_id=t.id AND m.tenant_id=t.tenant_id AND m.sender_id<>? AND m.id>COALESCE(p.last_read_message_id,0)) unread, (SELECT m.body FROM module_messages m WHERE m.tenant_id=t.tenant_id AND m.thread_id=t.id ORDER BY m.id DESC LIMIT 1) last_body, (SELECT GROUP_CONCAT(CONCAT(u.first_name,' ',u.last_name) ORDER BY u.first_name SEPARATOR ', ') FROM module_message_participants otherp JOIN users u ON u.id=otherp.user_id WHERE otherp.thread_id=t.id AND otherp.tenant_id=t.tenant_id AND otherp.user_id<>?) other_names FROM module_message_threads t JOIN module_message_participants p ON p.thread_id=t.id AND p.tenant_id=t.tenant_id WHERE t.tenant_id=? AND p.user_id=? ORDER BY t.updated_at DESC,t.id DESC LIMIT 100');
+ $q->execute([$uid,$uid,$tid,$uid]);
  json_response(['ok'=>true,'threads'=>$q->fetchAll()]);
 }
 if($method==='GET'&&$action==='recipients'){
@@ -33,8 +33,8 @@ if($method==='GET'&&$action==='thread'){
  $thread=filter_var($_GET['thread_id']??null,FILTER_VALIDATE_INT);
  if(!$thread||$thread<1)json_response(['error'=>'Invalid conversation'],422);
  threadAccess($db,$tid,$uid,$thread);
- $q=$db->prepare('SELECT m.id,m.sender_id,m.body,m.created_at,u.first_name,u.last_name FROM module_messages m JOIN users u ON u.id=m.sender_id WHERE m.tenant_id=? AND m.thread_id=? ORDER BY m.id DESC LIMIT 100');
- $q->execute([$tid,$thread]);$messages=array_reverse($q->fetchAll());
+ $q=$db->prepare('SELECT m.id,m.sender_id,m.body,m.created_at,u.first_name,u.last_name, (m.sender_id=?) mine FROM module_messages m JOIN users u ON u.id=m.sender_id WHERE m.tenant_id=? AND m.thread_id=? ORDER BY m.id DESC LIMIT 100');
+ $q->execute([$uid,$tid,$thread]);$messages=array_reverse($q->fetchAll());
  $last=$messages?(int)end($messages)['id']:0;
  if($last){$q=$db->prepare('UPDATE module_message_participants SET last_read_message_id=GREATEST(COALESCE(last_read_message_id,0),?) WHERE tenant_id=? AND thread_id=? AND user_id=?');$q->execute([$last,$tid,$thread,$uid]);}
  json_response(['ok'=>true,'messages'=>$messages]);
