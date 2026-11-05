@@ -74,11 +74,19 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
 #msgReply{margin-top:9px!important}
 #msgReply .msg-actions{justify-content:flex-end}
 @media(max-width:760px){.msg-workspace{grid-template-columns:1fr;min-height:0}.msg-history{max-height:310px}.msg-pane{padding:10px}}
+
+.msg-tabs{display:flex;gap:4px;border-bottom:1px solid #cbd5e1}.msg-tab{border:0!important;border-bottom:3px solid transparent!important;border-radius:6px 6px 0 0!important;background:transparent!important;color:inherit!important;padding:9px 14px!important;font-weight:600}.msg-tab[aria-selected="true"]{border-bottom-color:#2563eb!important;background:rgba(37,99,235,.08)!important}.msg-tab:focus-visible{outline:2px solid #2563eb}.msg-tabpanel[hidden]{display:none!important}#msgOwnerReview{border:0;padding:4px 0}
 </style>
 <section class="card" data-brite-pills="off" style="display:grid;gap:10px">
  <div><h1 style="margin:0 0 4px">Messages</h1><p class="muted" style="margin:0;font-size:.85rem">Private conversations within your organization. Clients and contractors can contact the tenant owner by default; direct client–contractor messaging becomes available after a quote request or scheduled assignment.</p></div>
  <p id="msgStatus" role="status" aria-live="polite"></p>
- <div class="msg-workspace">
+<?php if($tenant['role']==='owner'): ?>
+ <div class="msg-tabs" role="tablist" aria-label="Messaging views">
+ <button type="button" class="msg-tab" id="msgTabInbox" role="tab" aria-controls="msgPanelInbox" aria-selected="true" tabindex="0">My messages</button>
+ <button type="button" class="msg-tab" id="msgTabReview" role="tab" aria-controls="msgOwnerReview" aria-selected="false" tabindex="-1">Tenant conversation review</button>
+ </div>
+ <?php endif; ?>
+ <div id="msgPanelInbox" class="msg-workspace msg-tabpanel" <?php if($tenant['role']==='owner'): ?>role="tabpanel" aria-labelledby="msgTabInbox"<?php endif; ?>>
   <aside class="msg-pane" aria-label="Conversations">
    <div class="msg-toolbar"><h2>Inbox</h2><button id="msgRefresh" type="button" class="msg-secondary" title="Refresh conversations">↻ Refresh</button></div>
    <button id="msgNew" type="button" class="msg-primary" style="width:100%;margin-bottom:8px">+ New conversation</button><label for="msgThreadSearch" class="brite-sr-only">Search conversations</label><input id="msgThreadSearch" type="search" placeholder="Find a conversation…" autocomplete="off">
@@ -105,7 +113,7 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
   </div>
  </div>
  <?php if($tenant['role']==='owner'): ?>
- <section class="msg-pane" id="msgOwnerReview" aria-label="Tenant conversation review">
+ <section class="msg-pane msg-tabpanel" id="msgOwnerReview" role="tabpanel" aria-labelledby="msgTabReview" aria-label="Tenant conversation review" hidden>
   <h2>Tenant conversation review</h2>
   <p class="muted">Owner-only, read-only review of conversations in this tenant. Reviews are recorded in an internal audit log and do not mark participants' messages as read.</p>
   <label>Find a conversation <input id="msgReviewSearch" type="search" placeholder="Search participants or subject" style="width:100%;box-sizing:border-box"></label>
@@ -114,6 +122,28 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
    <div><h3 id="msgReviewHeading">Select a conversation</h3><div id="msgReviewMessages" class="msg-history"><p>Select a thread to inspect the exchange.</p></div></div>
   </div>
  </section>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+ const tabs=[document.getElementById('msgTabInbox'),document.getElementById('msgTabReview')];
+ const panels=[document.getElementById('msgPanelInbox'),document.getElementById('msgOwnerReview')];
+ function activate(index,focus){
+  tabs.forEach(function(tab,i){tab.setAttribute('aria-selected',i===index?'true':'false');tab.tabIndex=i===index?0:-1;panels[i].hidden=i!==index;});
+  if(focus)tabs[index].focus();
+ }
+ tabs.forEach(function(tab,index){
+  tab.addEventListener('click',function(){activate(index,false);});
+  tab.addEventListener('keydown',function(event){
+   let next;
+   if(event.key==='ArrowRight')next=(index+1)%tabs.length;
+   else if(event.key==='ArrowLeft')next=(index+tabs.length-1)%tabs.length;
+   else if(event.key==='Home')next=0;
+   else if(event.key==='End')next=tabs.length-1;
+   else return;
+   event.preventDefault();activate(next,true);
+  });
+ });
+});
+</script>
  <script defer src="<?=htmlspecialchars(app_url('/modules/messaging/owner-review.js?v=75c'),ENT_QUOTES,'UTF-8')?>"></script>
  <?php endif; ?>
  <details><summary>Notification preferences</summary><label style="display:flex;gap:10px;align-items:center;margin-top:12px"><input type="checkbox" id="msgInApp"> Enable in-app message notifications</label><p class="muted">This setting is saved for your account and tenant. Email and SMS delivery are not enabled in this version.</p></details>
