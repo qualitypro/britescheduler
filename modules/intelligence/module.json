@@ -1,0 +1,14 @@
+{
+  "key": "intelligence",
+  "name": "Brite Intelligence",
+  "menu_label": "Intelligence",
+  "version": "0.1.0",
+  "description": "Tenant-scoped analytics workspace and extensible metric catalog.",
+  "page": "index.php",
+  "roles": [
+    "owner",
+    "admin",
+    "scheduler",
+    "accounting"
+  ]
+}
