@@ -32,7 +32,44 @@ try {
    if($id && !$checkLink($table,'id',$id))throw new RuntimeException('Invalid or inaccessible linked record.');
    return $id?:null;
   };
-  if($action==='segment_create'){
+  if($action==='smart_settings'){
+   require_once dirname(__DIR__,2).'/app/CrmSmartSegments.php';
+   foreach(['repeat_min'=>[2,100],'inactive_days'=>[7,730],'high_value_min'=>[1,10000000]] as $key=>$range){
+    $value=filter_var($_POST[$key]??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>$range[0],'max_range'=>$range[1]]]);
+    if($value===false)throw new RuntimeException('Invalid setting: '.$key);
+    $q=$db->prepare('INSERT INTO crm_smart_settings(tenant_id,setting_key,setting_value) VALUES(?,?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)');
+    $q->execute([$tid,$key,$value]);
+   }
+  }elseif($action==='smart_campaign'){
+   require_once dirname(__DIR__,2).'/app/CrmSmartSegments.php';
+   $rule=(string)($_POST['smart_rule']??'');
+   $settings=CrmSmartSegments::settings($db,$tid);
+   if(!isset(CrmSmartSegments::rules($settings)[$rule]))throw new RuntimeException('Invalid smart segment.');
+   $template=$link('template_id','crm_followup_templates');
+   if(!$template)throw new RuntimeException('Choose a follow-up template.');
+   $q=$db->prepare('SELECT body,delay_days FROM crm_followup_templates WHERE tenant_id=? AND id=?');
+   $q->execute([$tid,$template]);$tpl=$q->fetch(PDO::FETCH_ASSOC);
+   if(!$tpl)throw new RuntimeException('Template unavailable.');
+   $recipients=CrmSmartSegments::customers($db,$tid,$rule,$settings,101);
+   if(count($recipients)>100)throw new RuntimeException('This segment has over 100 matching customers. Narrow the segment before scheduling.');
+   if(!$recipients)throw new RuntimeException('No matching customers for this segment.');
+   $due=(new DateTimeImmutable('today'))->modify('+'.(int)$tpl['delay_days'].' days')->format('Y-m-d');
+   $db->beginTransaction();
+   try{
+    $q=$db->prepare('INSERT INTO crm_followup_campaigns(tenant_id,segment_key,template_id,recipients,created_by) VALUES(?,?,?,?,?)');
+    $q->execute([$tid,$rule,$template,count($recipients),$uid]);
+    $campaign=(int)$db->lastInsertId();
+    $activity=$db->prepare("INSERT INTO crm_activities(tenant_id,client_id,kind,body,due_at,created_by) VALUES(?,?,'follow_up',?,?,?)");
+    $mapping=$db->prepare('INSERT INTO crm_campaign_tasks(tenant_id,campaign_id,client_id,activity_id) VALUES(?,?,?,?)');
+    foreach($recipients as $recipient){
+     $client=(int)$recipient['id'];
+     $activity->execute([$tid,$client,$tpl['body'],$due,$uid]);
+     $mapping->execute([$tid,$campaign,$client,(int)$db->lastInsertId()]);
+    }
+    $db->commit();
+   }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+   $flash='Created '.count($recipients).' follow-up tasks.';
+  }elseif($action==='segment_create'){
    $name=$required('name',100);$description=$optional('description',500);
    $q=$db->prepare('INSERT INTO crm_segments(tenant_id,name,description,created_by) VALUES(?,?,?,?)');
    $q->execute([$tid,$name,$description,$uid]);
