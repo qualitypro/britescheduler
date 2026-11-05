@@ -780,7 +780,7 @@ require __DIR__.'/partials/app_header.php';
 </style>
 
 <link rel="stylesheet"
-      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89f'))?>">
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89g'))?>">
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'), ENT_QUOTES, 'UTF-8')?>">
 
@@ -3505,6 +3505,95 @@ document.addEventListener('DOMContentLoaded',async ()=>{
 
         const use24HourTime = calendarPreferences.time_format === '24h';
 
+        // Cycle 89G: accessible, viewport-aware preview for compact events.
+        // The preview is attached to the document, not the clipped grid cell.
+        const eventPreview = document.createElement('div');
+        eventPreview.className = 'brite-calendar-event-preview';
+        eventPreview.setAttribute('role', 'tooltip');
+        eventPreview.hidden = true;
+        document.body.appendChild(eventPreview);
+        let previewAnchor = null;
+        let previewTimer = 0;
+
+        function dismissEventPreview() {
+            clearTimeout(previewTimer);
+            previewAnchor = null;
+            eventPreview.hidden = true;
+            eventPreview.replaceChildren();
+        }
+        function positionEventPreview(anchor) {
+            if (!anchor || eventPreview.hidden) return;
+            const rect = anchor.getBoundingClientRect();
+            const width = eventPreview.offsetWidth;
+            const height = eventPreview.offsetHeight;
+            const margin = 10;
+            const left = Math.max(margin, Math.min(
+                rect.left, window.innerWidth - width - margin
+            ));
+            const below = rect.bottom + margin;
+            const top = below + height <= window.innerHeight - margin
+                ? below
+                : Math.max(margin, rect.top - height - margin);
+            eventPreview.style.left = left + 'px';
+            eventPreview.style.top = top + 'px';
+        }
+        function isCompactCalendarEvent(element) {
+            const content = element.querySelector('.brite-calendar-event');
+            if (!content) return false;
+            const clipped = content.scrollHeight > content.clientHeight + 2 ||
+                content.scrollWidth > content.clientWidth + 2 ||
+                element.scrollHeight > element.clientHeight + 2;
+            const shortEvent = element.getBoundingClientRect().height < 80;
+            const truncatedText = Array.from(content.querySelectorAll('*'))
+                .some(node => node.scrollWidth > node.clientWidth + 2 ||
+                    node.scrollHeight > node.clientHeight + 2);
+            return clipped || shortEvent || truncatedText;
+        }
+        function showEventPreview(info) {
+            const anchor = info.el;
+            if (!isCompactCalendarEvent(anchor)) return;
+            const a = info.event.extendedProps || {};
+            const rows = [
+                ['Appointment', a.title || a.service_name || info.event.title || 'Appointment'],
+                ['Time', appointmentDetailsDate(info.event.start) +
+                    (info.event.end ? ' – ' + appointmentDetailsDate(info.event.end) : '')],
+                ['Status', appointmentStatusLabel(a.status)]
+            ];
+            const client = [a.client_first, a.client_last].filter(Boolean).join(' ');
+            if (client && BRITE_CALENDAR_ROLE !== 'client') rows.push(['Client', client]);
+            if (a.service_name) rows.push(['Service', a.service_name]);
+            if (a.location) rows.push(['Location', a.location]);
+            if (['owner','admin','scheduler'].includes(BRITE_CALENDAR_ROLE)) {
+                const contractors = appointmentContractorNames(a);
+                if (contractors.length) rows.push(['Contractors', contractors.join(', ')]);
+            }
+            const heading = document.createElement('strong');
+            heading.textContent = 'Appointment details';
+            const list = document.createElement('dl');
+            for (const [label, value] of rows) {
+                const dt = document.createElement('dt');
+                const dd = document.createElement('dd');
+                dt.textContent = label;
+                dd.textContent = value;
+                list.append(dt, dd);
+            }
+            eventPreview.replaceChildren(heading, list);
+            previewAnchor = anchor;
+            eventPreview.hidden = false;
+            positionEventPreview(anchor);
+        }
+        function scheduleEventPreview(info) {
+            clearTimeout(previewTimer);
+            previewTimer = setTimeout(() => {
+                if (info.el.isConnected) showEventPreview(info);
+            }, 180);
+        }
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') dismissEventPreview();
+        });
+        window.addEventListener('scroll', dismissEventPreview, true);
+        window.addEventListener('resize', dismissEventPreview, {passive:true});
+
         calendar=new FullCalendar.Calendar(
             document.getElementById('calendar'),
             {
@@ -3525,6 +3614,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                 scrollTimeReset: false,
                 stickyHeaderDates: false,
                 datesSet: () => requestAnimationFrame(() => {
+                    dismissEventPreview();
                     if (typeof queueCalendarFit === 'function') queueCalendarFit();
                 }),
                 firstDay: calendarPreferences.week_starts_on === 'monday' ? 1 : 0,
@@ -3590,6 +3680,8 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                     info.el.setAttribute('aria-label', lines.join('. '));
                 },
 
+                eventMouseEnter: scheduleEventPreview,
+                eventMouseLeave: dismissEventPreview,
                 eventContent:calendarEventContent,
                 eventDisplay:'block',
                 displayEventEnd:false,
@@ -3630,6 +3722,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                 },
 
                 eventClick:info=>{
+                    dismissEventPreview();
                     showAppointmentDetails(info.event);
                 }
             }
