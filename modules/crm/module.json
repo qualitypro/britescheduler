@@ -1,0 +1,13 @@
+{
+  "key": "crm",
+  "name": "Customer Relationship Management",
+  "version": "1.0.0",
+  "description": "Tenant-isolated customer records, leads, opportunities, follow-ups and activity timeline.",
+  "menu_label": "CRM",
+  "page": "page.php",
+  "roles": [
+    "owner",
+    "admin",
+    "scheduler"
+  ]
+}
