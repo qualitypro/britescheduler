@@ -2,8 +2,8 @@
   "key": "intelligence",
   "name": "Brite Intelligence",
   "menu_label": "Intelligence",
-  "version": "0.1.0",
-  "description": "Tenant-scoped analytics workspace and extensible metric catalog.",
+  "version": "0.3.0",
+  "description": "Tenant-scoped core BI metric series, responsive charts, local saved view and image/PDF exports; advanced analytics and plugin providers forthcoming.",
   "page": "index.php",
   "roles": [
     "owner",
