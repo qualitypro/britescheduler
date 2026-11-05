@@ -617,7 +617,7 @@ if(finTab){
  async function loadFinancial(){
   const seq=++finSeq;if(finRequest)finRequest.abort();finRequest=new AbortController();
   const options=finOptions();
-  if(!options.metrics.length){finCurrent=null;['biFinPng','biFinJpg','biFinPdf'].forEach(id=>$(id).disabled=true);renderFinancial();renderFinancialDetails();renderFinancialForecast();$('biFinStatus').textContent='Select a financial metric.';return}
+  if(!options.metrics.length){finCurrent=null;['biFinPng','biFinJpg','biFinPdf','biFinCsv'].forEach(id=>$(id).disabled=true);renderFinancial();renderFinancialDetails();renderFinancialForecast();$('biFinStatus').textContent='Select a financial metric.';return}
   $('biFinStatus').textContent='Loading financial metrics…';
   try{
    const query=new URLSearchParams({...options,metrics:options.metrics.join(',')});
@@ -626,7 +626,7 @@ if(finTab){
    if(!response.ok)throw Error(data.error||'Unable to load financial metrics');
    if(seq!==finSeq)return;
    finCurrent=data;finLoaded=true;renderFinancial();renderFinancialDetails();renderFinancialForecast();
-   ['biFinPng','biFinJpg','biFinPdf'].forEach(id=>$(id).disabled=false);
+   ['biFinPng','biFinJpg','biFinPdf','biFinCsv'].forEach(id=>$(id).disabled=false);
    $('biFinStatus').textContent='Loaded '+data.series.length+' dollar-valued series · '+data.from+' through '+data.to;
   }catch(error){if(seq===finSeq&&error.name!=='AbortError')$('biFinStatus').textContent=error.message}
  }
