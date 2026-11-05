@@ -227,6 +227,7 @@ section.bi-workspace .bi-fin-table{max-width:100%}
    <div id="biFinLegend" class="bi-legend"></div>
    <p id="biFinNote" class="bi-note"></p>
   </div>
+  <div class="bi-panel"><div class="bi-compare-heading"><h2>Next-period outlook</h2><label><input id="biFinForecastEnabled" type="checkbox"> Show simple trend projection</label></div><p class="bi-note" id="biFinForecastNote">Enable to estimate the next reporting period from recent historical values.</p><div class="bi-fin-table"><table id="biFinForecastTable"><thead></thead><tbody></tbody></table></div></div>
   <div class="bi-panel"><h2>Financial series · dollar values</h2><div class="bi-fin-table"><table id="biFinTable"><thead></thead><tbody></tbody></table></div></div>
  </div>
  <?php endif; ?>
@@ -546,6 +547,27 @@ if(finTab){
   });
   ctx.textAlign='left';
  }
+ function renderFinancialForecast(){
+  const table=$('biFinForecastTable'),head=table.tHead||table.createTHead(),body=table.tBodies[0]||table.createTBody();
+  head.replaceChildren();body.replaceChildren();
+  if(!$('biFinForecastEnabled').checked||!finCurrent?.series?.length)return;
+  const heading=head.insertRow();
+  ['Series','Latest period','3-period average','Next-period estimate'].forEach(label=>{const th=document.createElement('th');th.textContent=label;heading.append(th)});
+  finCurrent.series.forEach(series=>{
+   const buckets=[...new Set(finCurrent.series.flatMap(s=>s.points.map(p=>p.bucket)))].sort();
+   const values=new Map(series.points.map(p=>[p.bucket,Number(p.value||0)]));
+   const recent=buckets.slice(-3).map(bucket=>values.get(bucket)||0);
+   if(!recent.length)return;
+   const latest=recent[recent.length-1],average=recent.reduce((a,b)=>a+b,0)/recent.length;
+   const row=body.insertRow();
+   [series.name,usd(latest),usd(average),usd(Math.max(0,average))].forEach(label=>row.insertCell().textContent=label);
+  });
+  $('biFinForecastNote').textContent='Illustrative next-period estimate = arithmetic mean of the latest '+Math.min(3,new Set(finCurrent.series.flatMap(s=>s.points.map(p=>p.bucket))).size)+' reporting buckets, treating missing buckets as zero. No seasonality or confidence interval. Outstanding balances and opportunity valuations are snapshots/cohorts, so projections should not be interpreted as expected cash receipts.';
+ }
+ $('biFinForecastEnabled').addEventListener('change',()=>{
+  if(!$('biFinForecastEnabled').checked)$('biFinForecastNote').textContent='Projection disabled.';
+  renderFinancialForecast();
+ });
  function renderFinancialDetails(){
   const totals=$('biFinTotals'),legend=$('biFinLegend'),table=$('biFinTable');
   totals.replaceChildren();legend.replaceChildren();table.tHead?.replaceChildren();table.tBodies[0]?.replaceChildren();
@@ -573,7 +595,7 @@ if(finTab){
  async function loadFinancial(){
   const seq=++finSeq;if(finRequest)finRequest.abort();finRequest=new AbortController();
   const options=finOptions();
-  if(!options.metrics.length){finCurrent=null;['biFinPng','biFinJpg','biFinPdf'].forEach(id=>$(id).disabled=true);renderFinancial();renderFinancialDetails();$('biFinStatus').textContent='Select a financial metric.';return}
+  if(!options.metrics.length){finCurrent=null;['biFinPng','biFinJpg','biFinPdf'].forEach(id=>$(id).disabled=true);renderFinancial();renderFinancialDetails();renderFinancialForecast();$('biFinStatus').textContent='Select a financial metric.';return}
   $('biFinStatus').textContent='Loading financial metrics…';
   try{
    const query=new URLSearchParams({...options,metrics:options.metrics.join(',')});
@@ -581,7 +603,7 @@ if(finTab){
    const data=await response.json();
    if(!response.ok)throw Error(data.error||'Unable to load financial metrics');
    if(seq!==finSeq)return;
-   finCurrent=data;finLoaded=true;renderFinancial();renderFinancialDetails();
+   finCurrent=data;finLoaded=true;renderFinancial();renderFinancialDetails();renderFinancialForecast();
    ['biFinPng','biFinJpg','biFinPdf'].forEach(id=>$(id).disabled=false);
    $('biFinStatus').textContent='Loaded '+data.series.length+' dollar-valued series · '+data.from+' through '+data.to;
   }catch(error){if(seq===finSeq&&error.name!=='AbortError')$('biFinStatus').textContent=error.message}
