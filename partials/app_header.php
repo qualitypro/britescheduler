@@ -116,6 +116,56 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+<script>
+/* Preserve the navigation viewport when a sidebar link loads another page.
+   Restore only for a sidebar-initiated navigation in this browser tab. */
+(function(){
+    const key='brite.sidebar.pendingScroll.v1';
+    const navSelector='#briteSidebar .brite-sidebar-nav';
+    const sidebarSelector='#briteSidebar';
+    const scrollPosition=(el)=>({top:el.scrollTop,left:el.scrollLeft});
+    const restore=(el,position)=>{
+        if(!el||!position)return;
+        el.scrollTop=Number(position.top)||0;
+        el.scrollLeft=Number(position.left)||0;
+    };
+    document.addEventListener('DOMContentLoaded',function(){
+        const sidebar=document.querySelector(sidebarSelector);
+        const nav=document.querySelector(navSelector);
+        if(!sidebar||!nav)return;
+        try{
+            const raw=sessionStorage.getItem(key);
+            if(raw){
+                sessionStorage.removeItem(key);
+                const saved=JSON.parse(raw);
+                if(saved&&saved.destination===location.pathname+location.search){
+                    restore(sidebar,saved.sidebar);
+                    restore(nav,saved.nav);
+                    // Allow layout/font sizing to settle without a smooth scroll animation.
+                    requestAnimationFrame(()=>{restore(sidebar,saved.sidebar);restore(nav,saved.nav)});
+                }
+            }
+        }catch(_error){/* Storage may be disabled; navigation still works. */}
+        sidebar.addEventListener('click',function(event){
+            const link=event.target.closest('a[href]');
+            if(!link||!sidebar.contains(link)||event.defaultPrevented||
+               event.button!==0||event.metaKey||event.ctrlKey||
+               event.shiftKey||event.altKey||link.hasAttribute('download')||
+               (link.target&&link.target!=='_self'))return;
+            let destination;
+            try{destination=new URL(link.href,location.href)}catch(_error){return}
+            if(destination.origin!==location.origin)return;
+            try{
+                sessionStorage.setItem(key,JSON.stringify({
+                    destination:destination.pathname+destination.search,
+                    sidebar:scrollPosition(sidebar),
+                    nav:scrollPosition(nav)
+                }));
+            }catch(_error){/* Storage may be disabled. */}
+        });
+    });
+})();
+</script>
 <script defer src="<?=htmlspecialchars(app_url('/assets/js/brite-photo-lightbox.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <style>
 .brite-msg-alert{position:relative;display:flex;align-items:center}.brite-msg-alert>button{display:flex;gap:7px;align-items:center;background:transparent;color:inherit;border:1px solid currentColor;border-radius:9px;padding:8px 10px}.brite-msg-alert #briteMsgCount{border-radius:20px;background:#dc2626;color:white;font-weight:700;padding:2px 7px;font-size:.75rem}.brite-msg-alert #briteMsgDropdown{position:absolute;right:0;top:calc(100% + 8px);z-index:1000;width:min(320px,85vw);max-height:350px;overflow:auto;background:white;color:#172033;border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 12px 25px #0003;padding:14px}.brite-msg-alert #briteMsgDropdown a{display:block;margin-top:10px}.brite-msg-alert .brite-msg-item{display:block;padding:9px 0;border-bottom:1px solid #e5e7eb;text-decoration:none;color:#172033}.brite-msg-alert .brite-msg-item small{display:block;color:#64748b}
