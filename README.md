@@ -8,7 +8,7 @@
 
 `PHP` · `MariaDB` · `JavaScript` · `HTML/CSS` · `Multi-Tenant Architecture`
 
-**Documentation version:** v1.2 · **Repository:** [qualitypro/britescheduler](https://github.com/qualitypro/britescheduler)
+**Documentation version:** v1.3 · **Repository:** [qualitypro/britescheduler](https://github.com/qualitypro/britescheduler)
 
 </div>
 
@@ -26,7 +26,6 @@
 - [🔌 API overview](#-api-overview)
 - [⚙️ Installation and configuration](#️-installation-and-configuration)
 - [🔐 Security model](#-security-model)
-- [🧪 Testing and validation](#-testing-and-validation)
 - [🗺️ Roadmap](#️-roadmap)
 - [🤝 Contributing and licensing](#-contributing-and-licensing)
 
@@ -36,7 +35,7 @@
 
 A **tenant** represents a business or organization. Tenant-scoped data and role-based access help separate each organization's operational records. The server resolves tenant membership from the authenticated session rather than trusting a tenant identifier supplied by the browser.
 
-> **Project scope:** This README reflects reviewed implementation files on `main` as of November 3, 2026, including the recent UI, Activity Hub, and Trends changes. Feature descriptions refer to source implementation, not a production certification. Some workflows still require authenticated browser and regression testing.
+> **Project scope:** This guide describes Brite Scheduler's application capabilities and configuration on the `feature/cycle88-crm-responsive-workspaces` development branch. Availability of optional modules depends on tenant activation and role permissions.
 
 ## ✨ Features
 
@@ -49,13 +48,13 @@ A **tenant** represents a business or organization. Tenant-scoped data and role-
 - Booking request idempotency to reduce accidental duplicate submissions.
 - Client and contractor dashboards tailored to their workflows.
 
-### 🪪 Cycle 71A — Contractor profile builder
+### 🪪 Contractor profiles and portfolios
 
 Contractors can edit their own professional headline, biography, specialties, years of experience, and HTTPS portfolio URL from `contractor-profile.php` (linked from the contractor dashboard). The `api/my_contractor_profile.php` GET/PUT endpoint resolves the active contractor from the authenticated tenant/user session, validates inputs, and requires CSRF protection for updates. No user-supplied contractor ID is accepted for profile edits.
 
 Apply **`migrations/020_contractor_profiles.sql` once** before opening the editor. It adds a separate tenant-scoped profile table without changing existing contractor rows. The existing `api/marketplace_contractor_profile.php` adds these fields only **after** its existing appointment/bid/assignment authorization check; email and phone remain excluded. The initial release uses the existing account identity, not image uploads.
 
-**Validation status:** PHP and JavaScript syntax checks have been added to the source smoke workflow. Authenticated multi-tenant browser/API testing and migration execution on the local MariaDB instance remain outstanding.
+**Contractor portfolio photos:** Contractors can upload and manage JPEG/PNG portfolio images, subject to authenticated access and tenant restrictions. Portfolio storage requires `migrations/021_contractor_portfolio_photos.sql`, PHP GD, and a writable `BRITE_PRIVATE_UPLOAD_DIR` outside the web document root. The portfolio supports up to 20 images per contractor, 5 MB per image; uploaded images are re-encoded to remove original metadata. Keep the private upload directory and its contents outside version control.
 
 ### 🛠️ Contractor management
 
@@ -67,18 +66,16 @@ Apply **`migrations/020_contractor_profiles.sql` once** before opening the edito
 
 > **Qualification terminology:** A platform-verified service qualification records a tenant-authorized review. It does **not** independently certify a professional license or regulatory compliance.
 
-### 🧭 Smart Dispatch (Cycles 69A–69D)
+### 🧭 Smart Dispatch
 
 The scheduling wizard includes **read-only, advisory contractor recommendations** for owner, admin, and scheduler roles. The recommendation API (`api/contractor_recommendations.php`) requires a tenant-owned saved client location and valid appointment interval; an active service can be supplied to evaluate qualifications and offerings.
 
-- **69A — Service offering and pricing:** show whether a contractor offers the selected service and their configured hourly or flat rate. A missing offering is advisory and is not itself a new assignment prohibition.
-- **69B — Explainable eligibility and geography:** display ZIP/radius matches, straight-line distance from a configured radius center, availability/conflict information, and qualification/service-offering review issues.
-- **69C — Interactive filters:** filter recommendations by dispatch status, verified qualification, confirmed service offering, availability, and a maximum numeric rate. Filtering runs in the browser against the returned recommendation set and does **not** modify ranking or assignment eligibility. Hourly and flat-rate amounts are not directly comparable appointment estimates.
-- **69D — Appointment review integration:** show selected contractors in the final wizard step and request fresh advisory recommendations before save. Review warnings and failed refreshes require explicit user confirmation to continue; the existing scheduling conflict check and appointment API validation still apply. Saving an appointment with no contractor selected remains supported.
+- **Service offering and pricing:** show whether a contractor offers the selected service and their configured hourly or flat rate. A missing offering is advisory and is not itself a new assignment prohibition.
+- **Explainable eligibility and geography:** display ZIP/radius matches, straight-line distance from a configured radius center, availability/conflict information, and qualification/service-offering review issues.
+- **Interactive filters:** filter recommendations by dispatch status, verified qualification, confirmed service offering, availability, and a maximum numeric rate. Filtering runs in the browser against the returned recommendation set and does **not** modify ranking or assignment eligibility. Hourly and flat-rate amounts are not directly comparable appointment estimates.
+- **Appointment review integration:** show selected contractors in the final wizard step and request fresh advisory recommendations before save. Review warnings and failed refreshes require explicit user confirmation to continue; the existing scheduling conflict check and appointment API validation still apply. Saving an appointment with no contractor selected remains supported.
 
 **Important distinctions:** The eligibility engine only recommends active contractors with a matching configured service area; Marketplace bidding has separate rules and can include contractors outside normal coverage/availability. A recommendation score is **not** authorization to assign. The ranking uses qualification (up to 35 points), availability/conflicts (30), geographic match (20), and workload (up to 15). Geographic distance is straight-line, not travel distance. The recommendation endpoint never auto-assigns contractors.
-
-**Validation status:** Cycles 69A–69D have passed local source checks (PHP lint and source presence/merge verification). These checks do not establish authenticated browser, end-to-end, or security regression coverage; those are planned for Cycle 70.
 
 ### 🤝 Marketplace and bidding
 
@@ -102,7 +99,7 @@ The scheduling wizard includes **read-only, advisory contractor recommendations*
 
 - Shared role-aware application header and sidebar, with a **notification indicator beside the signed-in user details** instead of a bottom-corner floating Activity Hub bubble.
 - **Activity Hub drawer** with outstanding/all views, unread counts, dismissal controls, and appointment review links where supported by the notification type. The full Activity Hub page remains available.
-- **Contextual tooltips** for navigation links, buttons, sorting controls, and expandable details, shown on pointer hover or keyboard focus. Known actions have specific descriptions; other labeled controls use generated fallbacks. These have not been individually audited across every page.
+- **Contextual tooltips** for navigation links, buttons, sorting controls, and expandable details, available on pointer hover or keyboard focus.
 - **Progressive value pills** summarize selected or entered form values while preserving the underlying controls and submissions. Users can reopen the editor; screens can opt out using `data-brite-pills="off"`. Dropdown labels exclude their option lists.
 - **Sortable, paginated lists** and expandable directory records where supported. The Contractors directory exposes Contractor, Created On, Last Edited, and Status sortable headings, with Status last. The Clients directory includes client name, email, created/edited timestamps, and status.
 - Persisted UI preferences include palette, calendar view, week start, time format, reduced motion, high contrast, and in-app notifications. Migration `015` defaults new high-contrast preference records to enabled without overriding existing preferences.
@@ -117,7 +114,24 @@ The `trends.php` workspace and `api/trends.php` provide a **rolling three-month 
 - Booked value uses non-void linked invoice totals where available, otherwise catalog service prices. Cancelled and no-show appointments contribute no booked value. **This is an estimate/booking metric, not collected cash or recognized revenue.**
 - Assignment decision counts reflect current assignment states on the appointment's service date, not historical decision timestamps.
 
-**Validation caveat:** Source implementation and syntax checks do not establish that every revenue filter combination has been reconciled against a live tenant database. Verify selected-series totals and overlapping-category deduplication with representative fixtures before using these figures for financial decisions.
+### 📊 Brite Intelligence — performance and financial analytics
+
+The optional **Intelligence** module provides tenant-scoped business intelligence in a compact, responsive workspace with separate icon-labeled **Performance** and **Financial** tabs.
+
+- **Performance:** Compare configurable appointment, operational, client, contractor, and billing series. The comparison chart normalizes each selected series for visualization, while the accompanying table retains actual values.
+- **Financial:** Explore dollar-valued series for payments received, invoices issued, outstanding invoice balances, completed service opportunities, open opportunities, and cancelled/no-show opportunities.
+- **Interactive controls:** Choose a date range, daily/weekly/monthly grouping, and the series to display. Charts, legends, data tables, and financial summary totals refresh automatically as controls change.
+- **Saved views:** Save named chart configurations independently for Performance and Financial, select a saved view to load it immediately, or delete a view when no longer needed.
+- **Exports:** Preview and download either chart as **PNG, JPG, or PDF**.
+- **Accessible interface:** Compact native controls, keyboard-accessible tabs, a dedicated Intelligence navigation icon, and responsive layouts.
+
+Financial data distinguishes **payments received** from **invoiced amounts**. Outstanding balances are current balances for invoices created during the selected period, rather than historical as-of snapshots. Opportunity values are **estimates based on current service list prices**; they are not confirmed quotes, collected revenue, or recognized income. The Financial tab is available to authorized owner, admin, and accounting roles; other Intelligence capabilities follow module permissions.
+
+### 🧩 Optional modules
+
+Brite Scheduler discovers trusted, server-installed modules from the `modules/` directory. Tenant administrators can activate available modules through application settings, with module-defined role access and tenant-scoped authorization. Modules can provide their own pages, navigation entries, APIs, and configuration without requiring every capability to live in the core scheduling interface.
+
+The Intelligence module is one example of this extensible architecture. Module activation is distinct from permission to access an individual feature.
 
 ### 💼 Business operations and billing
 
@@ -178,7 +192,7 @@ The application uses server-rendered PHP entry points, JavaScript for interactiv
 | Database evolution | Numbered SQL migration files |
 | Development environment used by the project | Fedora Linux with a local Apache/PHP/MariaDB stack |
 
-**Version note:** Migration `011_contractor_service_qualifications.sql` explicitly requires **MariaDB 10.4+**. A complete supported PHP/browser/version matrix has not yet been verified.
+**Version note:** Migration `011_contractor_service_qualifications.sql` explicitly requires **MariaDB 10.4+**. Confirm runtime compatibility with your deployment environment.
 
 ## 🗂️ Repository structure
 
@@ -191,10 +205,13 @@ britescheduler/
 ├── docs/                # Additional project documentation
 ├── events/              # Legacy event-related files
 ├── migrations/          # Ordered SQL schema migrations
+├── modules/             # Optional tenant-activated application modules
+│   └── intelligence/    # Performance/financial BI, saved views and exports
 ├── partials/            # Shared application layout components
 ├── setup/               # Initial owner/bootstrap utilities
 ├── .env.example         # Environment variable template
 ├── README-BRITE-V2.md   # Earlier architecture/setup notes
+├── module.php           # Authenticated module entry point
 ├── trends.php           # Booking/scheduling charts and booked value
 ├── activity-hub.php     # Full notification activity view
 ├── contractors.v2.php   # Contractor directory and qualifications
@@ -228,6 +245,8 @@ The schema uses a `tenants` table, user records, tenant memberships, clients, co
 | `017` | Appointment bidding marketplace |
 | `018` | Additional schema changes; inspect the actual migration before applying |
 | `019_contractor_service_offerings.sql` | Tenant-scoped contractor service offerings and hourly/flat-rate pricing |
+| `020_contractor_profiles.sql` | Tenant-scoped contractor professional profiles |
+| `021_contractor_portfolio_photos.sql` | Contractor portfolio image metadata |
 
 **Apply migrations in numeric order** using the project's supported migration workflow. Do not assume all migrations are safe to re-run on an existing database; back up the database first and check the migration history.
 
@@ -250,6 +269,7 @@ The `api/` directory groups HTTP endpoints by capability:
 | Notifications | `user_notifications.php`, `user_notification_read.php`, `owner_notifications.php` |
 | Preferences | `user_preferences.php` |
 | Trends | `trends.php` (rolling booking/assignment series and revenue membership masks) |
+| Intelligence | `modules/intelligence/metrics.php`, `financial.php`, `views.php` (tenant-scoped analytics and personal saved views) |
 
 This is a **directory guide, not a complete public API contract**. HTTP methods, request bodies, response schemas, and permissions should be checked in each endpoint before integration. Authentication is session-based; do not assume these are anonymous/public APIs.
 
@@ -276,9 +296,9 @@ BRITE_ADMIN_PASSWORD='replace-with-a-long-unique-password' \
 ```
 
 6. If using the legacy setup wizard, review its `--activate` option before enabling the v2 pages.
-7. Confirm sign-in, tenant membership, and permissions using non-production test accounts.
+7. Sign in and configure tenant settings, roles, and optional modules as needed.
 
-> **Important:** The precise wizard invocation, required PHP extensions, deployment configuration, and migration runner behavior need source-level verification before this section can be treated as a production installation guide. Do not run schema changes against live data without a tested backup and rollback plan.
+> **Important:** Review deployment settings and migration requirements for your environment. Back up application data before applying schema changes.
 
 ### Environment variables
 
@@ -308,48 +328,15 @@ Geocoding and initial-admin settings may be referenced by additional PHP environ
 - Restricted bid visibility for eligible statuses, excluding withdrawn bids.
 - No storage of payment-card credentials in the accounting ledger.
 
-**Security disclaimer:** Architectural safeguards and passing development tests are not substitutes for a full production security assessment. Review session settings, HTTPS, secrets management, deployment hardening, and access-control coverage before public deployment.
-
-## 🧪 Testing and validation
-
-Development verification has included PHP syntax checks, Git diff/merge checks, browser integration checks, and authorization regression tests. Recent shared UI changes include JavaScript syntax validation but have **not** received a documented full cross-role, cross-browser interaction audit. In the Marketplace development cycle, an existing-fixture regression passed **11/11 checks** covering authorized client profile access, unauthorized client/tenant access, and eligible bid visibility.
-
-**Known testing gap:** Dedicated negative fixture tests for a *rejected-bid-only* relationship and a *declined-assignment-only* relationship remain outstanding. These authorization conditions are restricted in the implementation, but should be explicitly tested before treating the coverage as complete.
-
-Cycles 69A–69D were verified through Git fast-forward, PHP syntax checks, and source inspection in the local Fedora environment. **This is not equivalent to functional or security testing.** In particular, verify filtered cards, selected-contractor review, cancellation of warning confirmations, stale request handling, and the API's server-side assignment policy using authenticated tenant fixtures.
-
-### Automated source smoke checks (roadmap milestone)
-
-The repository includes `scripts/ci-smoke.sh` and `.github/workflows/source-smoke.yml`. The workflow runs on pushes to `main`, pull requests, and manual dispatch using PHP 8.2 and Node.js 22. It syntax-checks a maintained set of PHP entry points/API endpoints and shared JavaScript files, and runs dependency-free Smart Dispatch request validation unit tests (`tests/dispatch_request_test.php`).
-
-Run the same checks locally from the repository root:
-
-```bash
-bash scripts/ci-smoke.sh
-```
-
-To use the local LAMPP PHP binary: `PHP_BIN=/opt/lampp/bin/php bash scripts/ci-smoke.sh`.
-
-**Scope:** This is a dependency-free syntax smoke check, not a complete test suite. It does not start MariaDB, authenticate users, test browser interaction, or validate cross-tenant authorization. The GitHub Actions workflow is committed, but successful execution must be confirmed in the Actions tab.
+**Security disclaimer:** Architectural safeguards are not substitutes for a full production security assessment. Review session settings, HTTPS, secrets management, deployment hardening, and access-control coverage before public deployment.
 
 ## 🗺️ Roadmap
 
-The following are **planned or potential improvements**, not claims of completed functionality:
-
-- **Cycle 70 remaining:** authenticated Smart Dispatch end-to-end tests, stale-data and confirmation-flow checks, cross-tenant regression tests, and verification that server-side assignment restrictions cannot be bypassed. The first unit-test slice (strict IDs, local datetimes, valid same-day intervals) is implemented and wired into CI.
-- Cross-role browser checks for header notifications, tooltip descriptions, keyboard accessibility, directory sorting, and value-pill form behavior.
-- Live-data reconciliation tests for Trends selected-series booked value, invoice fallbacks, and overlapping membership categories.
-- Extend the initial CI syntax smoke checks with database-backed integration tests, browser automation, and security regressions.
-- Additional negative authorization fixtures for Marketplace access.
-- Further contractor discovery and geographic matching improvements.
-- Expanded map-based workflows and proximity filtering.
-- Hardened deployment and operations documentation.
-- Formal API contracts and versioned integration guidance.
-- Payment processor integration through a PCI-compliant hosted/tokenized flow, if required.
+Potential future enhancements include richer map-based discovery, proximity filtering, formal API integration contracts, expanded deployment guidance, additional financial reporting and valuation options, and optional hosted/tokenized payment processing. These are prospective capabilities, not commitments or claims of existing functionality.
 
 ## 🤝 Contributing and licensing
 
-This project is under active development. Before contributing, review existing conventions, keep tenant isolation intact, validate PHP syntax, and test role-based access to modified endpoints. Avoid committing credentials, local environment files, backups, or generated debug artifacts.
+This project is under active development. Contributions should follow existing conventions, preserve tenant isolation and role-based access, and avoid introducing unsafe dependencies. Avoid committing credentials, local environment files, backups, or generated debug artifacts.
 
 **License:** No license file was identified in the repository audit. Until the project owner selects and publishes a license, **do not assume the repository is open-source licensed** merely because the code is publicly accessible.
 
@@ -357,17 +344,8 @@ This project is under active development. Before contributing, review existing c
 
 <div align="center">
 
-**Brite Scheduler** · Scheduling, service operations, and contractor marketplace
+**Brite Scheduler** · Scheduling, service operations, Marketplace, and Intelligence
 
-*README v1.2 — updated November 2026; source smoke-check workflow added*
+*README v1.3 — updated November 2026*
 
 </div>
-
-
-### Cycle 71B — Contractor portfolio photos (deployment required)
-- Run `migrations/021_contractor_portfolio_photos.sql` once after migration 020.
-- Set `BRITE_PRIVATE_UPLOAD_DIR` in server configuration to an **absolute, writable directory outside the Apache document root** (for example `/home/digital/brite-private-uploads`). The directory must be writable by the PHP/Apache process, with private permissions. Do not commit its contents or configuration secrets.
-- Requires PHP GD extension and `file_uploads=On`; PHP `upload_max_filesize` and `post_max_size` must allow 5 MB uploads.
-- Contractor profile page allows 20 JPEG/PNG images, 5 MB each, with authenticated tenant-scoped image access and deletion. Original metadata is stripped by decoding and re-encoding the image. Photo ordering and cover selection are future enhancements.
-- Only contractor users may upload/delete their own images. Client, owner, and admin image viewing requires an authenticated role within the same tenant; contractor image viewing is restricted to their own portfolio. A client directory and quote requests are not yet part of this milestone.
-- Do not deploy until the private directory is configured; uploads fail closed otherwise.
