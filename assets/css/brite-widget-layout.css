@@ -253,3 +253,38 @@
 .bi-widget-grid>[data-widget-id][data-widget-drop-side="after"]{
  box-shadow:inset 0 -4px 0 var(--brite-accent,#2563eb)!important;
 }
+
+/* Widget chrome containment: module cards may use different box models,
+   inherited positioning, and nested panel overflow rules. */
+:is(.brite-widget-grid,.brite-dashboard-metrics,.bi-widget-grid)>[data-widget-id]{
+ position:relative!important;
+ min-width:0!important;
+ box-sizing:border-box!important;
+ isolation:isolate;
+}
+:is(.brite-widget-grid,.brite-dashboard-metrics,.bi-widget-grid)>[data-widget-id]>.brite-widget-chrome{
+ position:absolute!important;
+ top:0!important;
+ right:0!important;
+ bottom:auto!important;
+ left:0!important;
+ inset:0 0 auto 0!important;
+ width:100%!important;
+ min-width:0!important;
+ max-width:100%!important;
+ box-sizing:border-box!important;
+ padding-inline:clamp(4px,2%,12px)!important;
+ overflow:hidden!important;
+}
+:is(.brite-widget-grid,.brite-dashboard-metrics,.bi-widget-grid)>[data-widget-id]>.brite-widget-chrome>.brite-widget-controls{
+ position:relative!important;
+ inset:auto!important;
+ min-width:0!important;
+ max-width:100%!important;
+ margin-left:auto!important;
+ flex-shrink:1!important;
+ box-sizing:border-box!important;
+}
+:is(.brite-widget-grid,.brite-dashboard-metrics,.bi-widget-grid)>[data-widget-id]>.brite-widget-chrome>.brite-widget-controls>button{
+ flex-shrink:1!important;
+}
