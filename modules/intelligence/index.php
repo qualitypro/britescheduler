@@ -11,7 +11,14 @@ $biViewsEndpoint=app_url('/modules/intelligence/views.php');
 .bi-workspace .bi-toolbar label{display:grid;gap:4px;font-size:.78rem;font-weight:650}
 .bi-workspace .bi-layout{display:grid;grid-template-columns:minmax(215px,260px) minmax(0,1fr);gap:14px}
 .bi-workspace .bi-metrics{display:grid;gap:8px;max-height:400px;overflow:auto}
-.bi-workspace .bi-metrics label{display:flex;gap:7px;align-items:center;font-size:.8rem}
+.bi-workspace .bi-metrics label{display:flex;gap:9px;align-items:center;font-size:.85rem;font-weight:400;line-height:1.4;padding:4px 2px;background:transparent;border:0;border-radius:0;box-shadow:none;cursor:pointer}
+.bi-workspace .bi-metrics h3{font-size:.9rem;margin:12px 0 2px;font-weight:700}
+.bi-workspace .bi-metrics h3:first-child{margin-top:0}
+.bi-workspace .bi-metrics input[type=checkbox]{appearance:auto!important;-webkit-appearance:checkbox!important;display:inline-block!important;flex:0 0 auto;width:16px!important;height:16px!important;min-width:16px!important;margin:0;accent-color:var(--brite-accent,#2563eb);border-radius:2px!important;box-shadow:none!important}
+.bi-workspace .bi-metrics label:focus-within{outline:2px solid var(--brite-accent,#2563eb);outline-offset:2px}
+.bi-workspace .bi-toolbar input[type=date],.bi-workspace .bi-toolbar select{appearance:auto!important;-webkit-appearance:auto!important;min-height:36px;border:1px solid var(--brite-border);border-radius:5px;padding:5px 8px;background:var(--brite-surface);color:var(--brite-text);font:inherit}
+.bi-workspace .bi-toolbar button{border-radius:5px!important;min-height:36px;padding:6px 11px}
+.bi-workspace .bi-toolbar label{background:transparent!important;border:0!important;border-radius:0!important;padding:0!important;box-shadow:none!important}
 .bi-workspace .bi-metrics input{width:auto;min-width:0}
 .bi-workspace canvas{display:block;width:100%;max-width:100%;height:auto}
 .bi-workspace .bi-legend{display:flex;flex-wrap:wrap;gap:10px;font-size:.78rem}
@@ -36,7 +43,7 @@ $biViewsEndpoint=app_url('/modules/intelligence/views.php');
   <button type="button" id="biPdf">PDF</button>
  </div>
  <div class="bi-layout">
-  <aside class="bi-panel"><h2>Available series</h2><p class="bi-note">Select up to eight metrics. All queries are restricted to your tenant.</p><div id="biMetrics" class="bi-metrics">Loading metrics…</div></aside>
+  <aside class="bi-panel"><h2>Available series</h2><p class="bi-note">Select up to eight metrics using standard checkboxes. All queries are restricted to your tenant.</p><div id="biMetrics" class="bi-metrics" role="group" aria-label="Available metric series">Loading metrics…</div></aside>
   <div class="bi-panel">
    <h2>Performance analysis</h2><p id="biStatus" class="bi-note" role="status" aria-live="polite">Select metrics to begin.</p>
    <canvas id="biChart" width="1100" height="540" role="img" aria-label="Intelligence multi-series trend chart"></canvas>
