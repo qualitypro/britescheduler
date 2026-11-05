@@ -53,6 +53,7 @@ async function openThread(id,subject,{silent=false}={}){
  $('msgReply').hidden=false;
  container.scrollTop=container.scrollHeight;
  await load();
+ window.dispatchEvent(new Event('brite:messages-read'));
  if(!silent)status('Conversation opened.');
 }
 async function guarded(fn){
@@ -90,7 +91,11 @@ $('msgInApp').addEventListener('change',event=>guarded(async()=>{
  catch(err){event.target.checked=!desired;throw err;}
 }));
 Promise.all([load(),call('preferences').then(r=>{$('msgInApp').checked=r.in_app_enabled;})])
-.then(async([threads])=>{if(threads.length)await openThread(threads[0].id,threads[0].subject,{silent:true});})
+.then(async([threads])=>{
+ const requested=Number(new URLSearchParams(location.search).get('thread_id'));
+ const selected=threads.find(t=>Number(t.id)===requested)||threads[0];
+ if(selected)await openThread(selected.id,selected.subject,{silent:true});
+})
 .catch(e=>status('Unable to load messages: '+e.message));
 // Poll only while visible; never overwrite an unsent reply or switch threads.
 setInterval(async()=>{
