@@ -1,0 +1,22 @@
+/* Cycle 77: accessible native-checkbox switch treatment for persistent state.
+   Native input remains in DOM, keyboard operable and form-submittable. */
+.brite-app input[type="checkbox"].brite-state-switch{
+ appearance:none!important;-webkit-appearance:none!important;
+ position:relative!important;display:inline-block!important;vertical-align:middle!important;
+ width:42px!important;min-width:42px!important;max-width:42px!important;
+ height:24px!important;min-height:24px!important;max-height:24px!important;
+ padding:0!important;margin:0!important;flex:0 0 42px!important;
+ border:2px solid #64748b!important;border-radius:999px!important;
+ background:#94a3b8!important;box-shadow:none!important;
+ cursor:pointer!important;transition:background .15s,border-color .15s!important;
+}
+.brite-app input[type="checkbox"].brite-state-switch::before{
+ content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;
+ border-radius:50%;background:#fff;box-shadow:0 1px 3px #0004;
+ transition:transform .15s;
+}
+.brite-app input[type="checkbox"].brite-state-switch:checked{background:#1d4ed8!important;border-color:#1d4ed8!important}
+.brite-app input[type="checkbox"].brite-state-switch:checked::before{transform:translateX(18px)}
+.brite-app input[type="checkbox"].brite-state-switch:focus-visible{outline:3px solid #2563eb!important;outline-offset:3px!important}
+.brite-app input[type="checkbox"].brite-state-switch:disabled{opacity:.48!important;cursor:not-allowed!important}
+@media(prefers-reduced-motion:reduce){.brite-app input[type="checkbox"].brite-state-switch,.brite-app input[type="checkbox"].brite-state-switch::before{transition:none!important}}
