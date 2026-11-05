@@ -780,7 +780,7 @@ require __DIR__.'/partials/app_header.php';
 </style>
 
 <link rel="stylesheet"
-      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89i'))?>">
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89j'))?>">
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'), ENT_QUOTES, 'UTF-8')?>">
 
@@ -3514,8 +3514,10 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             clearTimeout(expandTimer);
             clearTimeout(collapseTimer);
             if (!expandedEvent) return;
-            const {element, placeholder, style, focusTarget, extra} = expandedEvent;
+            const {element, placeholder, style, focusTarget, extra, clickHandler, keyHandler} = expandedEvent;
             expandedEvent = null;
+            element.removeEventListener('click', clickHandler);
+            element.removeEventListener('keydown', keyHandler);
             extra?.remove();
             element.classList.remove('brite-event-expanded');
             element.removeAttribute('aria-expanded');
@@ -3571,7 +3573,23 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                 extra.appendChild(row);
             }
             element.querySelector('.brite-calendar-event')?.appendChild(extra);
-            expandedEvent = {element, placeholder, style, focusTarget, extra};
+            // Reparenting moves the event outside FullCalendar's delegated
+            // click listener. Bind the original event directly while expanded.
+            const openExpandedDetails = clickEvent => {
+                clickEvent.preventDefault();
+                clickEvent.stopPropagation();
+                dismissEventPreview();
+                showAppointmentDetails(info.event);
+            };
+            const clickHandler = openExpandedDetails;
+            const keyHandler = keyEvent => {
+                if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+                    openExpandedDetails(keyEvent);
+                }
+            };
+            element.addEventListener('click', clickHandler);
+            element.addEventListener('keydown', keyHandler);
+            expandedEvent = {element, placeholder, style, focusTarget, extra, clickHandler, keyHandler};
             element.classList.add('brite-event-expanded');
             element.setAttribute('aria-expanded', 'true');
             // Let the original event grow to its natural content height.
