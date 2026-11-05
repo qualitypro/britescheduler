@@ -88,7 +88,7 @@ section.bi-workspace .bi-toolbar button:focus-visible{
   <label>Saved view <select id="biViewList"><option value="">Choose view…</option></select></label>
   <button type="button" id="biSave">Save view</button>
   <button type="button" id="biLoad">Load view</button>
-  <button type="button" id="biDelete">Delete view</button>
+  <button type="button" id="biDelete" disabled title="Select a saved view to delete">Delete view</button>
   <button type="button" id="biPng">PNG</button>
   <button type="button" id="biJpg">JPG</button>
   <button type="button" id="biPdf">PDF</button>
@@ -135,9 +135,11 @@ const viewsEndpoint=<?=json_encode($biViewsEndpoint,JSON_HEX_TAG|JSON_HEX_AMP|JS
 const csrf=<?=json_encode(csrf_token(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;
 const $=id=>document.getElementById(id);
 let savedViews=[];
-async function refreshViews(){const r=await fetch(viewsEndpoint,{credentials:'same-origin'});const d=await r.json();if(!r.ok)throw Error(d.error||'Unable to list views');savedViews=d.views||[];const sel=$('biViewList');sel.replaceChildren(new Option('Choose view…',''));savedViews.forEach(v=>sel.add(new Option(v.name,v.name)));}
+function syncViewActions(){const selected=$('biViewList').value;const exists=!!selected&&savedViews.some(v=>v.name===selected);$('biDelete').disabled=!exists;$('biLoad').disabled=!exists;$('biDelete').title=exists?'Delete selected saved view':'Select a saved view to delete';}
+$('biViewList').addEventListener('change',syncViewActions);
+async function refreshViews(){const r=await fetch(viewsEndpoint,{credentials:'same-origin'});const d=await r.json();if(!r.ok)throw Error(d.error||'Unable to list views');savedViews=d.views||[];const sel=$('biViewList');sel.replaceChildren(new Option('Choose view…',''));savedViews.forEach(v=>sel.add(new Option(v.name,v.name)));syncViewActions();}
 function applyView(c){if(!c)return;['from','to','interval'].forEach(k=>{const id={from:'biFrom',to:'biTo',interval:'biInterval'}[k];if(c[k])$(id).value=c[k]});document.querySelectorAll('.bi-metric').forEach(el=>el.checked=Array.isArray(c.metrics)&&c.metrics.includes(el.value));}
-async function mutateView(method,name,config){const r=await fetch(viewsEndpoint,{method,credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify({name,config})});const d=await r.json();if(!r.ok)throw Error(d.error||'Unable to save view');await refreshViews();$('biViewList').value=method==='DELETE'?'':name;}
+async function mutateView(method,name,config){const r=await fetch(viewsEndpoint,{method,credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify({name,config})});const d=await r.json();if(!r.ok)throw Error(d.error||'Unable to save view');await refreshViews();$('biViewList').value=method==='DELETE'?'':name;syncViewActions();}
 const palette=['#2563eb','#059669','#d97706','#9333ea','#db2777','#0891b2','#dc2626','#64748b'];
 const chart=$('biChart'),ctx=chart.getContext('2d');
 let current=null;
@@ -249,7 +251,7 @@ $('biJpg').addEventListener('click',()=>imageExport('image/jpeg'));
 $('biPdf').addEventListener('click',pdfExport);
 $('biSave').addEventListener('click',async()=>{const name=prompt('Name this Intelligence view:',$('biViewList').value||'My dashboard');if(!name)return;try{await mutateView('POST',name,safeSettings());$('biStatus').textContent='Saved view: '+name}catch(e){$('biStatus').textContent=e.message}});
 $('biLoad').addEventListener('click',async()=>{const v=savedViews.find(v=>v.name===$('biViewList').value);if(!v)return;applyView(v.config);await load()});
-$('biDelete').addEventListener('click',async()=>{const name=$('biViewList').value;if(!name||!confirm('Delete view '+name+'?'))return;try{await mutateView('DELETE',name,null);$('biStatus').textContent='View deleted.'}catch(e){$('biStatus').textContent=e.message}});
+$('biDelete').addEventListener('click',async()=>{const name=$('biViewList').value;if(!savedViews.some(v=>v.name===name)||!confirm('Delete view '+name+'?'))return;try{await mutateView('DELETE',name,null);$('biStatus').textContent='View deleted.'}catch(e){$('biStatus').textContent=e.message}});
 (async()=>{
  try{
  const response=await fetch(endpoint+'?action=catalog',{credentials:'same-origin'});
