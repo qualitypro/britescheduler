@@ -1,73 +1,132 @@
 <?php
 declare(strict_types=1);
 if (!defined('BRITE_MODULE_DISPATCH')) { http_response_code(403); exit; }
-$intelligenceSources = [
-    'Scheduling' => ['Appointments created','Appointments completed','Cancellation rate','Scheduled hours'],
-    'Contractors' => ['Assigned appointments','Completion rate','Contractor utilization'],
-    'Clients' => ['Active clients','Repeat booking rate','New clients'],
-    'Marketplace' => ['Open listings','Bids submitted','Award conversion'],
-    'Finance' => ['Invoice totals','Outstanding balances','Revenue trend'],
-];
+$biEndpoint=app_url('/modules/intelligence/metrics.php');
 ?>
 <style>
-.brite-intelligence{display:grid;gap:16px;min-width:0}
-.brite-intelligence .bi-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.brite-intelligence h1,.brite-intelligence h2{margin:0;color:var(--brite-text)}
-.brite-intelligence .bi-grid{display:grid;grid-template-columns:minmax(240px,300px) minmax(0,1fr);gap:14px}
-.brite-intelligence .bi-card{border:1px solid var(--brite-border);border-radius:14px;padding:18px;background:var(--brite-surface)}
-.brite-intelligence .bi-series{display:grid;gap:8px;margin-top:12px}
-.brite-intelligence .bi-series label{display:flex;gap:8px;align-items:center;font-size:.84rem}
-.brite-intelligence .bi-series input{width:auto;min-width:0}
-.brite-intelligence .bi-series-group{border-top:1px solid var(--brite-border);padding-top:10px}
-.brite-intelligence .bi-series-group h3{margin:0 0 7px;font-size:.86rem}
-.brite-intelligence .bi-preview{min-height:260px;display:grid;place-items:center;text-align:center;padding:20px;border:1px dashed var(--brite-border-strong);border-radius:12px;background:var(--brite-surface-muted)}
-.brite-intelligence .bi-preview p{max-width:500px;color:var(--brite-text-secondary)}
-.brite-intelligence .bi-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.brite-intelligence .bi-controls select,.brite-intelligence .bi-controls button{max-width:100%;padding:8px 10px}
-@media(max-width:780px){.brite-intelligence .bi-grid{grid-template-columns:minmax(0,1fr)}}
+.bi-workspace{display:grid;gap:14px;min-width:0;color:var(--brite-text)}
+.bi-workspace .bi-panel{background:var(--brite-surface);border:1px solid var(--brite-border);border-radius:14px;padding:16px;min-width:0}
+.bi-workspace .bi-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.bi-workspace .bi-toolbar label{display:grid;gap:4px;font-size:.78rem;font-weight:650}
+.bi-workspace .bi-layout{display:grid;grid-template-columns:minmax(215px,260px) minmax(0,1fr);gap:14px}
+.bi-workspace .bi-metrics{display:grid;gap:8px;max-height:400px;overflow:auto}
+.bi-workspace .bi-metrics label{display:flex;gap:7px;align-items:center;font-size:.8rem}
+.bi-workspace .bi-metrics input{width:auto;min-width:0}
+.bi-workspace canvas{display:block;width:100%;max-width:100%;height:auto}
+.bi-workspace .bi-legend{display:flex;flex-wrap:wrap;gap:10px;font-size:.78rem}
+.bi-workspace .bi-legend span{display:inline-flex;align-items:center;gap:5px}
+.bi-workspace .bi-legend i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.bi-workspace .bi-note{font-size:.78rem;color:var(--brite-text-secondary)}
+@media(max-width:760px){.bi-workspace .bi-layout{grid-template-columns:1fr}}
 </style>
-<section class="brite-intelligence" aria-labelledby="biTitle">
-  <div class="bi-header">
-    <div><h1 id="biTitle">Intelligence</h1><p class="muted">Explore performance across your business and installed modules.</p></div>
-    <span class="muted">BI foundation · 0.1.0</span>
+<section class="bi-workspace" aria-labelledby="biTitle">
+ <div><h1 id="biTitle">Intelligence</h1><p class="muted">Tenant-scoped, multi-series business analytics.</p></div>
+ <div class="bi-panel bi-toolbar">
+  <label>From <input type="date" id="biFrom" value="<?=date('Y-m-01',strtotime('-5 months'))?>"></label>
+  <label>To <input type="date" id="biTo" value="<?=date('Y-m-d')?>"></label>
+  <label>Interval <select id="biInterval"><option value="day">Day</option><option value="week">Week</option><option value="month" selected>Month</option></select></label>
+  <button type="button" id="biRun">Update chart</button>
+  <button type="button" id="biSave">Save view locally</button>
+  <button type="button" id="biPng">PNG</button>
+  <button type="button" id="biJpg">JPG</button>
+  <button type="button" id="biPdf">PDF</button>
+ </div>
+ <div class="bi-layout">
+  <aside class="bi-panel"><h2>Available series</h2><p class="bi-note">Select up to eight metrics. All queries are restricted to your tenant.</p><div id="biMetrics" class="bi-metrics">Loading metrics…</div></aside>
+  <div class="bi-panel">
+   <h2>Performance analysis</h2><p id="biStatus" class="bi-note" role="status" aria-live="polite">Select metrics to begin.</p>
+   <canvas id="biChart" width="1100" height="540" role="img" aria-label="Intelligence multi-series trend chart"></canvas>
+   <div id="biLegend" class="bi-legend"></div>
+   <p class="bi-note">Each series is independently normalized for visual comparison; exact values appear in the data table below.</p>
   </div>
-  <div class="bi-grid">
-    <aside class="bi-card" aria-labelledby="biSeriesTitle">
-      <h2 id="biSeriesTitle">Metric catalog</h2>
-      <p class="muted">Select series for a future dashboard. Data connections are not enabled in this foundation sprint.</p>
-      <div class="bi-series">
-      <?php foreach ($intelligenceSources as $group => $metrics): ?>
-        <div class="bi-series-group"><h3><?=htmlspecialchars($group,ENT_QUOTES,'UTF-8')?></h3>
-          <?php foreach ($metrics as $metric): ?>
-            <label><input type="checkbox" class="bi-metric" value="<?=htmlspecialchars($group.' · '.$metric,ENT_QUOTES,'UTF-8')?>"> <?=htmlspecialchars($metric,ENT_QUOTES,'UTF-8')?></label>
-          <?php endforeach; ?>
-        </div>
-      <?php endforeach; ?>
-      </div>
-    </aside>
-    <div class="bi-card">
-      <div class="bi-header"><h2>Analysis workspace</h2>
-        <div class="bi-controls"><label for="biInterval">Group by</label>
-          <select id="biInterval"><option>Day</option><option selected>Week</option><option>Month</option><option>Quarter</option></select>
-        </div>
-      </div>
-      <p id="biSelection" aria-live="polite" class="muted">No series selected.</p>
-      <div class="bi-preview">
-        <div><strong>Data-source integration is next</strong><p>Series selection is available as a workspace foundation. Live charts, module metric providers, saved dashboards, and PNG/JPG/PDF exports will be delivered in subsequent BI sprints. No sample numbers are presented as live tenant data.</p></div>
-      </div>
-    </div>
-  </div>
+ </div>
+ <div class="bi-panel"><h2>Series data</h2><div style="overflow-x:auto"><table id="biTable"><thead></thead><tbody></tbody></table></div></div>
 </section>
 <script>
 (() => {
-  const metrics = [...document.querySelectorAll('.brite-intelligence .bi-metric')];
-  const label = document.getElementById('biSelection');
-  const update = () => {
-    const selected = metrics.filter(input => input.checked).map(input => input.value);
-    label.textContent = selected.length
-      ? selected.length + ' selected: ' + selected.join(' · ')
-      : 'No series selected.';
-  };
-  metrics.forEach(input => input.addEventListener('change', update));
+'use strict';
+const endpoint=<?=json_encode($biEndpoint,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;
+const $=id=>document.getElementById(id);
+const palette=['#2563eb','#059669','#d97706','#9333ea','#db2777','#0891b2','#dc2626','#64748b'];
+const chart=$('biChart'),ctx=chart.getContext('2d');
+let current=null;
+const controls=['biFrom','biTo','biInterval'];
+const safeSettings=()=>({from:$('biFrom').value,to:$('biTo').value,interval:$('biInterval').value,metrics:[...document.querySelectorAll('.bi-metric:checked')].map(el=>el.value).slice(0,8)});
+function paint(){
+ const W=chart.width,H=chart.height;
+ ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#172033';ctx.font='bold 25px system-ui';ctx.fillText('Intelligence · Performance analysis',35,44);
+ if(!current?.series?.length)return;
+ const buckets=[...new Set(current.series.flatMap(s=>s.points.map(p=>p.bucket)))].sort();
+ const L=72,R=W-35,T=95,B=H-75;
+ ctx.strokeStyle='#e2e8f0';ctx.lineWidth=1;ctx.font='14px system-ui';ctx.fillStyle='#64748b';
+ for(let j=0;j<=4;j++){let y=T+(B-T)*j/4;ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(R,y);ctx.stroke();ctx.fillText(String(100-j*25)+'%',20,y+4)}
+ buckets.forEach((b,i)=>{if(i%Math.max(1,Math.ceil(buckets.length/9))===0){let x=L+(R-L)*i/Math.max(1,buckets.length-1);ctx.fillText(b,x-30,B+27)}});
+ current.series.forEach((s,k)=>{
+  const vals=new Map(s.points.map(p=>[p.bucket,p.value]));
+  const max=Math.max(1,...s.points.map(p=>p.value));
+  ctx.strokeStyle=palette[k%palette.length];ctx.lineWidth=3;ctx.beginPath();
+  buckets.forEach((b,i)=>{const x=L+(R-L)*i/Math.max(1,buckets.length-1),y=B-(B-T)*(vals.get(b)||0)/max;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)});
+  ctx.stroke();
+ });
+ ctx.font='13px system-ui';ctx.fillStyle='#64748b';ctx.fillText('Normalized to each series maximum',L,H-15);
+}
+function showTable(){
+ const series=current.series,buckets=[...new Set(series.flatMap(s=>s.points.map(p=>p.bucket)))].sort();
+ const head=$('biTable').tHead||$('biTable').createTHead();head.replaceChildren();
+ const tr=head.insertRow();['Period',...series.map(s=>s.name)].forEach(name=>{let th=document.createElement('th');th.textContent=name;tr.append(th)});
+ const body=$('biTable').tBodies[0];body.replaceChildren();
+ buckets.forEach(b=>{let row=body.insertRow();[b,...series.map(s=>s.points.find(p=>p.bucket===b)?.value??0)].forEach(v=>{let td=row.insertCell();td.textContent=typeof v==='number'?v.toLocaleString(undefined,{maximumFractionDigits:2}):v})});
+ const legend=$('biLegend');legend.replaceChildren();
+ series.forEach((s,i)=>{let span=document.createElement('span'),dot=document.createElement('i');dot.style.background=palette[i%palette.length];span.append(dot,document.createTextNode(s.name));legend.append(span)});
+}
+async function load(){
+ const opts=safeSettings();
+ if(!opts.metrics.length){$('biStatus').textContent='Select at least one series.';return}
+ if(opts.metrics.length>8){$('biStatus').textContent='Maximum eight series.';return}
+ $('biStatus').textContent='Loading tenant metrics…';
+ try{
+ const query=new URLSearchParams({...opts,metrics:opts.metrics.join(',')});
+ const response=await fetch(endpoint+'?'+query,{credentials:'same-origin',headers:{Accept:'application/json'}});
+ const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load data');
+ current=data;paint();showTable();$('biStatus').textContent='Loaded '+data.series.length+' series · '+data.from+' through '+data.to;
+ }catch(e){$('biStatus').textContent=e.message}
+}
+function download(blob,filename){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000)}
+function imageExport(type){if(!current)return;$('biChart').toBlob(b=>{if(b)download(b,'brite-intelligence.'+(type==='image/png'?'png':'jpg'))},type,.94)}
+function pdfExport(){
+ if(!current)return;
+ const data=chart.toDataURL('image/jpeg',.9).split(',')[1];
+ const raw=atob(data),bytes=Uint8Array.from(raw,c=>c.charCodeAt(0));
+ const encoder=new TextEncoder(),chunks=[];let offset=0;const positions=[0];
+ const add=x=>{const b=typeof x==='string'?encoder.encode(x):x;chunks.push(b);offset+=b.length};
+ add('%PDF-1.4\n');
+ const obj=(id,content)=>{positions[id]=offset;add(id+' 0 obj\n'+content+'\nendobj\n')};
+ obj(1,'<< /Type /Catalog /Pages 2 0 R >>');
+ obj(2,'<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+ obj(3,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 792 612] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>');
+ positions[4]=offset;add('4 0 obj\n<< /Type /XObject /Subtype /Image /Width 1100 /Height 540 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+bytes.length+' >>\nstream\n');add(bytes);add('\nendstream\nendobj\n');
+ const command='q 740 0 0 363 26 130 cm /Im0 Do Q\n';
+ obj(5,'<< /Length '+encoder.encode(command).length+' >>\nstream\n'+command+'endstream');
+ const xref=offset;add('xref\n0 6\n0000000000 65535 f \n');for(let i=1;i<=5;i++)add(String(positions[i]).padStart(10,'0')+' 00000 n \n');
+ add('trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF');
+ download(new Blob(chunks,{type:'application/pdf'}),'brite-intelligence.pdf');
+}
+$('biRun').addEventListener('click',load);
+$('biPng').addEventListener('click',()=>imageExport('image/png'));
+$('biJpg').addEventListener('click',()=>imageExport('image/jpeg'));
+$('biPdf').addEventListener('click',pdfExport);
+$('biSave').addEventListener('click',()=>{try{localStorage.setItem('brite-intelligence-view',JSON.stringify(safeSettings()));$('biStatus').textContent='View preferences saved in this browser.'}catch(e){$('biStatus').textContent='Browser storage unavailable.'}});
+(async()=>{
+ try{
+ const response=await fetch(endpoint+'?action=catalog',{credentials:'same-origin'});
+ const data=await response.json();if(!response.ok)throw Error(data.error||'Catalog unavailable');
+ const holder=$('biMetrics');holder.replaceChildren();
+ const groups={};data.metrics.forEach(m=>(groups[m.source]??=[]).push(m));
+ Object.entries(groups).forEach(([source,metrics])=>{const h=document.createElement('h3');h.textContent=source;holder.append(h);metrics.forEach(m=>{const l=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.className='bi-metric';input.value=m.key;input.checked=['appointments','completed'].includes(m.key);l.append(input,document.createTextNode(m.name));holder.append(l)})});
+ try{const saved=JSON.parse(localStorage.getItem('brite-intelligence-view')||'null');if(saved){controls.forEach(id=>{const key={biFrom:'from',biTo:'to',biInterval:'interval'}[id];if(saved[key])$(id).value=saved[key]});document.querySelectorAll('.bi-metric').forEach(el=>el.checked=Array.isArray(saved.metrics)&&saved.metrics.includes(el.value))}}catch(e){}
+ await load();
+ }catch(e){$('biStatus').textContent=e.message}
+})();
 })();
 </script>
