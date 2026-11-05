@@ -20,6 +20,30 @@ function activeRecipient(PDO $db,int $tid,int $uid): bool {
  $q=$db->prepare("SELECT 1 FROM tenant_memberships m JOIN users u ON u.id=m.user_id WHERE m.tenant_id=? AND m.user_id=? AND m.status='active' AND u.status='active' LIMIT 1");
  $q->execute([$tid,$uid]);return (bool)$q->fetchColumn();
 }
+
+// Client/contractor messaging is permitted only with a tenant owner or a
+// client/contractor connected by an actual quote request or assignment.
+// Re-evaluate on POST: a forged recipient_id must never bypass the UI filter.
+function messagingPairAllowed(PDO $db,int $tid,int $sender,int $recipient,string $senderRole): bool {
+ if(!in_array($senderRole,['client','contractor'],true))return true;
+ $q=$db->prepare("SELECT role FROM tenant_memberships WHERE tenant_id=? AND user_id=? AND status='active' LIMIT 1");
+ $q->execute([$tid,$recipient]);$recipientRole=(string)($q->fetchColumn()?:'');
+ if($recipientRole==='owner')return true;
+ if(!in_array($recipientRole,['client','contractor'],true)||$recipientRole===$senderRole)return false;
+ $clientUser=$senderRole==='client'?$sender:$recipient;
+ $contractorUser=$senderRole==='contractor'?$sender:$recipient;
+ $q=$db->prepare("SELECT 1 FROM contractor_quote_requests r
+  JOIN clients c ON c.id=r.client_id AND c.tenant_id=r.tenant_id AND c.status='active'
+  JOIN contractors k ON k.id=r.contractor_id AND k.tenant_id=r.tenant_id AND k.status='active'
+  WHERE r.tenant_id=? AND c.user_id=? AND k.user_id=? LIMIT 1");
+ $q->execute([$tid,$clientUser,$contractorUser]);if($q->fetchColumn())return true;
+ $q=$db->prepare("SELECT 1 FROM appointments a
+  JOIN clients c ON c.id=a.client_id AND c.tenant_id=a.tenant_id AND c.status='active'
+  JOIN appointment_contractors ac ON ac.appointment_id=a.id
+  JOIN contractors k ON k.id=ac.contractor_id AND k.tenant_id=a.tenant_id AND k.status='active'
+  WHERE a.tenant_id=? AND c.user_id=? AND k.user_id=? AND a.status<>'cancelled' LIMIT 1");
+ $q->execute([$tid,$clientUser,$contractorUser]);return (bool)$q->fetchColumn();
+}
 if($method==='GET'&&$action==='notifications'){
  $q=$db->prepare('SELECT COALESCE(SUM((SELECT COUNT(*) FROM module_messages m WHERE m.tenant_id=p.tenant_id AND m.thread_id=p.thread_id AND m.sender_id<>? AND m.id>COALESCE(p.last_read_message_id,0))),0) unread_count FROM module_message_participants p JOIN module_message_threads t ON t.id=p.thread_id AND t.tenant_id=p.tenant_id WHERE p.tenant_id=? AND p.user_id=?');
  $q->execute([$uid,$tid,$uid]);$count=(int)$q->fetchColumn();
@@ -34,7 +58,7 @@ if($method==='GET'&&$action==='list'){
 }
 if($method==='GET'&&$action==='recipients'){
  $q=$db->prepare("SELECT DISTINCT u.id,u.first_name,u.last_name,m.role FROM tenant_memberships m JOIN users u ON u.id=m.user_id JOIN tenant_module_roles r ON r.tenant_id=m.tenant_id AND r.module_key='messaging' AND r.role=m.role AND r.allowed=1 WHERE m.tenant_id=? AND m.user_id<>? AND m.status='active' AND u.status='active' ORDER BY u.first_name,u.last_name LIMIT 200");
- $q->execute([$tid,$uid]);json_response(['ok'=>true,'recipients'=>$q->fetchAll()]);
+ $q->execute([$tid,$uid]);$recipients=array_values(array_filter($q->fetchAll(),static function($r)use($db,$tid,$uid,$tenant){return messagingPairAllowed($db,$tid,$uid,(int)$r['id'],(string)$tenant['role']);}));json_response(['ok'=>true,'recipients'=>$recipients]);
 }
 if($method==='GET'&&$action==='thread'){
  $thread=filter_var($_GET['thread_id']??null,FILTER_VALIDATE_INT);
@@ -60,6 +84,7 @@ if($method==='POST'&&$action==='create'){
  $recipient=filter_var($_POST['recipient_id']??null,FILTER_VALIDATE_INT);
  $subject=trim((string)($_POST['subject']??''));$body=trim((string)($_POST['body']??''));
  if(!$recipient||$recipient===$uid||!activeRecipient($db,$tid,$recipient))json_response(['error'=>'Invalid recipient'],422);
+ if(!messagingPairAllowed($db,$tid,$uid,$recipient,(string)$tenant['role']))json_response(['error'=>'Messaging is available to your tenant owner or a client/contractor connected through a quote request or scheduled assignment'],403);
  if($subject===''||mb_strlen($subject)>180||$body===''||mb_strlen($body)>5000)json_response(['error'=>'Subject or message length invalid'],422);
  // A recipient must currently have this module granted in the same tenant.
  $q=$db->prepare("SELECT 1 FROM tenant_memberships m JOIN tenant_module_roles r ON r.tenant_id=m.tenant_id AND r.module_key='messaging' AND r.role=m.role AND r.allowed=1 WHERE m.tenant_id=? AND m.user_id=? AND m.status='active' LIMIT 1");
@@ -78,6 +103,12 @@ if($method==='POST'&&$action==='reply'){
  $thread=filter_var($_POST['thread_id']??null,FILTER_VALIDATE_INT);$body=trim((string)($_POST['body']??''));
  if(!$thread||$thread<1||$body===''||mb_strlen($body)>5000)json_response(['error'=>'Invalid reply'],422);
  threadAccess($db,$tid,$uid,$thread);
+ $q=$db->prepare('SELECT user_id FROM module_message_participants WHERE tenant_id=? AND thread_id=? AND user_id<>?');
+ $q->execute([$tid,$thread,$uid]);
+ foreach($q->fetchAll(PDO::FETCH_COLUMN) as $other){
+  if(!activeRecipient($db,$tid,(int)$other)||!messagingPairAllowed($db,$tid,$uid,(int)$other,(string)$tenant['role']))
+   json_response(['error'=>'This conversation is no longer eligible for new messages'],403);
+ }
  $q=$db->prepare('INSERT INTO module_messages(tenant_id,thread_id,sender_id,body) VALUES(?,?,?,?)');$q->execute([$tid,$thread,$uid,$body]);
  $q=$db->prepare('UPDATE module_message_threads SET updated_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=?');$q->execute([$thread,$tid]);
  json_response(['ok'=>true],201);
