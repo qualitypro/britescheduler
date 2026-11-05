@@ -20,11 +20,11 @@ try {
   $postedTab=(string)($_POST['tab']??'overview');if(!isset($tabs[$postedTab]))$postedTab='overview';
   $required=static function(string $key,int $max=190):string {
    $value=trim((string)($_POST[$key]??''));
-   if($value===''||mb_strlen($value)>$max)throw new RuntimeException('Please provide a valid '.$key.'.');
+   if($value===''||strlen($value)>$max)throw new RuntimeException('Please provide a valid '.$key.'.');
    return $value;
   };
   $optional=static function(string $key,int $max=190):?string {
-   $value=trim((string)($_POST[$key]??''));if(mb_strlen($value)>$max)throw new RuntimeException('Field too long: '.$key);
+   $value=trim((string)($_POST[$key]??''));if(strlen($value)>$max)throw new RuntimeException('Field too long: '.$key);
    return $value===''?null:$value;
   };
   $link=static function(string $key,string $table)use($checkLink):?int {
@@ -69,7 +69,7 @@ try {
    $id=(int)($_POST['id']??0);$q=$db->prepare('UPDATE crm_activities SET completed_at=NOW() WHERE id=? AND tenant_id=? AND completed_at IS NULL');$q->execute([$id,$tid]);
    if(!$q->rowCount()&&!$checkLink('crm_activities','id',$id))throw new RuntimeException('Activity not found.');
   }else throw new RuntimeException('Unknown action.');
-  header('Location: '.$base.'&tab='.rawurlencode($postedTab).'&notice=saved',true,303);exit;
+  $flash='saved';$tab=$postedTab;
  }
 } catch(Throwable $e){$flash=$e instanceof PDOException?'CRM storage unavailable. Apply migration 030_crm_module.sql.':$e->getMessage();}
 try{
