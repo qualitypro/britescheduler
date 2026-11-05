@@ -2,7 +2,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const base=(window.BRITE_BASE||'')+'/modules/messaging/api.php';
-let current=null,currentTitle='',busy=false,refreshing=false;
+let current=null,currentTitle='',busy=false,refreshing=false,selectionToken=0;
 const status=message=>{$('msgStatus').textContent=message;};
 const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=String(text);return n;};
 async function call(action,data,params={}){
@@ -35,9 +35,10 @@ async function load(){
 }
 async function openThread(id,subject,{silent=false}={}){
  const requested=Number(id);if(!requested)return;
+ const token=++selectionToken;
  const result=await call('thread',undefined,{thread_id:requested});
  // Ignore a stale response if another conversation was selected.
- if(current!==null&&Number(current)!==requested&&silent)return;
+ if(token!==selectionToken)return;
  current=requested;currentTitle=subject;
  $('msgCompose').hidden=true;$('msgDetail').hidden=false;
  $('msgHeading').textContent=subject;
@@ -51,7 +52,9 @@ async function openThread(id,subject,{silent=false}={}){
   card.append(who,body,when);container.append(card);
  }
  $('msgReply').hidden=false;
- container.scrollTop=container.scrollHeight;
+ if(!silent||!container.dataset.loadedThread||container.dataset.loadedThread!==String(requested))container.scrollTop=container.scrollHeight;
+ container.dataset.loadedThread=String(requested);
+ if(!silent)$('msgReplyBody').focus();
  await load();
  window.dispatchEvent(new Event('brite:messages-read'));
  if(!silent)status('Conversation opened.');
@@ -75,11 +78,12 @@ $('msgCreate').addEventListener('submit',event=>{event.preventDefault();guarded(
  form.reset();current=null;await openThread(result.thread_id,subject);
  status('Conversation started and message sent.');
 });});
+$('msgReplyBody').addEventListener('keydown',event=>{if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();$('msgReply').requestSubmit();}});
 $('msgReply').addEventListener('submit',event=>{event.preventDefault();guarded(async()=>{
  const form=event.target,data=new FormData(form),thread=current,subject=currentTitle;
  if(!thread)throw Error('Select a conversation first');
  data.set('thread_id',String(thread));await call('reply',data);
- form.reset();await openThread(thread,subject,{silent:true});status('Reply sent.');
+ form.reset();await openThread(thread,subject,{silent:true});$('msgReplyBody').focus();status('Reply sent.');
 });});
 $('msgRefresh').addEventListener('click',()=>guarded(async()=>{
  if(current)await openThread(current,currentTitle,{silent:true});else await load();
