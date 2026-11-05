@@ -32,7 +32,45 @@ try {
    if($id && !$checkLink($table,'id',$id))throw new RuntimeException('Invalid or inaccessible linked record.');
    return $id?:null;
   };
-  if($action==='task_update'){
+  if($action==='task_complete'){
+   $activity=$link('activity_id','crm_activities');
+   if(!$activity)throw new RuntimeException('Choose a task.');
+   $db->beginTransaction();
+   try{
+    $q=$db->prepare("SELECT id,client_id,lead_id,opportunity_id,body,due_at,created_by,completed_at FROM crm_activities WHERE tenant_id=? AND id=? AND kind='follow_up' FOR UPDATE");
+    $q->execute([$tid,$activity]);$task=$q->fetch(PDO::FETCH_ASSOC);
+    if(!$task)throw new RuntimeException('Follow-up task not found.');
+    if($task['completed_at']!==null)throw new RuntimeException('Task is already complete.');
+    $q=$db->prepare('UPDATE crm_activities SET completed_at=NOW() WHERE tenant_id=? AND id=? AND completed_at IS NULL');
+    $q->execute([$tid,$activity]);
+    $q=$db->prepare('SELECT repeat_days FROM crm_task_recurring WHERE tenant_id=? AND activity_id=?');
+    $q->execute([$tid,$activity]);$days=$q->fetchColumn();
+    if($days!==false){
+     $anchor=$task['due_at']?:date('Y-m-d');
+     $next=(new DateTimeImmutable($anchor))->modify('+'.(int)$days.' days');
+     $today=new DateTimeImmutable('today');
+     if($next<$today)$next=$today->modify('+'.(int)$days.' days');
+     $q=$db->prepare("INSERT INTO crm_activities(tenant_id,lead_id,client_id,opportunity_id,kind,body,due_at,created_by) VALUES(?,?,?,?,'follow_up',?,?,?)");
+     $q->execute([$tid,$task['lead_id'],$task['client_id'],$task['opportunity_id'],$task['body'],$next->format('Y-m-d'),$uid]);
+     $newId=(int)$db->lastInsertId();
+     $q=$db->prepare('INSERT INTO crm_task_details(tenant_id,activity_id,assignee_user_id,priority) SELECT tenant_id,?,assignee_user_id,priority FROM crm_task_details WHERE tenant_id=? AND activity_id=?');
+     $q->execute([$newId,$tid,$activity]);
+     $q=$db->prepare('INSERT INTO crm_task_recurring(tenant_id,activity_id,repeat_days) VALUES(?,?,?)');
+     $q->execute([$tid,$newId,(int)$days]);
+    }
+    $db->commit();
+   }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+   $flash='Task completed'.($days!==false?' and next occurrence scheduled.':'.');
+  }elseif($action==='task_recurrence'){
+   $activity=$link('activity_id','crm_activities');
+   if(!$activity)throw new RuntimeException('Choose a task.');
+   $q=$db->prepare("SELECT 1 FROM crm_activities WHERE tenant_id=? AND id=? AND kind='follow_up' AND completed_at IS NULL");
+   $q->execute([$tid,$activity]);if(!$q->fetchColumn())throw new RuntimeException('Only open follow-ups can repeat.');
+   $days=filter_var($_POST['repeat_days']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>0,'max_range'=>365]]);
+   if($days===false)throw new RuntimeException('Repeat interval must be 0–365 days.');
+   if($days===0){$q=$db->prepare('DELETE FROM crm_task_recurring WHERE tenant_id=? AND activity_id=?');$q->execute([$tid,$activity]);}
+   else{$q=$db->prepare('INSERT INTO crm_task_recurring(tenant_id,activity_id,repeat_days) VALUES(?,?,?) ON DUPLICATE KEY UPDATE repeat_days=VALUES(repeat_days)');$q->execute([$tid,$activity,$days]);}
+  }elseif($action==='task_update'){
    $activity=$link('activity_id','crm_activities');
    if(!$activity)throw new RuntimeException('Choose a task.');
    $q=$db->prepare("SELECT id FROM crm_activities WHERE tenant_id=? AND id=? AND kind='follow_up'");
