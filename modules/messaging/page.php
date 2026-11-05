@@ -81,4 +81,4 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
  <?php endif; ?>
  <details><summary>Notification preferences</summary><label style="display:flex;gap:10px;align-items:center;margin-top:12px"><input type="checkbox" id="msgInApp"> Enable in-app message notifications</label><p class="muted">This setting is saved for your account and tenant. Email and SMS delivery are not enabled in this version.</p></details>
 </section>
-<script defer src="<?=htmlspecialchars(app_url('/modules/messaging/messaging.js?v=75f'),ENT_QUOTES,'UTF-8')?>"></script>
+<script defer src="<?=htmlspecialchars(app_url('/modules/messaging/messaging.js?v=75h'),ENT_QUOTES,'UTF-8')?>"></script>
