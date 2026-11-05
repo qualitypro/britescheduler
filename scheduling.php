@@ -3514,8 +3514,9 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             clearTimeout(expandTimer);
             clearTimeout(collapseTimer);
             if (!expandedEvent) return;
-            const {element, placeholder, style, focusTarget} = expandedEvent;
+            const {element, placeholder, style, focusTarget, extra} = expandedEvent;
             expandedEvent = null;
+            extra?.remove();
             element.classList.remove('brite-event-expanded');
             element.removeAttribute('aria-expanded');
             element.style.cssText = style;
@@ -3545,7 +3546,32 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             const focusTarget = element.contains(document.activeElement);
             element.replaceWith(placeholder);
             document.body.appendChild(element);
-            expandedEvent = {element, placeholder, style, focusTarget};
+            const a = info.event.extendedProps || {};
+            const extra = document.createElement('div');
+            extra.className = 'brite-event-expanded-details';
+            const fields = [
+                ['Service', a.service_name],
+                ['Starts', appointmentDetailsDate(info.event.start)],
+                ['Ends', info.event.end ? appointmentDetailsDate(info.event.end) : ''],
+                ['Status', appointmentStatusLabel(a.status)],
+                ['Location', a.location]
+            ];
+            const client = [a.client_first, a.client_last].filter(Boolean).join(' ');
+            if (client && BRITE_CALENDAR_ROLE !== 'client') fields.push(['Client', client]);
+            if (['owner','admin','scheduler'].includes(BRITE_CALENDAR_ROLE)) {
+                const names = appointmentContractorNames(a);
+                if (names.length) fields.push(['Contractors', names.join(', ')]);
+            }
+            for (const [label, value] of fields) {
+                if (!value) continue;
+                const row = document.createElement('div');
+                const key = document.createElement('strong');
+                key.textContent = label + ': ';
+                row.append(key, document.createTextNode(value));
+                extra.appendChild(row);
+            }
+            element.querySelector('.brite-calendar-event')?.appendChild(extra);
+            expandedEvent = {element, placeholder, style, focusTarget, extra};
             element.classList.add('brite-event-expanded');
             element.setAttribute('aria-expanded', 'true');
             const width = Math.min(360, Math.max(245, rect.width), window.innerWidth - 20);
