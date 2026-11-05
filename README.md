@@ -131,7 +131,7 @@ Financial data distinguishes **payments received** from **invoiced amounts**. Ou
 
 Brite Scheduler discovers trusted, server-installed modules from the `modules/` directory. Tenant administrators can activate available modules through application settings, with module-defined role access and tenant-scoped authorization. Modules can provide their own pages, navigation entries, APIs, and configuration without requiring every capability to live in the core scheduling interface.
 
-The Intelligence module is one example of this extensible architecture. Module activation is distinct from permission to access an individual feature.
+Included modules include **CRM** (leads, Customer 360, follow-ups, quote integration, audiences and campaigns), **Intelligence** (performance and financial analytics), and **Sample Test Module** (a reference implementation demonstrating activation, role-based menu visibility, and authenticated role-specific messages). Module activation is distinct from permission to access an individual feature.
 
 ### 💼 Business operations and billing
 
@@ -206,7 +206,9 @@ britescheduler/
 ├── events/              # Legacy event-related files
 ├── migrations/          # Ordered SQL schema migrations
 ├── modules/             # Optional tenant-activated application modules
-│   └── intelligence/    # Performance/financial BI, saved views and exports
+│   ├── crm/             # Leads, Customer 360, follow-ups, segments and campaigns
+│   ├── intelligence/    # Performance/financial BI, saved views and exports
+│   └── sample-test/     # Sample module: activation, roles and user-specific content
 ├── partials/            # Shared application layout components
 ├── setup/               # Initial owner/bootstrap utilities
 ├── .env.example         # Environment variable template
