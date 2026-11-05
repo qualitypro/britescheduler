@@ -341,9 +341,7 @@ if(finTab){
  });
  const finCanvas=$('biFinChart'),finCtx=finCanvas.getContext('2d');
  const usd=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(value);
- const axisUsd=value=>Math.abs(value)>=1000000?'
-+(value/1000000).toFixed(1)+'m':Math.abs(value)>=1000?'
-+(value/1000).toFixed(1)+'k':usd(value);
+ const axisUsd=value=>Math.abs(value)>=1000000?'USD '+(value/1000000).toFixed(1)+'m':Math.abs(value)>=1000?'USD '+(value/1000).toFixed(1)+'k':usd(value);
  let finCurrent=null,finRequest=null,finTimer=null,finLoaded=false,finSeq=0;
  const finColors=['#2563eb','#059669','#d97706','#9333ea','#dc2626','#0891b2'];
  const finOptions=()=>({from:$('biFinFrom').value,to:$('biFinTo').value,interval:$('biFinInterval').value,metrics:[...document.querySelectorAll('.bi-fin-metric:checked')].map(el=>el.value)});
