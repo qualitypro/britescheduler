@@ -9,3 +9,18 @@
 .brite-dashboard-metrics .brite-widget-wide,.brite-widget-grid .brite-widget-wide{grid-column:span 2}
 .brite-dashboard-metrics [hidden],.brite-widget-grid [hidden]{display:none!important}
 @media(max-width:650px){.brite-dashboard-metrics .brite-widget-wide,.brite-widget-grid .brite-widget-wide{grid-column:span 1}}
+
+/* Touch and keyboard polish: controls are the only drag surface. */
+.brite-widget-controls{position:relative;z-index:2;align-items:center}
+.brite-widget-controls .brite-widget-handle{touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab!important;min-height:36px}
+.brite-widget-controls .brite-widget-handle.brite-widget-dragging{cursor:grabbing!important;opacity:.65}
+.brite-widget-restore{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.brite-widget-restore[hidden]{display:none!important}
+.brite-widget-toolbar button{min-height:36px}
+.brite-widget-editing{outline:1px dashed var(--brite-border,#94a3b8);outline-offset:-3px}
+@media(pointer:coarse){
+ .brite-widget-controls button,.brite-widget-toolbar button{min-height:44px;min-width:44px}
+}
+@media(prefers-reduced-motion:reduce){
+ .brite-widget-editing,.brite-widget-controls *{transition:none!important;animation:none!important}
+}
