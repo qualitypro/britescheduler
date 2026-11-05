@@ -241,3 +241,15 @@
  .brite-widget-drag-active{filter:none!important}
  .brite-widget-drop-target{background-image:none!important}
 }
+
+/* Indicate the insertion edge, rather than implying two cards will swap. */
+.brite-widget-grid>[data-widget-id][data-widget-drop-side="before"],
+.brite-dashboard-metrics>[data-widget-id][data-widget-drop-side="before"],
+.bi-widget-grid>[data-widget-id][data-widget-drop-side="before"]{
+ box-shadow:inset 0 4px 0 var(--brite-accent,#2563eb)!important;
+}
+.brite-widget-grid>[data-widget-id][data-widget-drop-side="after"],
+.brite-dashboard-metrics>[data-widget-id][data-widget-drop-side="after"],
+.bi-widget-grid>[data-widget-id][data-widget-drop-side="after"]{
+ box-shadow:inset 0 -4px 0 var(--brite-accent,#2563eb)!important;
+}
