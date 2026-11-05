@@ -2,7 +2,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const base=(window.BRITE_BASE||'')+'/modules/messaging/api.php';
-let current=null,currentTitle='',busy=false,refreshing=false,selectionToken=0;
+let current=null,currentTitle='',busy=false,refreshing=false,selectionToken=0,composing=false;
 const status=message=>{$('msgStatus').textContent=message;};
 const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=String(text);return n;};
 async function call(action,data,params={}){
@@ -39,7 +39,7 @@ async function openThread(id,subject,{silent=false}={}){
  const result=await call('thread',undefined,{thread_id:requested});
  // Ignore a stale response if another conversation was selected.
  if(token!==selectionToken)return;
- current=requested;currentTitle=subject;
+ current=requested;currentTitle=subject;composing=false;
  $('msgCompose').hidden=true;$('msgDetail').hidden=false;
  $('msgHeading').textContent=subject;
  const container=$('msgMessages');container.replaceChildren();
@@ -69,13 +69,14 @@ $('msgNew').addEventListener('click',()=>guarded(async()=>{
   const option=el('option',[p.first_name,p.last_name].filter(Boolean).join(' ')+' ('+p.role+')');
   option.value=p.id;sel.append(option);
  }
+ composing=true;++selectionToken;
  $('msgCompose').hidden=false;$('msgDetail').hidden=true;
  status(r.recipients.length?'Choose a recipient and write your message.':'No eligible recipients. Ask your administrator to enable Messaging for the other role.');
 }));
 $('msgCreate').addEventListener('submit',event=>{event.preventDefault();guarded(async()=>{
  const form=event.target,subject=form.elements.subject.value;
  const result=await call('create',new FormData(form));
- form.reset();current=null;await openThread(result.thread_id,subject);
+ form.reset();composing=false;current=null;await openThread(result.thread_id,subject);
  status('Conversation started and message sent.');
 });});
 $('msgReplyBody').addEventListener('keydown',event=>{if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();$('msgReply').requestSubmit();}});
@@ -86,7 +87,7 @@ $('msgReply').addEventListener('submit',event=>{event.preventDefault();guarded(a
  form.reset();await openThread(thread,subject,{silent:true});$('msgReplyBody').focus();status('Reply sent.');
 });});
 $('msgRefresh').addEventListener('click',()=>guarded(async()=>{
- if(current)await openThread(current,currentTitle,{silent:true});else await load();
+ if(composing)await load();else if(current)await openThread(current,currentTitle,{silent:true});else await load();
  status('Messages refreshed.');
 }));
 $('msgInApp').addEventListener('change',event=>guarded(async()=>{
@@ -103,7 +104,7 @@ Promise.all([load(),call('preferences').then(r=>{$('msgInApp').checked=r.in_app_
 .catch(e=>status('Unable to load messages: '+e.message));
 // Poll only while visible; never overwrite an unsent reply or switch threads.
 setInterval(async()=>{
- if(document.hidden||busy||refreshing)return;
+ if(document.hidden||busy||refreshing||composing)return;
  refreshing=true;
  try{if(current)await openThread(current,currentTitle,{silent:true});else await load();}
  catch(e){status('Refresh failed: '+e.message);}
