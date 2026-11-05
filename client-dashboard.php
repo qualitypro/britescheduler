@@ -305,19 +305,19 @@ require __DIR__.'/partials/app_header.php';
          aria-labelledby="clientOverviewTab"
 
          hidden>
-<div class="grid">
+<div class="grid brite-widget-grid" id="clientWidgetGrid">
 
-<div class="card">
+<div class="card" data-widget-id="appointments" data-widget-label="Appointments">
 <div class="muted">Appointments</div>
 <div class="metric"><?=$appointmentCount?></div>
 </div>
 
-<div class="card">
+<div class="card" data-widget-id="invoices" data-widget-label="Invoices">
 <div class="muted">Invoices</div>
 <div class="metric"><?=$invoiceCount?></div>
 </div>
 
-<div class="card">
+<div class="card" data-widget-id="outstanding_balance" data-widget-label="Outstanding Balance">
 <div class="muted">Outstanding Balance</div>
 <div class="metric">
 $<?=number_format($outstandingBalance,2)?>
@@ -709,6 +709,22 @@ document.getElementById('briteClientHeroBooking')
     ?.addEventListener('click', function () {
         document.getElementById('openClientBooking')?.click();
     });
+</script>
+
+<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-widget-layout.css'),ENT_QUOTES,'UTF-8')?>">
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-widget-layout.js'),ENT_QUOTES,'UTF-8')?>"></script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+ const grid=document.getElementById('clientWidgetGrid');
+ if(grid&&window.BriteWidgetLayout){
+  window.BriteWidgetLayout.mount(grid,{
+   scope: <?=json_encode((string)$tid.'.'.(string)$user['id'].'.client',JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>,
+   defaultOrder: ['appointments','invoices','outstanding_balance'],
+   endpoint: <?=json_encode(app_url('/api/dashboard_widget_layout.php?dashboard=client'),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>,
+   csrf: <?=json_encode(csrf_token(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>
+  });
+ }
+});
 </script>
 
 <?php require __DIR__.'/partials/app_footer.php'; ?>
