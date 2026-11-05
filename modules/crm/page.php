@@ -6,7 +6,7 @@ if (!in_array((string)$tenant['role'], ['owner','admin','scheduler'], true)) {
 }
 $db=Database::connection(); $tid=(int)$tenant['tenant_id']; $uid=(int)$user['id'];
 $esc=static fn($v)=>htmlspecialchars((string)($v??''),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
-$tabs=['overview'=>'Overview','leads'=>'Leads','customers'=>'Customers','pipeline'=>'Opportunities','activities'=>'Activities','reports'=>'Reports','segments'=>'Segments & Follow-ups'];
+$tabs=['overview'=>'Overview','leads'=>'Leads','customers'=>'Customers','pipeline'=>'Opportunities','activities'=>'Activities','reports'=>'Reports','segments'=>'Segments & Follow-ups','smart'=>'Smart Segments'];
 $tab=(string)($_GET['tab']??'overview'); if(!isset($tabs[$tab]))$tab='overview';
 $base=app_url('/module.php?module=crm');
 $flash=(string)($_GET['notice']??'');
@@ -187,6 +187,8 @@ $customerOptions=static function(?int $selected=null)use($customers,$esc):void {
  <script>document.getElementById('crmCustomerSearch')?.addEventListener('input',function(){const q=this.value.toLocaleLowerCase().trim();document.querySelectorAll('.crm-customer-row').forEach(row=>{row.hidden=!row.dataset.search.includes(q);});});</script>
  <?php elseif($tab==='pipeline'): ?>
  <div class="crm-grid"><div class="crm-panel"><h2>Add opportunity</h2><form method="post" class="crm-form"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="action" value="opportunity_create"><input type="hidden" name="tab" value="pipeline"><label>Title<input name="title" maxlength="190" required></label><label>Related lead<select name="lead_id"><option value="">None</option><?php $leadOptions(); ?></select></label><label>Related customer<select name="client_id"><option value="">None</option><?php $customerOptions(); ?></select></label><label>Estimated value<input type="number" name="estimated_value" min="0" step=".01" value="0" required></label><label>Next follow-up<input type="date" name="next_follow_up"></label><label>Notes<textarea name="notes" maxlength="5000"></textarea></label><button type="submit">Add opportunity</button></form></div><div class="crm-panel"><h2>Opportunities</h2><div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Opportunity</th><th>Value</th><th>Follow-up</th><th>Stage</th></tr></thead><tbody><?php foreach($opportunities as $r): ?><tr><td><strong><?=$esc($r['title'])?></strong><div class="crm-muted"><?=$esc($r['lead_name']??$r['client_name'])?></div></td><td>$<?=number_format((float)$r['estimated_value'],2)?></td><td><?=$esc($r['next_follow_up'])?></td><td><form method="post" class="crm-inline"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="action" value="opportunity_stage"><input type="hidden" name="tab" value="pipeline"><input type="hidden" name="id" value="<?=(int)$r['id']?>"><select name="stage" aria-label="Stage for <?=$esc($r['title'])?>"><?php foreach(['new','contacted','quoted','won','lost'] as $v): ?><option value="<?=$v?>" <?=$r['stage']===$v?'selected':''?>><?=ucfirst($v)?></option><?php endforeach; ?></select><button type="submit">Save</button></form></td></tr><?php endforeach; ?></tbody></table><?php if(!$opportunities): ?><p class="crm-muted">No opportunities yet.</p><?php endif; ?></div></div></div>
+ <?php elseif($tab==='smart'): ?>
+ <?php require __DIR__.'/smart_segments.php'; ?>
  <?php elseif($tab==='segments'): ?>
  <?php require __DIR__.'/segments.php'; ?>
  <?php elseif($tab==='reports'): ?>
