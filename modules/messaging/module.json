@@ -1,0 +1,16 @@
+{
+  "key": "messaging",
+  "name": "Notifications & Messaging",
+  "version": "1.0.0",
+  "description": "Private tenant-scoped conversations, unread indicators and notification preferences.",
+  "menu_label": "Messages",
+  "page": "page.php",
+  "roles": [
+    "owner",
+    "admin",
+    "scheduler",
+    "accounting",
+    "contractor",
+    "client"
+  ]
+}
