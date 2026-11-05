@@ -39,7 +39,7 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
 @media(max-width:760px){.msg-workspace{grid-template-columns:1fr;min-height:0}.msg-history{max-height:360px}}
 </style>
 <section class="card" data-brite-pills="off" style="display:grid;gap:16px">
- <div><h1>Messages</h1><p class="muted">Your private conversations with clients, contractors and team members. Select a conversation to see the full exchange.</p></div>
+ <div><h1>Messages</h1><p class="muted">Private conversations within your organization. Clients and contractors can contact the tenant owner by default; direct client–contractor messaging becomes available after a quote request or scheduled assignment.</p></div>
  <p id="msgStatus" role="status" aria-live="polite"></p>
  <div class="msg-workspace">
   <aside class="msg-pane" aria-label="Conversations">
@@ -49,7 +49,7 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
   </aside>
   <div class="msg-pane">
    <div id="msgCompose" hidden>
-    <h2>New conversation</h2>
+    <h2>New conversation</h2><p class="muted">Only eligible recipients appear below. Client–contractor messaging requires a previous quote request or appointment assignment.</p>
     <form id="msgCreate" class="msg-form">
      <label>Send to <select name="recipient_id" id="msgRecipients" required></select></label>
      <label>Subject <input name="subject" maxlength="180" required></label>
