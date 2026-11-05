@@ -780,7 +780,7 @@ require __DIR__.'/partials/app_header.php';
 </style>
 
 <link rel="stylesheet"
-      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89n'))?>">
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89o'))?>">
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'), ENT_QUOTES, 'UTF-8')?>">
 
@@ -1214,7 +1214,7 @@ require __DIR__.'/partials/app_header.php';
     </div>
 </div>
 
-<script src="<?=htmlspecialchars(app_url('/assets/js/owner-assignment-details.js'), ENT_QUOTES, 'UTF-8')?>"></script>
+<script src="<?=htmlspecialchars(app_url('/assets/js/owner-assignment-details.js?v=89o'), ENT_QUOTES, 'UTF-8')?>"></script>
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-workspace-tabs.js'), ENT_QUOTES, 'UTF-8')?>"></script>
 
 <script>
