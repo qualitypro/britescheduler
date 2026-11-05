@@ -3511,10 +3511,16 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                 initialView: preferredViews[calendarPreferences.calendar_view],
                 // Desktop fills the available calendar panel; small screens
                 // retain natural page scrolling instead of cropping events.
-                height: window.matchMedia('(min-width:900px) and (min-height:500px)').matches
-                    ? '100%' : 'auto',
+                height: 'auto',
                 expandRows: true,
-                dayMaxEventRows: 3,
+                dayMaxEventRows: 2,
+                dayMaxEvents: 2,
+                slotMinTime: '00:00:00',
+                slotMaxTime: '24:00:00',
+                slotDuration: '02:00:00',
+                slotLabelInterval: '02:00:00',
+                scrollTime: '00:00:00',
+                scrollTimeReset: false,
                 stickyHeaderDates: false,
                 firstDay: calendarPreferences.week_starts_on === 'monday' ? 1 : 0,
                 eventTimeFormat: {
@@ -3635,10 +3641,17 @@ document.addEventListener('DOMContentLoaded',async ()=>{
         function fitScheduleCalendar() {
             if (!calendar || scheduleCalendarPanel?.hidden) return;
             const compact = !window.matchMedia('(min-width:900px) and (min-height:500px)').matches;
-            const mode = compact ? 'auto' : '100%';
-            if (mode !== lastCalendarMode) {
-                calendar.setOption('height', mode);
-                lastCalendarMode = mode;
+            // Use measured available pixels rather than percentage heights:
+            // FullCalendar's nested scrollgrid otherwise creates a second
+            // vertical scrollbar even when the outer panel fits.
+            const cardBounds = calendarCard?.getBoundingClientRect();
+            const available = compact
+                ? Math.max(280, Math.floor(window.innerHeight - (cardBounds?.top || 0) - 18))
+                : Math.max(240, Math.floor((cardBounds?.height || 0) - 18));
+            const target = compact ? 'auto' : available;
+            if (target !== lastCalendarMode) {
+                lastCalendarMode = target;
+                calendar.setOption('height', target);
             }
             calendar.updateSize();
         }
