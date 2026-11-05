@@ -37,7 +37,7 @@ $pct=static fn(int $part,int $total)=>$total?number_format(100*$part/$total,1).'
  <p class="crm-muted">Lead conversion = converted leads / all leads created in the period. Quote acceptance = accepted / (accepted + declined) quote requests created in the period. Open and won pipeline values are estimates, not recognized revenue.</p>
  <div class="crm-grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
  <div class="crm-panel"><h3>Sales pipeline</h3><div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Stage</th><th>Opportunities</th><th>Estimated value</th></tr></thead><tbody>
- <?php foreach(['new','contacted','quoted','won','lost'] as $stage): $row=current(array_filter($pipeline,static fn($r)=>$r['stage']===$stage))?:null; ?><tr><td><?=ucfirst($stage)?></td><td><?=(int)($row['total']??0)?></td><td>$<?=number_format((float)($row['amount']??0),2)?></td></tr><?php endforeach; ?>
+ <?php foreach(['new','contacted','quoted','won','lost'] as $stage): $row=(array_values(array_filter($pipeline,static fn($r)=>$r['stage']===$stage))[0]??null); ?><tr><td><?=ucfirst($stage)?></td><td><?=(int)($row['total']??0)?></td><td>$<?=number_format((float)($row['amount']??0),2)?></td></tr><?php endforeach; ?>
  </tbody></table></div></div>
  <div class="crm-panel"><h3>Lead sources</h3><div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Source</th><th>Leads</th><th>Converted</th><th>Rate</th></tr></thead><tbody>
  <?php foreach($sources as $row): ?><tr><td><?=$esc($row['source'])?></td><td><?=(int)$row['total']?></td><td><?=(int)$row['converted']?></td><td><?=$pct((int)$row['converted'],(int)$row['total'])?></td></tr><?php endforeach; ?>
