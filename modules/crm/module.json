@@ -1,8 +1,8 @@
 {
   "key": "crm",
   "name": "Customer Relationship Management",
-  "version": "1.0.0",
-  "description": "Tenant-isolated customer records, leads, opportunities, follow-ups and activity timeline.",
+  "version": "1.1.0",
+  "description": "Tenant-isolated leads, Customer 360, follow-ups, and automatic formal quote-to-opportunity integration.",
   "menu_label": "CRM",
   "page": "page.php",
   "roles": [
