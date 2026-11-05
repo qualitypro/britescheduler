@@ -2017,3 +2017,22 @@ body.brite-schedule-timegrid-mode .brite-content{width:100%;max-width:none!impor
 @media(max-width:680px){
  body.brite-schedule-timegrid-mode .brite-content{padding:5px!important}
 }
+
+/* Cycle 89G: unclipped, readable preview for short/truncated events. */
+.brite-calendar-event-preview[hidden]{display:none!important}
+.brite-calendar-event-preview{
+ position:fixed;z-index:1100;width:min(360px,calc(100vw - 20px));
+ max-height:min(65dvh,440px);overflow-y:auto;pointer-events:none;
+ background:#fff;color:#172033;border:1px solid #cbd5e1;
+ border-radius:12px;box-shadow:0 16px 40px rgba(15,23,42,.25);
+ padding:14px 16px;font-size:13px;line-height:1.45;
+ overflow-wrap:anywhere;
+}
+.brite-calendar-event-preview>strong{display:block;font-size:14px;margin-bottom:10px}
+.brite-calendar-event-preview dl{display:grid;grid-template-columns:90px minmax(0,1fr);gap:6px 10px;margin:0}
+.brite-calendar-event-preview dt{font-weight:700;color:#475569}
+.brite-calendar-event-preview dd{margin:0;white-space:normal;overflow-wrap:anywhere}
+@media(prefers-reduced-motion:no-preference){
+ .brite-calendar-event-preview{animation:brite-event-preview-in .12s ease-out}
+ @keyframes brite-event-preview-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+}
