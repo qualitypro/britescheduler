@@ -108,17 +108,19 @@
       {duration:260,easing:'cubic-bezier(.2,.8,.2,1)'});
     }
    };
-   const reorder=(source,target,before)=>{
+   const reorder=(source,target,before=true)=>{
     if(!source||!target||source===target||source.hidden||target.hidden)return;
+    // Insert at the indicated grid slot, shifting intervening widgets.
+    // Swapping arbitrary slots makes the released widget appear elsewhere.
     const ordered=cards().map(card=>card.dataset.widgetId);
-    const sourceIndex=ordered.indexOf(source.dataset.widgetId);
-    const targetIndex=ordered.indexOf(target.dataset.widgetId);
-    if(sourceIndex<0||targetIndex<0)return;
-    // A highlighted card means a precise destination: exchange the two slots.
-    // This avoids the surprising one-slot offset of before/after insertion.
-    [ordered[sourceIndex],ordered[targetIndex]]=[ordered[targetIndex],ordered[sourceIndex]];
+    const from=ordered.indexOf(source.dataset.widgetId);
+    if(from<0)return;
+    ordered.splice(from,1);
+    const to=ordered.indexOf(target.dataset.widgetId);
+    if(to<0)return;
+    ordered.splice(to+(before?0:1),0,source.dataset.widgetId);
     saved.order=ordered;
-    animateLayout(()=>render());persist();announce('Widget order saved.');
+    animateLayout(()=>render());persist();announce('Widget moved to selected position.');
     source.querySelector('.brite-widget-handle')?.focus({preventScroll:true});
    };
    const move=(card,direction)=>{
@@ -130,7 +132,21 @@
    const clearDropTarget=()=>defaultCards.forEach(card=>{
     card.classList.remove('brite-widget-drop-target');
     card.removeAttribute('data-widget-drop-label');
+    card.removeAttribute('data-widget-drop-side');
    });
+   const dropAt=(x,y,source)=>{
+    const candidates=cards().filter(card=>card!==source&&!card.hidden);
+    if(!candidates.length)return null;
+    // Pick the actual widget under the pointer; do not use a stale highlight.
+    source.style.pointerEvents='none';
+    const hit=document.elementFromPoint(x,y)?.closest('[data-widget-id]');
+    source.style.pointerEvents='';
+    if(!hit||hit.parentElement!==grid||!candidates.includes(hit))return null;
+    const rect=hit.getBoundingClientRect();
+    // For vertical layouts, the upper/lower half controls insertion.
+    // For multi-column grids, use the same rule within the hovered slot.
+    return {card:hit,before:y<rect.top+rect.height/2};
+   };
    const stopPointer=()=>{
     if(!pointer)return;
     pointer.card.style.transform='';
@@ -194,13 +210,13 @@
      event.preventDefault();
      card.style.transform='translate3d('+dx+'px,'+dy+'px,0)';
      clearDropTarget();
-     card.style.pointerEvents='none';
-     const hovered=document.elementFromPoint(event.clientX,event.clientY)?.closest('[data-widget-id]');
-     card.style.pointerEvents='';
-     drag.target=hovered&&hovered.parentElement===grid&&hovered!==card&&!hovered.hidden?hovered:null;
+     const destination=dropAt(event.clientX,event.clientY,card);
+     drag.target=destination?.card||null;
+     drag.before=destination?.before??true;
      if(drag.target){
       drag.target.classList.add('brite-widget-drop-target');
-      drag.target.setAttribute('data-widget-drop-label','Swap with '+name);
+      drag.target.setAttribute('data-widget-drop-label',drag.before?'Insert before '+name:'Insert after '+name);
+      drag.target.dataset.widgetDropSide=drag.before?'before':'after';
      }
     });
     handle.addEventListener('pointerup',event=>{
@@ -208,13 +224,10 @@
      if(!drag||drag.id!==event.pointerId)return;
      const moved=drag.moved;
      // Re-evaluate on release so a fast final pointer movement cannot use a stale target.
-     card.style.pointerEvents='none';
-     const released=document.elementFromPoint(event.clientX,event.clientY)?.closest('[data-widget-id]');
-     card.style.pointerEvents='';
-     const target=released&&released.parentElement===grid&&released!==card&&!released.hidden?released:null;
+     const destination=dropAt(event.clientX,event.clientY,card);
      const dx=event.clientX-drag.startX,dy=event.clientY-drag.startY;
      stopPointer();
-     if(moved&&target){reorder(card,target,false);return;}
+     if(moved&&destination){reorder(card,destination.card,destination.before);return;}
      if(moved){
       if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
        card.animate([{transform:'translate3d('+dx+'px,'+dy+'px,0)',opacity:.9},{transform:'translate3d(0,0,0)',opacity:1}],
