@@ -12,6 +12,32 @@ const layouts={
  smart:[['Smart audiences','Segment rules','Campaign builder']]
 };
 if(!layouts[tab])return;
+const iconPaths={
+ 'Browse leads':'<circle cx="10" cy="8" r="3"/><path d="M4 20v-2a6 6 0 0 1 12 0v2M18 8h4M18 12h4"/>',
+ 'Add lead':'<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M19 8v8M15 12h8"/>',
+ 'Opportunities':'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+ 'Add opportunity':'<path d="M4 19V5M4 19h16M7 15l5-5 3 2 5-7M19 2v6M16 5h6"/>',
+ 'Recent activity':'<path d="M3 12h4l3-7 4 14 3-7h4"/>',
+ 'Log activity':'<path d="M5 4h11l3 3v13H5zM8 11h8M8 15h5M17 17h5M19.5 14.5v5"/>',
+ 'Customer segments':'<circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2"/><path d="M2 20v-2a6 6 0 0 1 12 0v2M15 15a4 4 0 0 1 7 3v2"/>',
+ 'Segment membership':'<path d="M3 5h18M3 12h12M3 19h18M17 11l2 2 4-5"/>',
+ 'Follow-up templates':'<path d="M6 3h9l4 4v14H6zM15 3v5h4M9 12h7M9 16h7"/>',
+ 'Schedule follow-up':'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M12 13v5M9.5 15.5h5"/>',
+ 'Staff workload':'<rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18"/>',
+ 'Task management':'<path d="M4 7l2 2 4-4M13 7h8M4 16l2 2 4-4M13 16h8"/>',
+ 'Campaign performance':'<path d="M3 20V4M3 20h18M7 16v-4M12 16V8M17 16V5"/>',
+ 'Smart audiences':'<circle cx="8" cy="8" r="3"/><path d="M2 20v-2a6 6 0 0 1 12 0v2M17 3l1.5 3.5L22 8l-3.5 1.5L17 13l-1.5-3.5L12 8l3.5-1.5z"/>',
+ 'Segment rules':'<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="11" cy="18" r="2"/>',
+ 'Campaign builder':'<path d="M3 10v4l12 4V6L3 10zM15 9l5-3v12l-5-3M6 17l2 4"/>'
+};
+function navIcon(label){
+ const path=iconPaths[label]||'<circle cx="12" cy="12" r="8"/>';
+ const span=document.createElement('span');
+ span.className='crm-nav-symbol';
+ span.setAttribute('aria-hidden','true');
+ span.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+path+'</svg>';
+ return span;
+}
 const sections=[];
 const pick=(parent,selector)=>Array.from(parent.querySelectorAll(selector));
 if(['leads','pipeline','activities'].includes(tab)){
@@ -68,7 +94,7 @@ const buttons=[];
 sections.forEach((section,i)=>{
  const button=document.createElement('button');
  button.type='button';
- button.textContent=names[i];
+ button.textContent=names[i];button.prepend(navIcon(names[i]));
  button.id='crm-workspace-tab-'+tab+'-'+i;
  button.setAttribute('role','tab');
  button.setAttribute('aria-controls','crm-workspace-panel-'+tab+'-'+i);
