@@ -187,6 +187,7 @@ section.bi-workspace .bi-fin-table{max-width:100%}
   <button type="button" id="biPng">PNG</button>
   <button type="button" id="biJpg">JPG</button>
   <button type="button" id="biPdf">PDF</button>
+  <button type="button" id="biCsv">CSV data</button>
  </div>
  <div class="bi-layout">
   <aside class="bi-panel"><h2>Available series <small class="bi-subtitle">· up to 8</small></h2><div id="biMetrics" class="bi-metrics" role="group" aria-label="Available metric series">Loading metrics…</div></aside>
@@ -215,6 +216,7 @@ section.bi-workspace .bi-fin-table{max-width:100%}
     <button type="button" id="biFinPng" disabled>PNG</button>
     <button type="button" id="biFinJpg" disabled>JPG</button>
     <button type="button" id="biFinPdf" disabled>PDF</button>
+    <button type="button" id="biFinCsv" disabled>CSV data</button>
    </div>
    <p class="bi-note bi-fin-help">Select up to six series · Auto-refresh · Opportunity values are estimates, not booked revenue.</p>
    <div id="biFinMetrics" class="bi-fin-metrics" role="group" aria-label="Financial metric selection">Loading financial metrics…</div>
@@ -263,6 +265,17 @@ const viewsEndpoint=<?=json_encode($biViewsEndpoint,JSON_HEX_TAG|JSON_HEX_AMP|JS
 const financialEndpoint=<?=json_encode($biFinancialEndpoint,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;
 const csrf=<?=json_encode(csrf_token(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;
 const $=id=>document.getElementById(id);
+function exportTableCsv(tableId,filename){
+ const table=$(tableId);if(!table)return;
+ const rows=[...table.querySelectorAll('tr')].map(row=>[...row.querySelectorAll('th,td')].map(cell=>'"'+cell.textContent.replace(/"/g,'""')+'"').join(','));
+ if(!rows.length)return;
+ const blob=new Blob(['\uFEFF'+rows.join('\r\n')+'\r\n'],{type:'text/csv;charset=utf-8'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+$('biCsv').addEventListener('click',()=>{if(current)exportTableCsv('biTable','brite-performance-'+safeSettings().from+'-'+safeSettings().to+'.csv')});
+
 let savedViews=[];
 function syncViewActions(){const selected=$('biViewList').value;const exists=!!selected&&savedViews.some(v=>v.name===selected);$('biDelete').disabled=!exists;$('biDelete').title=exists?'Delete selected saved view':'Select a saved view to delete';}
 $('biViewList').addEventListener('change',async()=>{syncViewActions();const view=savedViews.find(v=>v.name===$('biViewList').value);if(view){applyView(view.config);await load()}});
@@ -528,6 +541,7 @@ if(finTab){
  const axisUsd=value=>Math.abs(value)>=1000000?'USD '+(value/1000000).toFixed(1)+'m':Math.abs(value)>=1000?'USD '+(value/1000).toFixed(1)+'k':usd(value);
  let finCurrent=null,finRequest=null,finTimer=null,finLoaded=false,finSeq=0;
  const finColors=['#2563eb','#059669','#d97706','#9333ea','#dc2626','#0891b2'];
+ $('biFinCsv').addEventListener('click',()=>{if(finCurrent)exportTableCsv('biFinTable','brite-financial-'+$('biFinFrom').value+'-'+$('biFinTo').value+'.csv')});
  const finOptions=()=>({from:$('biFinFrom').value,to:$('biFinTo').value,interval:$('biFinInterval').value,metrics:[...document.querySelectorAll('.bi-fin-metric:checked')].map(el=>el.value)});
  function renderFinancial(){
   const w=finCanvas.width,h=finCanvas.height,ctx=finCtx;
