@@ -780,7 +780,7 @@ require __DIR__.'/partials/app_header.php';
 </style>
 
 <link rel="stylesheet"
-      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89d'))?>">
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89e'))?>">
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'), ENT_QUOTES, 'UTF-8')?>">
 
@@ -3513,14 +3513,14 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                 // retain natural page scrolling instead of cropping events.
                 height: 'auto',
                 expandRows: true,
-                dayMaxEventRows: 2,
-                dayMaxEvents: 2,
-                fixedWeekCount: false,
+                dayMaxEventRows: 1,
+                dayMaxEvents: 1,
+                fixedWeekCount: true,
                 moreLinkClick: 'popover',
                 slotMinTime: '00:00:00',
                 slotMaxTime: '24:00:00',
-                slotDuration: '02:00:00',
-                slotLabelInterval: '02:00:00',
+                slotDuration: '00:30:00',
+                slotLabelInterval: '01:00:00',
                 scrollTime: '00:00:00',
                 scrollTimeReset: false,
                 stickyHeaderDates: false,
@@ -3646,36 +3646,27 @@ document.addEventListener('DOMContentLoaded',async ()=>{
         function fitScheduleCalendar() {
             if (!calendar || scheduleCalendarPanel?.hidden) return;
             const monthView = calendar.view.type === 'dayGridMonth';
-            const viewportHeight = document.documentElement.clientHeight;
-            const workspaceTop = Math.max(0, Math.ceil(
-                scheduleWorkspace?.getBoundingClientRect().top || 0
-            ));
-            // The month view owns the remaining visible page, not a
-            // percentage of an auto-sized FullCalendar parent.
-            const workspaceHeight = Math.max(260, viewportHeight - workspaceTop - 4);
-            const toolbarHeight = scheduleWorkspace?.querySelector('.brite-tab-toolbar')
-                ?.getBoundingClientRect().height || 0;
-            const panelGap = 8;
-            const cardPadding = 18;
-            const available = Math.max(
-                190, Math.floor(workspaceHeight - toolbarHeight - panelGap - cardPadding)
-            );
             scheduleWorkspace?.classList.toggle('brite-month-viewport', monthView);
             document.body.classList.toggle('brite-schedule-month-mode', monthView);
+
+            // Measure the actual top edge of FullCalendar after applying
+            // the month-only shell layout. This accounts for the topbar,
+            // workspace tabs, margins and calendar toolbar without guessing.
+            const viewportHeight = document.documentElement.clientHeight;
+            const workspaceTop = scheduleWorkspace?.getBoundingClientRect().top || 0;
+            const workspaceHeight = Math.max(0, viewportHeight - workspaceTop - 4);
             if (monthView) {
                 scheduleWorkspace?.style.setProperty('--brite-month-workspace-height', workspaceHeight + 'px');
-                const target = available;
-                if (target !== lastCalendarMode) {
-                    lastCalendarMode = target;
-                    calendar.setOption('height', target);
-                }
             } else {
                 scheduleWorkspace?.style.removeProperty('--brite-month-workspace-height');
-                const target = '100%';
-                if (target !== lastCalendarMode) {
-                    lastCalendarMode = target;
-                    calendar.setOption('height', target);
-                }
+            }
+
+            const calendarTop = document.getElementById('calendar')?.getBoundingClientRect().top || 0;
+            const available = Math.max(180, Math.floor(viewportHeight - calendarTop - 10));
+            const target = available;
+            if (target !== lastCalendarMode) {
+                lastCalendarMode = target;
+                calendar.setOption('height', target);
             }
             calendar.updateSize();
         }
