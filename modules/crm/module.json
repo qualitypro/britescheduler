@@ -1,8 +1,8 @@
 {
   "key": "crm",
   "name": "Customer Relationship Management",
-  "version": "1.6.0",
-  "description": "Tenant-isolated leads, Customer 360, follow-ups, and quote integration, analytics, customer segments, configurable smart audiences and targeted campaigns, staff task assignment and campaign completion reporting.",
+  "version": "1.7.0",
+  "description": "Tenant-isolated leads, Customer 360, follow-ups, and quote integration, analytics, customer segments, configurable smart audiences and targeted campaigns, staff workload, recurring tasks, due-soon reminders and campaign completion reporting.",
   "menu_label": "CRM",
   "page": "page.php",
   "roles": [
