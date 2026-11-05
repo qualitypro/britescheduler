@@ -95,14 +95,11 @@ document.addEventListener('keydown',e=>{
 });
 const tools=make('div','brite-page-tools');
 const top=make('button','','Back to top ↑');top.type='button';top.addEventListener('click',()=>{window.scrollTo({top:0,behavior:app.dataset.briteReducedMotion==='1'?'instant':'smooth'});});
-const copy=make('button','','Copy page link');copy.type='button';copy.addEventListener('click',async()=>{
- try{
-  if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');
-  await navigator.clipboard.writeText(location.href);
-  copy.textContent='Link copied';setTimeout(()=>{copy.textContent='Copy page link';},1800);
- }catch(_){copy.textContent='Copy unavailable';setTimeout(()=>{copy.textContent='Copy page link';},1800);}
-});
-tools.append(top,copy);main.append(tools);
+// Keep the global back-to-top action, but remove the redundant copy-link control.
+// The scheduling workspace is viewport-fitted and does not need a page footer.
+if (!document.getElementById('schedulingWorkspace')) {
+ tools.append(top);main.append(tools);
+}
 const updateTop=()=>{top.hidden=window.scrollY<300;};
 window.addEventListener('scroll',updateTop,{passive:true});updateTop();
 })();
