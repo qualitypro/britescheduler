@@ -298,7 +298,7 @@ function pdfExport(source=chart,filename=null){
  obj(1,'<< /Type /Catalog /Pages 2 0 R >>');
  obj(2,'<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
  obj(3,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 792 612] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>');
- positions[4]=offset;add('4 0 obj\n<< /Type /XObject /Subtype /Image /Width 1100 /Height 540 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+bytes.length+' >>\nstream\n');add(bytes);add('\nendstream\nendobj\n');
+ positions[4]=offset;add('4 0 obj\n<< /Type /XObject /Subtype /Image /Width '+source.width+' /Height '+source.height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+bytes.length+' >>\nstream\n');add(bytes);add('\nendstream\nendobj\n');
  const scale=Math.min(740/source.width,560/source.height);const dw=source.width*scale,dh=source.height*scale;
  const command='q '+dw.toFixed(2)+' 0 0 '+dh.toFixed(2)+' '+((792-dw)/2).toFixed(2)+' '+((612-dh)/2).toFixed(2)+' cm /Im0 Do Q\n';
  obj(5,'<< /Length '+encoder.encode(command).length+' >>\nstream\n'+command+'endstream');
