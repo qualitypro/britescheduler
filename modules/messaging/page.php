@@ -13,7 +13,7 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
 .msg-bubble{align-self:flex-start;max-width:85%;border:1px solid #cbd5e1;border-radius:12px;padding:12px;background:var(--brite-surface,#fff);overflow-wrap:anywhere}
 .msg-bubble.msg-mine{align-self:flex-end;background:#e0edff;color:#172033}
 .msg-bubble p{margin:8px 0}.msg-bubble small{opacity:.75}
-.msg-form{display:grid;gap:12px}.msg-form input,.msg-form select,.msg-form textarea{width:100%;box-sizing:border-box}
+.msg-review-item{display:grid;gap:5px;width:100%;text-align:left;margin:8px 0;padding:12px;border:1px solid #cbd5e1;border-radius:9px;background:transparent}.msg-review-item small{color:#64748b}.msg-form{display:grid;gap:12px}.msg-form input,.msg-form select,.msg-form textarea{width:100%;box-sizing:border-box}
 @media(max-width:760px){.msg-workspace{grid-template-columns:1fr;min-height:0}.msg-history{max-height:360px}}
 </style>
 <section class="card" style="display:grid;gap:16px">
@@ -45,6 +45,18 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
    </div>
   </div>
  </div>
+ <?php if($tenant['role']==='owner'): ?>
+ <section class="msg-pane" id="msgOwnerReview" aria-label="Tenant conversation review">
+  <h2>Tenant conversation review</h2>
+  <p class="muted">Owner-only, read-only review of conversations in this tenant. Reviews are recorded in an internal audit log and do not mark participants' messages as read.</p>
+  <label>Find a conversation <input id="msgReviewSearch" type="search" placeholder="Search participants or subject" style="width:100%;box-sizing:border-box"></label>
+  <div class="msg-workspace" style="margin-top:12px;min-height:0">
+   <div><h3>All tenant conversations</h3><div id="msgReviewThreads"></div></div>
+   <div><h3 id="msgReviewHeading">Select a conversation</h3><div id="msgReviewMessages" class="msg-history"><p>Select a thread to inspect the exchange.</p></div></div>
+  </div>
+ </section>
+ <script defer src="<?=htmlspecialchars(app_url('/modules/messaging/owner-review.js?v=75c'),ENT_QUOTES,'UTF-8')?>"></script>
+ <?php endif; ?>
  <details><summary>Notification preferences</summary><label style="display:flex;gap:10px;align-items:center;margin-top:12px"><input type="checkbox" id="msgInApp"> Enable in-app message notifications</label><p class="muted">This setting is saved for your account and tenant. Email and SMS delivery are not enabled in this version.</p></details>
 </section>
 <script defer src="<?=htmlspecialchars(app_url('/modules/messaging/messaging.js?v=75b'),ENT_QUOTES,'UTF-8')?>"></script>
