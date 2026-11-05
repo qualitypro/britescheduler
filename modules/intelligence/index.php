@@ -60,6 +60,9 @@ async function mutateView(method,name,config){const r=await fetch(viewsEndpoint,
 const palette=['#2563eb','#059669','#d97706','#9333ea','#db2777','#0891b2','#dc2626','#64748b'];
 const chart=$('biChart'),ctx=chart.getContext('2d');
 let current=null;
+let activeRequest=null;
+let refreshTimer=null;
+let requestId=0;
 const controls=['biFrom','biTo','biInterval'];
 const safeSettings=()=>({from:$('biFrom').value,to:$('biTo').value,interval:$('biInterval').value,metrics:[...document.querySelectorAll('.bi-metric:checked')].map(el=>el.value).slice(0,8)});
 function paint(){
@@ -91,17 +94,24 @@ function showTable(){
  series.forEach((s,i)=>{let span=document.createElement('span'),dot=document.createElement('i');dot.style.background=palette[i%palette.length];span.append(dot,document.createTextNode(s.name));legend.append(span)});
 }
 async function load(){
+ const id=++requestId;
+ if(activeRequest)activeRequest.abort();
+ activeRequest=new AbortController();
  const opts=safeSettings();
- if(!opts.metrics.length){$('biStatus').textContent='Select at least one series.';return}
+ if(!opts.metrics.length){current=null;paint();$('biLegend').replaceChildren();$('biTable').tHead?.replaceChildren();$('biTable').tBodies[0]?.replaceChildren();$('biStatus').textContent='Select at least one series.';return}
  if(opts.metrics.length>8){$('biStatus').textContent='Maximum eight series.';return}
  $('biStatus').textContent='Loading tenant metrics…';
  try{
  const query=new URLSearchParams({...opts,metrics:opts.metrics.join(',')});
- const response=await fetch(endpoint+'?'+query,{credentials:'same-origin',headers:{Accept:'application/json'}});
+ const response=await fetch(endpoint+'?'+query,{credentials:'same-origin',headers:{Accept:'application/json'},signal:activeRequest.signal});
  const data=await response.json();if(!response.ok)throw Error(data.error||'Unable to load data');
+ if(id!==requestId)return;
  current=data;paint();showTable();$('biStatus').textContent='Loaded '+data.series.length+' series · '+data.from+' through '+data.to;
- }catch(e){$('biStatus').textContent=e.message}
+ }catch(e){if(id===requestId&&e.name!=='AbortError')$('biStatus').textContent=e.message}
 }
+function scheduleRefresh(){clearTimeout(refreshTimer);refreshTimer=setTimeout(load,180)}
+$('biMetrics').addEventListener('change',event=>{if(!event.target.matches('.bi-metric'))return;const selected=document.querySelectorAll('.bi-metric:checked');if(selected.length>8){event.target.checked=false;$('biStatus').textContent='Select a maximum of eight series.';return}scheduleRefresh()});
+controls.forEach(id=>$(id).addEventListener('change',scheduleRefresh));
 function download(blob,filename){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000)}
 function imageExport(type){if(!current)return;$('biChart').toBlob(b=>{if(b)download(b,'brite-intelligence.'+(type==='image/png'?'png':'jpg'))},type,.94)}
 function pdfExport(){
