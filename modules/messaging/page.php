@@ -14,6 +14,25 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
 .msg-bubble.msg-mine{align-self:flex-end;background:#e0edff;color:#172033}
 .msg-bubble p{margin:8px 0}.msg-bubble small{opacity:.75}
 .msg-review-item{display:grid;gap:5px;width:100%;text-align:left;margin:8px 0;padding:12px;border:1px solid #cbd5e1;border-radius:9px;background:transparent}.msg-review-item small{color:#64748b}.msg-form{display:grid;gap:12px}.msg-form input,.msg-form select,.msg-form textarea{width:100%;box-sizing:border-box}
+
+/* Messaging forms: conventional rectangular fields instead of global pill styling. */
+#msgCreate label,#msgReply label,#msgOwnerReview>label{display:grid;gap:6px;font-weight:600}
+#msgCreate input,#msgCreate select,#msgCreate textarea,
+#msgReply textarea,#msgReviewSearch{
+ appearance:auto!important;border-radius:6px!important;
+ border:1px solid var(--brite-border-strong,#cbd5e1)!important;
+ background:var(--brite-surface,#fff)!important;color:var(--brite-text,#0f172a)!important;
+ box-shadow:none!important;padding:10px 12px!important;
+ min-height:42px;width:100%;max-width:100%;box-sizing:border-box;
+ font:inherit;line-height:1.4;
+}
+#msgCreate textarea,#msgReply textarea{min-height:105px;resize:vertical}
+#msgCreate input:focus-visible,#msgCreate select:focus-visible,
+#msgCreate textarea:focus-visible,#msgReply textarea:focus-visible,
+#msgReviewSearch:focus-visible{outline:2px solid #2563eb!important;outline-offset:2px}
+#msgCreate button[type=submit],#msgReply button[type=submit]{
+ border-radius:6px!important;justify-self:start;padding:10px 18px!important;
+}
 @media(max-width:760px){.msg-workspace{grid-template-columns:1fr;min-height:0}.msg-history{max-height:360px}}
 </style>
 <section class="card" style="display:grid;gap:16px">
