@@ -41,9 +41,9 @@ try {
     }
     if ($from>$to || (new DateTimeImmutable($from))->diff(new DateTimeImmutable($to))->days>730) throw new InvalidArgumentException('Date range must be 0–730 days');
     $bucket=match($interval) {
-        'day'=>'DATE_FORMAT(%s,\'%Y-%m-%d\')',
-        'week'=>'DATE_FORMAT(DATE_SUB(%s,INTERVAL WEEKDAY(%s) DAY),\'%Y-%m-%d\')',
-        default=>'DATE_FORMAT(%s,\'%Y-%m\')'
+        'day'=>'DATE_FORMAT(%s,\'%%Y-%%m-%%d\')',
+        'week'=>'DATE_FORMAT(DATE_SUB(%s,INTERVAL WEEKDAY(%s) DAY),\'%%Y-%%m-%%d\')',
+        default=>'DATE_FORMAT(%s,\'%%Y-%%m\')'
     };
     $series=[];
     foreach($keys as $key){
