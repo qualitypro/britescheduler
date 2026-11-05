@@ -19,7 +19,9 @@ $role=(string)($tenant['role']??'');
 $allowed=[
  'operations'=>['owner','admin','scheduler','accounting'],
  'contractor'=>['contractor'],
- 'client'=>['client']
+ 'client'=>['client'],
+ 'intelligence_performance'=>['owner','admin','scheduler','accounting','contractor','client'],
+ 'intelligence_financial'=>['owner','admin','accounting']
 ];
 if(!isset($allowed[$key])||!in_array($role,$allowed[$key],true)){
  json_response(['error'=>'Dashboard unavailable'],403);
@@ -48,7 +50,9 @@ if(!is_array($layout)||array_is_list($layout)||array_diff(array_keys($layout),['
 $widgets=[
  'operations'=>['clients','contractors','appointments_today','appointments_week','receivables','payments_month'],
  'contractor'=>['assigned_appointments','business'],
- 'client'=>['appointments','invoices','outstanding_balance']
+ 'client'=>['appointments','invoices','outstanding_balance'],
+ 'intelligence_performance'=>['analysis','comparison','series_data'],
+ 'intelligence_financial'=>['configuration','totals','chart','forecast','series_data']
 ];
 $validKeys=$widgets[$key];
 foreach(['order','hidden','wide'] as $field){
