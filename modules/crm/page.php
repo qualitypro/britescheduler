@@ -32,7 +32,17 @@ try {
    if($id && !$checkLink($table,'id',$id))throw new RuntimeException('Invalid or inaccessible linked record.');
    return $id?:null;
   };
-  if($action==='lead_create'){
+  if($action==='quote_backfill'){
+   require_once dirname(__DIR__,2).'/app/CrmQuoteSync.php';
+   $q=$db->prepare("SELECT r.id FROM contractor_quote_requests r LEFT JOIN crm_quote_links l ON l.tenant_id=r.tenant_id AND l.request_id=r.id WHERE r.tenant_id=? AND l.request_id IS NULL ORDER BY r.id LIMIT 100");
+   $q->execute([$tid]);$ids=$q->fetchAll(PDO::FETCH_COLUMN);
+   $db->beginTransaction();
+   try{
+    foreach($ids as $requestId)CrmQuoteSync::sync($db,$tid,(int)$requestId,$uid);
+    $db->commit();
+   }catch(Throwable $e){$db->rollBack();throw $e;}
+   $flash='Imported '.count($ids).' quote requests.';
+  }elseif($action==='lead_create'){
    $name=$required('name');$email=$optional('email');$phone=$optional('phone',40);
    if($email!==null&&!filter_var($email,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Invalid email address.');
    $source=$optional('source',80)??'manual';$notes=$optional('notes',5000);
@@ -100,7 +110,7 @@ try {
    $id=(int)($_POST['id']??0);$q=$db->prepare('UPDATE crm_activities SET completed_at=NOW() WHERE id=? AND tenant_id=? AND completed_at IS NULL');$q->execute([$id,$tid]);
    if(!$q->rowCount()&&!$checkLink('crm_activities','id',$id))throw new RuntimeException('Activity not found.');
   }else throw new RuntimeException('Unknown action.');
-  $flash='saved';$tab=$postedTab;
+  if($flash==='')$flash='saved';$tab=$postedTab;
  }
 } catch(Throwable $e){$flash=$e instanceof PDOException?'CRM storage unavailable. Apply migration 030_crm_module.sql.':$e->getMessage();}
 try{
@@ -132,6 +142,7 @@ $customerOptions=static function(?int $selected=null)use($customers,$esc):void {
  <?php foreach([['Customers',count($customers)],['Open leads',$openLeads],['Open opportunities',count($openOpps)],['Follow-ups due',$due],['Quote requests',$quoteCount],['Appointments',$appointmentCount]] as $stat): ?><div class="crm-stat"><span class="crm-muted"><?=$esc($stat[0])?></span><strong><?=$esc($stat[1])?></strong></div><?php endforeach; ?>
  </div>
  <div class="crm-panel"><h2>Pipeline snapshot</h2><div class="crm-stats"><?php foreach(['new','contacted','quoted','won','lost'] as $stage): ?><div class="crm-stat"><span class="crm-muted"><?=ucfirst($stage)?></span><strong><?=count(array_filter($opportunities,static fn($r)=>$r['stage']===$stage))?></strong></div><?php endforeach; ?></div></div>
+ <div class="crm-panel"><h2>Quote integration</h2><p class="crm-muted">New quote requests and formal quote updates are automatically linked to CRM opportunities while CRM is active. Import earlier quote requests in batches of up to 100.</p><form method="post"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="action" value="quote_backfill"><input type="hidden" name="tab" value="overview"><button type="submit">Import existing quote requests</button></form></div>
  <div class="crm-panel"><h2>Follow-ups requiring attention</h2><?php if(!$dueFollowUps): ?><p class="crm-muted">You're all caught up on logged follow-ups.</p><?php else: ?><div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Due</th><th>Type</th><th>Details</th><th>Action</th></tr></thead><tbody><?php foreach(array_slice($dueFollowUps,0,10) as $item): ?><tr><td><?=$esc($item['due_at'])?></td><td><?=$esc($item['kind'])?></td><td><?=$esc($item['body'])?></td><td><form method="post"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="tab" value="overview"><input type="hidden" name="action" value="activity_complete"><input type="hidden" name="id" value="<?=(int)$item['id']?>"><button type="submit">Complete</button></form></td></tr><?php endforeach; ?></tbody></table></div><?php endif; ?></div>
  <p class="crm-muted">Counts for leads, customers, opportunities and activities reflect the most recent 150 records in each list. Quote requests and appointments are tenant-wide totals.</p>
  <?php elseif($tab==='leads'): ?>
