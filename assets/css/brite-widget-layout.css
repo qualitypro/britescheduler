@@ -187,6 +187,33 @@
   max-height:32px!important;
  }
 }
+/* Subtle, native-feeling controls with comfortable edge clearance. */
+.brite-widget-chrome>.brite-widget-controls{
+ border-color:transparent!important;
+ background:transparent!important;
+ border-radius:6px!important;
+}
+.brite-widget-chrome:hover>.brite-widget-controls,
+.brite-widget-chrome:focus-within>.brite-widget-controls,
+.brite-widget-chrome.brite-widget-chrome-open>.brite-widget-controls{
+ background:var(--brite-surface,#fff)!important;
+ border-color:var(--brite-border,#cbd5e1)!important;
+}
+.brite-widget-chrome>.brite-widget-controls>button{
+ transition:background-color .12s ease,color .12s ease!important;
+}
+.brite-widget-chrome>.brite-widget-controls>button:focus-visible{
+ outline:2px solid var(--brite-accent,#2563eb)!important;
+ outline-offset:1px!important;
+}
+.brite-widget-chrome>.brite-widget-controls>button:last-child:hover{
+ background:rgba(220,38,38,.10)!important;
+ color:#b91c1c!important;
+}
+@media(prefers-reduced-motion:reduce){
+ .brite-widget-chrome>.brite-widget-controls>button{transition:none!important}
+}
+
 @media(prefers-reduced-motion:reduce){
  .brite-widget-chrome>.brite-widget-controls{transition:none!important}
 }
