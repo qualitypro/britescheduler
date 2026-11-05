@@ -3676,12 +3676,18 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                         const names = appointmentContractorNames(a);
                         if (names.length) lines.push('Contractors: ' + names.join(', '));
                     }
-                    info.el.title = lines.join('\n');
+                    info.el.dataset.britePreviewTitle = lines.join('\n');
+                    info.el.removeAttribute('title');
+                    info.el.addEventListener('focusin', () => scheduleEventPreview(info));
+                    info.el.addEventListener('focusout', dismissEventPreview);
                     info.el.setAttribute('aria-label', lines.join('. '));
                 },
 
                 eventMouseEnter: scheduleEventPreview,
                 eventMouseLeave: dismissEventPreview,
+                eventWillUnmount: info => {
+                    if (previewAnchor === info.el) dismissEventPreview();
+                },
                 eventContent:calendarEventContent,
                 eventDisplay:'block',
                 displayEventEnd:false,
