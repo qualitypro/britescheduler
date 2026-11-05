@@ -1931,3 +1931,21 @@ label:has(+ #endsAt),
  #calendar .fc-timegrid-body .fc-timegrid-slots table{height:100%}
  #calendar .fc-timegrid-slot{height:1.25em}
 }
+
+/* Cycle 89C: month fills the visible workspace; week/day may scroll internally. */
+#schedulingWorkspace.brite-month-viewport #scheduleCalendarPanel{overflow:hidden!important}
+#schedulingWorkspace.brite-month-viewport #scheduleCalendarPanel .scheduler-layout,
+#schedulingWorkspace.brite-month-viewport #scheduleCalendarPanel .scheduler-layout>.card{min-height:0;overflow:hidden}
+#schedulingWorkspace.brite-month-viewport #calendar .fc-daygrid-body,
+#schedulingWorkspace.brite-month-viewport #calendar .fc-daygrid-body table{width:100%!important}
+#schedulingWorkspace.brite-month-viewport #calendar .fc-daygrid-day-frame{min-height:0}
+#schedulingWorkspace.brite-month-viewport #calendar .fc-daygrid-day-events{min-height:0}
+#schedulingWorkspace.brite-month-viewport #calendar .fc-daygrid-more-link{white-space:nowrap}
+@media(max-width:899px){
+ #schedulingWorkspace.brite-month-viewport{height:calc(100dvh - var(--brite-workspace-top,155px) - 8px);min-height:240px;overflow:hidden}
+ #schedulingWorkspace.brite-month-viewport>.brite-tab-panels,
+ #schedulingWorkspace.brite-month-viewport #scheduleCalendarPanel:not([hidden]),
+ #schedulingWorkspace.brite-month-viewport #scheduleCalendarPanel .scheduler-layout,
+ #schedulingWorkspace.brite-month-viewport #scheduleCalendarPanel .scheduler-layout>.card{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden}
+ #schedulingWorkspace.brite-month-viewport #calendar{flex:1 1 auto;min-height:0!important}
+}
