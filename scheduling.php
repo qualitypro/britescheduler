@@ -780,7 +780,7 @@ require __DIR__.'/partials/app_header.php';
 </style>
 
 <link rel="stylesheet"
-      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css'))?>">
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89a'))?>">
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'), ENT_QUOTES, 'UTF-8')?>">
 
@@ -3509,6 +3509,13 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             document.getElementById('calendar'),
             {
                 initialView: preferredViews[calendarPreferences.calendar_view],
+                // Desktop fills the available calendar panel; small screens
+                // retain natural page scrolling instead of cropping events.
+                height: window.matchMedia('(min-width:900px) and (min-height:500px)').matches
+                    ? '100%' : 'auto',
+                expandRows: true,
+                dayMaxEventRows: 3,
+                stickyHeaderDates: false,
                 firstDay: calendarPreferences.week_starts_on === 'monday' ? 1 : 0,
                 eventTimeFormat: {
                     hour: '2-digit',
@@ -3618,6 +3625,38 @@ document.addEventListener('DOMContentLoaded',async ()=>{
         );
 
         calendar.render();
+        // FullCalendar needs an explicit recalculation when the workspace
+        // changes size or a hidden tab becomes visible.
+        const scheduleWorkspace = document.getElementById('schedulingWorkspace');
+        const scheduleCalendarPanel = document.getElementById('scheduleCalendarPanel');
+        const calendarCard = scheduleCalendarPanel?.querySelector('.scheduler-layout > .card');
+        let calendarResizeFrame = 0;
+        let lastCalendarMode = '';
+        function fitScheduleCalendar() {
+            if (!calendar || scheduleCalendarPanel?.hidden) return;
+            const compact = !window.matchMedia('(min-width:900px) and (min-height:500px)').matches;
+            const mode = compact ? 'auto' : '100%';
+            if (mode !== lastCalendarMode) {
+                calendar.setOption('height', mode);
+                lastCalendarMode = mode;
+            }
+            calendar.updateSize();
+        }
+        function queueCalendarFit() {
+            if (calendarResizeFrame) cancelAnimationFrame(calendarResizeFrame);
+            calendarResizeFrame = requestAnimationFrame(() => {
+                calendarResizeFrame = 0;
+                fitScheduleCalendar();
+            });
+        }
+        scheduleWorkspace?.addEventListener('brite:tabchange', queueCalendarFit);
+        window.addEventListener('resize', queueCalendarFit, {passive:true});
+        if (window.ResizeObserver && calendarCard) {
+            const scheduleSizeObserver = new ResizeObserver(queueCalendarFit);
+            scheduleSizeObserver.observe(calendarCard);
+        }
+        queueCalendarFit();
+
 
         // Position the month view at the earliest upcoming appointment
         // visible to this authenticated user. The endpoint derives
