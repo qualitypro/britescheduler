@@ -134,3 +134,31 @@
   min-width:26px!important;min-height:26px!important;max-width:26px!important;
  }
 }
+
+/* Non-overlapping widget header rail. Reserve only the launcher row;
+   content starts below it, including on dense metric cards and BI panels. */
+.brite-widget-grid>[data-widget-id],
+.brite-dashboard-metrics>[data-widget-id],
+.bi-widget-grid>[data-widget-id]{
+ box-sizing:border-box!important;
+ padding-top:30px!important;
+}
+.brite-widget-grid>[data-widget-id]>.brite-widget-chrome,
+.brite-dashboard-metrics>[data-widget-id]>.brite-widget-chrome,
+.bi-widget-grid>[data-widget-id]>.brite-widget-chrome{
+ top:4px!important;right:6px!important;
+ height:22px!important;
+}
+/* The expanded actions stay in the reserved rail instead of covering titles. */
+.brite-widget-chrome>.brite-widget-controls{
+ max-height:22px!important;
+}
+@media(pointer:coarse){
+ .brite-widget-grid>[data-widget-id],
+ .brite-dashboard-metrics>[data-widget-id],
+ .bi-widget-grid>[data-widget-id]{padding-top:36px!important}
+ .brite-widget-grid>[data-widget-id]>.brite-widget-chrome,
+ .brite-dashboard-metrics>[data-widget-id]>.brite-widget-chrome,
+ .bi-widget-grid>[data-widget-id]>.brite-widget-chrome{height:28px!important}
+ .brite-widget-chrome>.brite-widget-controls{max-height:28px!important}
+}
