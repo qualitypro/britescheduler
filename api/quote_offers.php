@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once dirname(__DIR__).'/app/bootstrap.php';
+require_once dirname(__DIR__).'/app/CrmQuoteSync.php';
 $user=Auth::requireUser();
 $tenant=Auth::requireRole('client','contractor');
 $role=(string)$tenant['role'];
@@ -67,6 +68,7 @@ try{
   $q=$pdo->prepare('UPDATE contractor_quote_requests SET status=? WHERE tenant_id=? AND id=?');
   $q->execute([$next,$tid,$id]);
  }
+ CrmQuoteSync::sync($pdo,$tid,$id,$uid);
  $pdo->commit();
  json_response(['ok'=>true,'request_status'=>$action==='submit'?'quoted':($action==='accept'?'accepted':'declined')]);
 }catch(Throwable $e){
