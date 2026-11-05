@@ -14,8 +14,14 @@ $q->execute([$tid]);$recentCampaigns=$q->fetchAll(PDO::FETCH_ASSOC);
 <section class="crm-panel">
  <h2>Smart customer segments</h2>
  <p class="crm-muted">Live classifications calculated from tenant-owned scheduling, quote and CRM records. No manual membership changes required.</p>
- <nav class="crm-tabs" aria-label="Smart segment types">
- <?php foreach($smartRules as $key=>$definition): ?><a href="<?=$esc($base.'&tab=smart&smart='.$key)?>" <?=$key===$rule?'aria-current="page"':''?>><?=$esc($definition['label'])?></a><?php endforeach; ?>
+ <nav class="crm-tabs crm-smart-type-tabs" aria-label="Smart segment types">
+ <?php foreach($smartRules as $key=>$definition): ?><a href="<?=$esc($base.'&tab=smart&smart='.$key)?>" <?=$key===$rule?'aria-current="page"':''?>><span class="crm-smart-type-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><?php switch($key):
+ case 'repeat': ?><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/><path d="M12 7v5l3 2"/><?php break;
+ case 'inactive': ?><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 3M3 3l4 4"/><?php break;
+ case 'high_value': ?><path d="M3 20V4M3 20h18M7 16l5-6 4 3 5-8"/><path d="M17 5h4v4"/><?php break;
+ case 'quotes': ?><path d="M4 4h16v12H9l-5 4z"/><path d="M8 9h8M8 12h5"/><?php break;
+ case 'new': ?><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M19 8v8M15 12h8"/><?php break;
+ endswitch; ?></svg></span><span class="crm-smart-type-label"><?=$esc($definition['label'])?></span></a><?php endforeach; ?>
  </nav>
  <h3><?=$esc($smartRules[$rule]['label'])?> <span class="crm-pill"><?=count($matches)?><?=$matches&&count($matches)===200?'+':''?></span></h3>
  <p class="crm-muted"><?=$esc($smartRules[$rule]['description'])?>. Up to 200 matching customers are shown.</p>
