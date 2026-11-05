@@ -118,6 +118,8 @@
    for(const card of defaultCards){
     const id=card.dataset.widgetId;
     const name=card.dataset.widgetLabel||id;
+    // Anchor the floating launcher to this card, regardless of dashboard CSS.
+    if(getComputedStyle(card).position==='static')card.style.position='relative';
     const controls=document.createElement('div');
     controls.className='brite-widget-controls';
     const launcher=document.createElement('button');
@@ -130,6 +132,7 @@
     launcher.setAttribute('aria-haspopup','true');
     const chrome=document.createElement('div');
     chrome.className='brite-widget-chrome';
+    chrome.style.cssText='position:absolute;top:4px;right:4px;left:auto;bottom:auto;width:max-content;height:max-content;max-width:calc(100% - 8px);margin:0;padding:0;flex:none;align-self:auto;z-index:20';
     const setExpanded=expanded=>{
      chrome.classList.toggle('brite-widget-chrome-open',expanded);
      launcher.setAttribute('aria-expanded',String(expanded));
