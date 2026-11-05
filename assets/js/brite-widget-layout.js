@@ -95,13 +95,26 @@
     restore.hidden=saved.hidden.length===0;
     notify();
    };
+   const animateLayout=change=>{
+    const visible=cards().filter(card=>!card.hidden);
+    const positions=new Map(visible.map(card=>[card,card.getBoundingClientRect()]));
+    change();
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    for(const card of visible){
+     const a=positions.get(card),b=card.getBoundingClientRect();
+     const dx=a.left-b.left,dy=a.top-b.top;
+     if(Math.abs(dx)<1&&Math.abs(dy)<1)continue;
+     card.animate([{transform:'translate('+dx+'px,'+dy+'px)'},{transform:'translate(0,0)'}],
+      {duration:260,easing:'cubic-bezier(.2,.8,.2,1)'});
+    }
+   };
    const reorder=(source,target,before)=>{
     if(!source||!target||source===target||source.hidden||target.hidden)return;
     const ordered=cards().map(card=>card.dataset.widgetId).filter(id=>id!==source.dataset.widgetId);
     const index=ordered.indexOf(target.dataset.widgetId);
     ordered.splice(index+(before?0:1),0,source.dataset.widgetId);
     saved.order=ordered;
-    render();persist();announce('Widget order saved.');
+    animateLayout(()=>render());persist();announce('Widget order saved.');
     source.querySelector('.brite-widget-handle')?.focus({preventScroll:true});
    };
    const move=(card,direction)=>{
@@ -110,9 +123,13 @@
     const target=visible[index+direction];
     if(target)reorder(card,target,direction<0);
    };
+   const clearDropTarget=()=>defaultCards.forEach(card=>card.classList.remove('brite-widget-drop-target'));
    const stopPointer=()=>{
     if(!pointer)return;
+    pointer.card.style.transform='';
+    pointer.card.classList.remove('brite-widget-drag-active');
     pointer.handle.classList.remove('brite-widget-dragging');
+    clearDropTarget();
     pointer=null;
    };
    for(const card of defaultCards){
@@ -152,25 +169,40 @@
     });
     // Pointer Events support mouse, pen, and touch without dragging the card's content.
     handle.addEventListener('pointerdown',event=>{
-     if(event.button!==0)return;
-     pointer={handle,card,id:event.pointerId,startX:event.clientX,startY:event.clientY,moved:false};
+     if(event.button!==0||pointer)return;
+     pointer={handle,card,id:event.pointerId,startX:event.clientX,startY:event.clientY,
+      moved:false,target:null,before:false};
      handle.setPointerCapture(event.pointerId);
     });
     handle.addEventListener('pointermove',event=>{
-     if(!pointer||pointer.id!==event.pointerId)return;
-     if(Math.hypot(event.clientX-pointer.startX,event.clientY-pointer.startY)<8&&!pointer.moved)return;
-     pointer.moved=true;handle.classList.add('brite-widget-dragging');
+     const drag=pointer;
+     if(!drag||drag.id!==event.pointerId)return;
+     const dx=event.clientX-drag.startX,dy=event.clientY-drag.startY;
+     if(!drag.moved&&Math.hypot(dx,dy)<7)return;
+     if(!drag.moved){
+      drag.moved=true;
+      handle.classList.add('brite-widget-dragging');
+      card.classList.add('brite-widget-drag-active');
+     }
+     event.preventDefault();
+     card.style.transform='translate3d('+dx+'px,'+dy+'px,0)';
+     clearDropTarget();
+     card.style.pointerEvents='none';
+     const hovered=document.elementFromPoint(event.clientX,event.clientY)?.closest('[data-widget-id]');
+     card.style.pointerEvents='';
+     drag.target=hovered&&hovered.parentElement===grid&&hovered!==card&&!hovered.hidden?hovered:null;
+     if(drag.target){
+      const bounds=drag.target.getBoundingClientRect();
+      drag.before=event.clientY<bounds.top+bounds.height/2;
+      drag.target.classList.add('brite-widget-drop-target');
+     }
     });
     handle.addEventListener('pointerup',event=>{
-     if(!pointer||pointer.id!==event.pointerId)return;
-     const wasMoved=pointer.moved;
+     const drag=pointer;
+     if(!drag||drag.id!==event.pointerId)return;
+     const target=drag.target,before=drag.before,moved=drag.moved;
      stopPointer();
-     if(!wasMoved)return;
-     const hovered=document.elementFromPoint(event.clientX,event.clientY)?.closest('[data-widget-id]');
-     if(!hovered||hovered.parentElement!==grid||hovered===card||hovered.hidden)return;
-     const bounds=hovered.getBoundingClientRect();
-     const before=event.clientY<bounds.top+bounds.height/2;
-     reorder(card,hovered,before);
+     if(moved&&target)reorder(card,target,before);
     });
     handle.addEventListener('pointercancel',stopPointer);
     handle.addEventListener('lostpointercapture',stopPointer);
