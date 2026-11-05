@@ -141,7 +141,7 @@ section.bi-workspace .bi-toolbar button,section.bi-workspace .bi-fin-config butt
 }
 section.bi-workspace .bi-toolbar button:disabled,section.bi-workspace .bi-fin-config button:disabled{opacity:.45;cursor:not-allowed}
 section.bi-workspace .bi-layout{grid-template-columns:minmax(175px,215px) minmax(0,1fr);gap:8px}
-section.bi-workspace .bi-metrics{gap:2px;max-height:360px;scrollbar-width:thin}
+section.bi-workspace .bi-metrics{gap:2px;max-height:none;min-height:0;flex:1 1 auto;align-content:start;overflow-y:auto;scrollbar-width:thin}
 section.bi-workspace .bi-metrics h3{font-size:.76rem;margin:8px 0 2px}
 section.bi-workspace .bi-metrics label{min-height:24px!important;padding:2px 0!important;gap:6px!important;font-size:.76rem;line-height:1.2!important}
 section.bi-workspace .bi-metrics input[type=checkbox],section.bi-workspace .bi-fin-metrics input[type=checkbox]{width:14px!important;height:14px!important;min-width:14px!important;flex:0 0 14px!important}
@@ -161,7 +161,7 @@ section.bi-workspace table th,section.bi-workspace table td{padding:5px 7px}
 section.bi-workspace .bi-fin-table{max-width:100%}
 @media(max-width:850px){
  section.bi-workspace .bi-layout{grid-template-columns:1fr}
- section.bi-workspace .bi-metrics{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));max-height:190px;gap:2px 8px}
+ section.bi-workspace .bi-metrics{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));max-height:260px;flex:0 1 auto;gap:2px 8px}
  section.bi-workspace .bi-metrics h3{grid-column:1/-1}
 }
 @media(max-width:520px){
