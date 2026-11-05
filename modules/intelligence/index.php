@@ -78,7 +78,7 @@ section.bi-workspace .bi-toolbar button:focus-visible{
 }
 @media(max-width:760px){.bi-workspace .bi-layout{grid-template-columns:1fr}}
 </style>
-<section class="bi-workspace" aria-labelledby="biTitle">
+<section class="bi-workspace" aria-labelledby="biTitle" data-brite-pills="off">
  <div><h1 id="biTitle">Intelligence</h1><p class="muted">Tenant-scoped, multi-series business analytics.</p></div>
  <div class="bi-panel bi-toolbar">
   <label>From <input type="date" id="biFrom" value="<?=date('Y-m-01',strtotime('-5 months'))?>"></label>
