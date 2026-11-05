@@ -780,7 +780,7 @@ require __DIR__.'/partials/app_header.php';
 </style>
 
 <link rel="stylesheet"
-      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89m'))?>">
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89n'))?>">
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'), ENT_QUOTES, 'UTF-8')?>">
 
@@ -1304,7 +1304,7 @@ function showAppointmentDetails(event) {
         ['Status', appointmentStatusLabel(appointment.status)],
         ['Location', appointment.location || 'Not specified'],
         ...(isManagementRole
-            ? [['Contractors', contractorNames.join(', ') || 'Unassigned']]
+            ? [['Contractors', contractorNames.length ? contractorNames : 'Unassigned']]
             : [])
     ];
 
@@ -1319,7 +1319,20 @@ function showAppointmentDetails(event) {
         const dt = document.createElement('dt');
         const dd = document.createElement('dd');
         dt.textContent = label;
-        dd.textContent = value;
+        if (label === 'Contractors' && Array.isArray(value)) {
+            const pills = document.createElement('div');
+            pills.className = 'appointment-contractor-pills';
+            pills.setAttribute('aria-label', 'Assigned contractors');
+            for (const name of value) {
+                const pill = document.createElement('span');
+                pill.className = 'appointment-contractor-pill';
+                pill.textContent = name;
+                pills.appendChild(pill);
+            }
+            dd.appendChild(pills);
+        } else {
+            dd.textContent = value;
+        }
         field.append(dt, dd);
         list.appendChild(field);
     }
