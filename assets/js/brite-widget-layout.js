@@ -1,5 +1,4 @@
-/* Brite dashboard widget layout v1: scoped, local-only persistence.
-   No external drag dependency; handles avoid intercepting metric interactions. */
+/* Brite dashboard widget layout v2: server-synced preferences with local fallback. */
 (function(){
  'use strict';
  window.BriteWidgetLayout={
@@ -17,7 +16,47 @@
      }
     }
    }catch(_e){}
-   const persist=()=>{try{localStorage.setItem(key,JSON.stringify(saved))}catch(_e){}};
+   const endpoint=options.endpoint||'';
+   const csrf=options.csrf||'';
+   let revision=0;
+   let saveQueue=Promise.resolve();
+   const cache=()=>{try{localStorage.setItem(key,JSON.stringify(saved))}catch(_e){}};
+   const persist=()=>{
+    cache();
+    revision++;
+    const snapshot=JSON.stringify(saved);
+    if(!endpoint)return;
+    saveQueue=saveQueue.catch(()=>{}).then(async()=>{
+     const response=await fetch(endpoint,{
+      method:'PUT',credentials:'same-origin',
+      headers:{'Content-Type':'application/json','X-CSRF-Token':csrf,'Accept':'application/json'},
+      body:snapshot
+     });
+     if(!response.ok)throw Error('Layout could not be saved to your account');
+     status.textContent='Layout saved to your account.';
+    }).catch(error=>{status.textContent=error.message+'; saved in this browser.'});
+   };
+   const load=async()=>{
+    if(!endpoint)return;
+    try{
+     const response=await fetch(endpoint,{credentials:'same-origin',headers:{Accept:'application/json'}});
+     if(!response.ok)throw Error('Account layout unavailable');
+     const result=await response.json();
+     if(revision)return;
+     if(result.layout&&typeof result.layout==='object'){
+      const remote=result.layout;
+      for(const field of ['order','hidden','wide']){
+       saved[field]=Array.isArray(remote[field])
+        ?remote[field].filter(id=>typeof id==='string'&&known.has(id)).slice(0,50):[];
+      }
+      cache();
+     }else if(saved.order.length||saved.hidden.length||saved.wide.length){
+      // One-time migration of an existing browser layout.
+      persist();
+     }
+     apply();
+    }catch(_e){status.textContent='Using browser-saved layout (account sync unavailable).'}
+   };
    const status=document.createElement('span');
    status.className='brite-widget-status';
    status.setAttribute('role','status');
@@ -115,12 +154,13 @@
    });
    reset.addEventListener('click',()=>{
     saved={order:[],hidden:[],wide:[]};
-    try{localStorage.removeItem(key)}catch(_e){}
+    cache();
     const original=new Map(options.defaultOrder.map((id,i)=>[id,i]));
     cards().sort((a,b)=>(original.get(a.dataset.widgetId)??99)-(original.get(b.dataset.widgetId)??99)).forEach(c=>grid.append(c));
-    apply();status.textContent='Default widget layout restored.';
+    apply();persist();status.textContent='Default widget layout restored.';
    });
    apply();
+   load();
   }
  };
 })();
