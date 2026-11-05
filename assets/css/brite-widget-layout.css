@@ -1,0 +1,11 @@
+/* Shared widget customization controls for all role dashboards. */
+.brite-widget-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+.brite-widget-toolbar button,.brite-widget-controls button{border:1px solid var(--brite-border,#cbd5e1);border-radius:6px;background:var(--brite-surface,#fff);color:var(--brite-text,#172033);padding:6px 10px;cursor:pointer;font:inherit;font-size:.8rem}
+.brite-widget-toolbar button:focus-visible,.brite-widget-controls button:focus-visible{outline:2px solid var(--brite-accent,#2563eb);outline-offset:2px}
+.brite-widget-controls{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.brite-widget-controls[hidden]{display:none!important}
+.brite-widget-handle{cursor:grab!important;touch-action:none}
+.brite-widget-status{font-size:.76rem;color:var(--brite-text-secondary,#64748b)}
+.brite-dashboard-metrics .brite-widget-wide,.brite-widget-grid .brite-widget-wide{grid-column:span 2}
+.brite-dashboard-metrics [hidden],.brite-widget-grid [hidden]{display:none!important}
+@media(max-width:650px){.brite-dashboard-metrics .brite-widget-wide,.brite-widget-grid .brite-widget-wide{grid-column:span 1}}
