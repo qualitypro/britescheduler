@@ -733,7 +733,10 @@ document.addEventListener('DOMContentLoaded',function(){
  const makeWorkspace=(panelId,key,definitions)=>{
   const panel=document.getElementById(panelId);
   if(!panel)return;
-  const resolved=definitions.map(([id,label,selector])=>[id,label,panel.querySelector(selector)]);
+  const resolved=definitions.map(([id,label,selector,closestPanel])=>{
+   const found=panel.querySelector(selector);
+   return [id,label,closestPanel?found?.closest('.bi-panel'):found];
+  });
   if(resolved.some(entry=>!entry[2]))return;
   const grid=document.createElement('div');
   grid.className='bi-widget-grid';
@@ -758,17 +761,17 @@ document.addEventListener('DOMContentLoaded',function(){
  makeWorkspace('biPanelPerformance','performance',[
   ['analysis','Performance analysis','.bi-layout'],
   ['comparison','Period comparison','.bi-layout + .bi-panel'],
-  ['series_data','Series data','.bi-panel:has(#biTable)']
+  ['series_data','Series data','#biTable',true]
  ]);
  // The series table is nested; move its containing panel instead.
  const financial=document.getElementById('biPanelFinancial');
  if(financial){
   makeWorkspace('biPanelFinancial','financial',[
-   ['configuration','Financial configuration','.bi-panel:has(#biFinMetrics)'],
+   ['configuration','Financial configuration','#biFinMetrics',true],
    ['totals','Financial totals','#biFinTotals'],
    ['chart','Financial chart','.bi-fin-plot'],
-   ['forecast','Next-period outlook','.bi-panel:has(#biFinForecastTable)'],
-   ['series_data','Financial series','.bi-panel:has(#biFinTable)']
+   ['forecast','Next-period outlook','#biFinForecastTable',true],
+   ['series_data','Financial series','#biFinTable',true]
   ]);
  }
  window.dispatchEvent(new Event('resize'));
