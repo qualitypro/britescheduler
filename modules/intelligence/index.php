@@ -184,6 +184,40 @@ section.bi-workspace .bi-fin-table{max-width:100%}
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-widget-layout.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <style>
 /* Intelligence widget containers retain the existing BI chart/selector layout. */
+/* BI widgets wrap existing panels. The visible border belongs to the nested
+   panel, not the wrapper: remove the shared wrapper's 34px header gap and
+   reserve the header space INSIDE the visible BI panel instead. */
+.bi-workspace .bi-widget-grid>.bi-widget{
+ padding-top:0!important;
+ position:relative!important;
+}
+.bi-workspace .bi-widget-grid>.bi-widget>.brite-widget-chrome{
+ top:7px!important;
+ height:30px!important;
+ z-index:25!important;
+}
+.bi-workspace .bi-widget-grid>.bi-widget>.bi-panel{
+ padding-top:44px!important;
+}
+.bi-workspace .bi-widget-grid>.bi-widget>.bi-layout>.bi-panel:first-child{
+ padding-top:44px!important;
+}
+/* Where a BI widget contains an unboxed visualization rather than a panel,
+   give the wrapper its own visible surface for the controls to sit within. */
+.bi-workspace .bi-widget-grid>.bi-widget:not(:has(>.bi-panel,>.bi-layout)){
+ border:1px solid var(--brite-border,#cbd5e1);
+ border-radius:7px;
+ background:var(--brite-surface,#fff);
+ padding:44px 12px 12px!important;
+ box-sizing:border-box;
+}
+@media(pointer:coarse){
+ .bi-workspace .bi-widget-grid>.bi-widget>.brite-widget-chrome{height:40px!important}
+ .bi-workspace .bi-widget-grid>.bi-widget>.bi-panel,
+ .bi-workspace .bi-widget-grid>.bi-widget>.bi-layout>.bi-panel:first-child{padding-top:52px!important}
+ .bi-workspace .bi-widget-grid>.bi-widget:not(:has(>.bi-panel,>.bi-layout)){padding-top:52px!important}
+}
+
 .bi-workspace .bi-widget-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;min-width:0}
 .bi-workspace .bi-widget-grid>.bi-widget{grid-column:span 2;min-width:0}
 .bi-workspace .bi-widget-grid>.bi-widget.brite-widget-wide{grid-column:span 1}
