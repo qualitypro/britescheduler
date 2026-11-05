@@ -780,7 +780,7 @@ require __DIR__.'/partials/app_header.php';
 </style>
 
 <link rel="stylesheet"
-      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89e'))?>">
+      href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css?v=89f'))?>">
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'), ENT_QUOTES, 'UTF-8')?>">
 
@@ -3648,6 +3648,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             const monthView = calendar.view.type === 'dayGridMonth';
             scheduleWorkspace?.classList.toggle('brite-month-viewport', monthView);
             document.body.classList.toggle('brite-schedule-month-mode', monthView);
+            document.body.classList.toggle('brite-schedule-timegrid-mode', !monthView);
 
             // Measure the actual top edge of FullCalendar after applying
             // the month-only shell layout. This accounts for the topbar,
@@ -3655,6 +3656,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             const viewportHeight = document.documentElement.clientHeight;
             const workspaceTop = scheduleWorkspace?.getBoundingClientRect().top || 0;
             const workspaceHeight = Math.max(0, viewportHeight - workspaceTop - 4);
+            scheduleWorkspace?.style.setProperty('--brite-calendar-workspace-height', workspaceHeight + 'px');
             if (monthView) {
                 scheduleWorkspace?.style.setProperty('--brite-month-workspace-height', workspaceHeight + 'px');
             } else {
