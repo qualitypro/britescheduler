@@ -49,7 +49,7 @@
 
     function createStatusRow(assignment) {
         const row = document.createElement('div');
-        row.className = 'brite-assignment-status-row';
+        row.className = 'brite-assignment-status-row brite-assignment-status-pill';
 
         const name = document.createElement('span');
 
@@ -302,9 +302,10 @@
         container.className = 'brite-owner-assignment-details';
 
         const heading = document.createElement('h3');
-        heading.textContent = 'Contractor Assignment Status';
+        heading.textContent = 'Contractors · Assignment Status';
 
         const body = document.createElement('div');
+        body.className = 'brite-assignment-status-pills';
         body.textContent = 'Loading assignments...';
 
         container.append(heading, body);
@@ -321,6 +322,12 @@
                 body.textContent = 'No contractors assigned.';
                 return;
             }
+
+            // The main Contractors field is redundant once status pills load.
+            const summaryField = content.querySelector('.appointment-details-field') &&
+                Array.from(content.querySelectorAll('.appointment-details-field'))
+                    .find(field => field.querySelector('dt')?.textContent === 'Contractors');
+            if (summaryField) summaryField.hidden = true;
 
             for (const assignment of data.assignments) {
                 body.append(createStatusRow(assignment));
