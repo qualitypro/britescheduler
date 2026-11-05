@@ -42,7 +42,7 @@ $('msgNew').addEventListener('click',()=>guarded(async()=>{
  if(!r.recipients.length)status('No eligible recipients for this tenant.');
 }));
 $('msgCreate').addEventListener('submit',e=>{e.preventDefault();guarded(async()=>{
- const r=await call('create',new FormData(e.target));e.target.reset();await load();await openThread(r.thread_id,e.target.elements.subject.value||'Conversation');
+ const subject=e.target.elements.subject.value;const r=await call('create',new FormData(e.target));e.target.reset();await load();await openThread(r.thread_id,subject);
 });});
 $('msgReply').addEventListener('submit',e=>{e.preventDefault();guarded(async()=>{
  const subject=$('msgHeading').textContent;await call('reply',new FormDataWithThread(e.target,current));e.target.reset();await openThread(current,subject);
