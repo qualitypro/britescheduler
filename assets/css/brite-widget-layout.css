@@ -162,3 +162,50 @@
  .bi-widget-grid>[data-widget-id]>.brite-widget-chrome{height:28px!important}
  .brite-widget-chrome>.brite-widget-controls{max-height:28px!important}
 }
+
+/* Compact dropdown: avoid squeezing three actions into the 22px header rail.
+   The launcher stays in the rail; its menu floats below, right-aligned. */
+.brite-widget-chrome{
+ overflow:visible!important;
+}
+.brite-widget-chrome>.brite-widget-controls{
+ position:absolute!important;
+ top:100%!important;right:0!important;left:auto!important;bottom:auto!important;
+ box-sizing:border-box!important;
+ display:flex!important;flex-direction:column!important;
+ flex-wrap:nowrap!important;align-items:stretch!important;
+ gap:2px!important;
+ width:124px!important;min-width:0!important;max-width:min(124px,calc(100vw - 24px))!important;
+ height:auto!important;max-height:none!important;
+ margin:0!important;padding:5px!important;
+ border:1px solid var(--brite-border,#cbd5e1)!important;
+ border-radius:7px!important;
+ background:var(--brite-surface,#fff)!important;
+ box-shadow:0 8px 22px rgba(0,0,0,.16)!important;
+ visibility:hidden!important;opacity:0!important;pointer-events:none!important;
+ overflow:hidden!important;
+ transform:translateY(-3px);
+ transition:opacity .12s ease,transform .12s ease!important;
+}
+.brite-widget-chrome:hover>.brite-widget-controls,
+.brite-widget-chrome:focus-within>.brite-widget-controls,
+.brite-widget-chrome.brite-widget-chrome-open>.brite-widget-controls{
+ visibility:visible!important;opacity:1!important;pointer-events:auto!important;
+ transform:translateY(0);
+}
+.brite-widget-chrome>.brite-widget-controls>button{
+ box-sizing:border-box!important;
+ display:flex!important;justify-content:center!important;align-items:center!important;
+ flex:none!important;
+ width:100%!important;min-width:0!important;max-width:100%!important;
+ height:30px!important;min-height:30px!important;max-height:30px!important;
+ margin:0!important;padding:0!important;
+}
+@media(pointer:coarse){
+ .brite-widget-chrome>.brite-widget-controls>button{
+  height:36px!important;min-height:36px!important;max-height:36px!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ .brite-widget-chrome>.brite-widget-controls{transition:none!important;transform:none!important}
+}
