@@ -6,7 +6,7 @@ if (!in_array((string)$tenant['role'], ['owner','admin','scheduler'], true)) {
 }
 $db=Database::connection(); $tid=(int)$tenant['tenant_id']; $uid=(int)$user['id'];
 $esc=static fn($v)=>htmlspecialchars((string)($v??''),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
-$tabs=['overview'=>'Overview','leads'=>'Leads','customers'=>'Customers','pipeline'=>'Opportunities','activities'=>'Activities','reports'=>'Reports','segments'=>'Segments & Follow-ups','smart'=>'Smart Segments'];
+$tabs=['overview'=>'Overview','leads'=>'Leads','customers'=>'Customers','pipeline'=>'Opportunities','activities'=>'Activities','reports'=>'Reports','segments'=>'Segments & Follow-ups','smart'=>'Smart Segments','tasks'=>'Tasks & Campaigns'];
 $tab=(string)($_GET['tab']??'overview'); if(!isset($tabs[$tab]))$tab='overview';
 $base=app_url('/module.php?module=crm');
 $flash=(string)($_GET['notice']??'');
@@ -32,7 +32,21 @@ try {
    if($id && !$checkLink($table,'id',$id))throw new RuntimeException('Invalid or inaccessible linked record.');
    return $id?:null;
   };
-  if($action==='smart_settings'){
+  if($action==='task_update'){
+   $activity=$link('activity_id','crm_activities');
+   if(!$activity)throw new RuntimeException('Choose a task.');
+   $q=$db->prepare("SELECT id FROM crm_activities WHERE tenant_id=? AND id=? AND kind='follow_up'");
+   $q->execute([$tid,$activity]);if(!$q->fetchColumn())throw new RuntimeException('Only follow-up tasks can be assigned.');
+   $assignee=(int)($_POST['assignee_user_id']??0);
+   if($assignee){
+    $q=$db->prepare("SELECT 1 FROM tenant_memberships m JOIN users u ON u.id=m.user_id WHERE m.tenant_id=? AND m.user_id=? AND m.status='active' AND u.status='active' AND m.role IN ('owner','admin','scheduler')");
+    $q->execute([$tid,$assignee]);if(!$q->fetchColumn())throw new RuntimeException('Choose active tenant staff.');
+   }
+   $priority=(string)($_POST['priority']??'normal');
+   if(!in_array($priority,['low','normal','high','urgent'],true))throw new RuntimeException('Invalid priority.');
+   $q=$db->prepare('INSERT INTO crm_task_details(tenant_id,activity_id,assignee_user_id,priority) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE assignee_user_id=VALUES(assignee_user_id),priority=VALUES(priority)');
+   $q->execute([$tid,$activity,$assignee?:null,$priority]);
+  }elseif($action==='smart_settings'){
    require_once dirname(__DIR__,2).'/app/CrmSmartSegments.php';
    foreach(['repeat_min'=>[2,100],'inactive_days'=>[7,730],'high_value_min'=>[1,10000000]] as $key=>$range){
     $value=filter_var($_POST[$key]??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>$range[0],'max_range'=>$range[1]]]);
@@ -224,6 +238,8 @@ $customerOptions=static function(?int $selected=null)use($customers,$esc):void {
  <script>document.getElementById('crmCustomerSearch')?.addEventListener('input',function(){const q=this.value.toLocaleLowerCase().trim();document.querySelectorAll('.crm-customer-row').forEach(row=>{row.hidden=!row.dataset.search.includes(q);});});</script>
  <?php elseif($tab==='pipeline'): ?>
  <div class="crm-grid"><div class="crm-panel"><h2>Add opportunity</h2><form method="post" class="crm-form"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="action" value="opportunity_create"><input type="hidden" name="tab" value="pipeline"><label>Title<input name="title" maxlength="190" required></label><label>Related lead<select name="lead_id"><option value="">None</option><?php $leadOptions(); ?></select></label><label>Related customer<select name="client_id"><option value="">None</option><?php $customerOptions(); ?></select></label><label>Estimated value<input type="number" name="estimated_value" min="0" step=".01" value="0" required></label><label>Next follow-up<input type="date" name="next_follow_up"></label><label>Notes<textarea name="notes" maxlength="5000"></textarea></label><button type="submit">Add opportunity</button></form></div><div class="crm-panel"><h2>Opportunities</h2><div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Opportunity</th><th>Value</th><th>Follow-up</th><th>Stage</th></tr></thead><tbody><?php foreach($opportunities as $r): ?><tr><td><strong><?=$esc($r['title'])?></strong><div class="crm-muted"><?=$esc($r['lead_name']??$r['client_name'])?></div></td><td>$<?=number_format((float)$r['estimated_value'],2)?></td><td><?=$esc($r['next_follow_up'])?></td><td><form method="post" class="crm-inline"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="action" value="opportunity_stage"><input type="hidden" name="tab" value="pipeline"><input type="hidden" name="id" value="<?=(int)$r['id']?>"><select name="stage" aria-label="Stage for <?=$esc($r['title'])?>"><?php foreach(['new','contacted','quoted','won','lost'] as $v): ?><option value="<?=$v?>" <?=$r['stage']===$v?'selected':''?>><?=ucfirst($v)?></option><?php endforeach; ?></select><button type="submit">Save</button></form></td></tr><?php endforeach; ?></tbody></table><?php if(!$opportunities): ?><p class="crm-muted">No opportunities yet.</p><?php endif; ?></div></div></div>
+ <?php elseif($tab==='tasks'): ?>
+ <?php require __DIR__.'/tasks.php'; ?>
  <?php elseif($tab==='smart'): ?>
  <?php require __DIR__.'/smart_segments.php'; ?>
  <?php elseif($tab==='segments'): ?>
