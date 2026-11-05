@@ -1874,3 +1874,45 @@ label:has(+ #endsAt),
     line-height: 1.3;
     text-transform: capitalize;
 }
+
+/* Cycle 89A: viewport-contained calendar workspace, no clipped controls. */
+#schedulingWorkspace{min-width:0;max-width:100%;gap:8px;box-sizing:border-box}
+#schedulingWorkspace .brite-tab-toolbar{padding:7px 10px;gap:8px;border-radius:9px}
+#schedulingWorkspace .brite-tab-button{min-height:34px;padding:6px 11px;font-size:.78rem;border-radius:7px}
+#schedulingWorkspace #openAppointmentWizardButton{min-height:34px;padding:6px 12px;font-size:.78rem}
+#scheduleCalendarPanel,#scheduleCalendarPanel .scheduler-layout,#scheduleCalendarPanel .scheduler-layout>.card{min-width:0;min-height:0;max-width:100%;box-sizing:border-box}
+#scheduleCalendarPanel .scheduler-layout{gap:0}
+#scheduleCalendarPanel .scheduler-layout>.card{padding:9px;overflow:hidden}
+#calendar{min-height:0!important;min-width:0;width:100%;max-width:100%;overflow:hidden}
+#calendar .fc{min-width:0}
+#calendar .fc-toolbar{gap:7px;margin-bottom:8px;align-items:center}
+#calendar .fc-toolbar-title{font-size:clamp(.92rem,1.6vw,1.16rem);line-height:1.25}
+#calendar .fc-toolbar-chunk{display:flex;align-items:center;flex-wrap:wrap;gap:3px}
+#calendar .fc-button-primary{font-size:.72rem;padding:5px 8px;line-height:1.25}
+#calendar .fc-col-header-cell-cushion{padding:5px 2px;font-size:.69rem}
+#calendar .fc-daygrid-day-number{padding:3px 5px;font-size:.73rem}
+#calendar .fc-daygrid-event{margin-top:1px}
+#calendar .brite-calendar-event{padding:2px 4px;line-height:1.15}
+#calendar .brite-event-time,#calendar .brite-event-client,#calendar .brite-event-contractors{font-size:10px}
+#calendar .fc-scroller{scrollbar-width:thin}
+@media(min-width:900px) and (min-height:500px){
+ #schedulingWorkspace{height:calc(100dvh - var(--brite-workspace-top,155px) - 10px);min-height:240px}
+ #schedulingWorkspace>.brite-tab-panels,#scheduleCalendarPanel:not([hidden]),#scheduleCalendarPanel .scheduler-layout,#scheduleCalendarPanel .scheduler-layout>.card{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden}
+ #scheduleCalendarPanel{overflow:hidden!important}
+ #calendar{flex:1 1 auto;min-height:0!important;height:100%}
+}
+@media(max-width:899px), (max-height:499px){
+ #schedulingWorkspace{height:auto;min-height:0}
+ #scheduleCalendarPanel .scheduler-layout>.card{padding:7px}
+ #calendar{height:auto}
+}
+@media(max-width:680px){
+ #schedulingWorkspace .brite-tab-toolbar{gap:6px;padding:6px}
+ #schedulingWorkspace .brite-tab-button{min-height:32px}
+ #calendar .fc-toolbar{gap:5px}
+ #calendar .fc-toolbar-chunk{justify-content:center}
+ #calendar .fc-button-primary{font-size:.69rem;padding:5px 6px}
+ #calendar .fc-toolbar-title{font-size:1rem}
+ #calendar .fc-daygrid-day-number{padding:3px;font-size:.68rem}
+ #calendar .brite-event-client,#calendar .brite-event-contractors{display:none}
+}
