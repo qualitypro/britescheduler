@@ -267,7 +267,13 @@ const csrf=<?=json_encode(csrf_token(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|J
 const $=id=>document.getElementById(id);
 function exportTableCsv(tableId,filename){
  const table=$(tableId);if(!table)return;
- const rows=[...table.querySelectorAll('tr')].map(row=>[...row.querySelectorAll('th,td')].map(cell=>'"'+cell.textContent.replace(/"/g,'""')+'"').join(','));
+ const safeCell=cell=>{
+  let value=cell.textContent||'';
+  // Prevent spreadsheet formula evaluation for exported tenant/module labels.
+  if(/^[\\s\\uFEFF]*[=+@-]/.test(value))value="'"+value;
+  return '"'+value.replace(/"/g,'""')+'"';
+ };
+ const rows=[...table.querySelectorAll('tr')].map(row=>[...row.querySelectorAll('th,td')].map(safeCell).join(','));
  if(!rows.length)return;
  const blob=new Blob(['\uFEFF'+rows.join('\r\n')+'\r\n'],{type:'text/csv;charset=utf-8'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');
