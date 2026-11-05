@@ -356,14 +356,16 @@ function renderComparison(currentData,priorData){
  const table=$('biCompareTable'),head=table.tHead||table.createTHead(),body=table.tBodies[0]||table.createTBody();
  head.replaceChildren();body.replaceChildren();
  const h=head.insertRow();
- ['Metric','Current','Previous','Change','Change %'].forEach(label=>{const th=document.createElement('th');th.textContent=label;h.append(th)});
+ ['Metric','Current','Previous','Change','Relative change / pp'].forEach(label=>{const th=document.createElement('th');th.textContent=label;h.append(th)});
  const previous=new Map(priorData.series.map(s=>[s.key,s]));
- const format=n=>n.toLocaleString(undefined,{maximumFractionDigits:2});
  currentData.series.forEach(series=>{
   const now=metricSummary(series);
   const before=metricSummary(previous.get(series.key)||{points:[],rollup:series.rollup});
   const diff=now-before;
-  const percent=before===0?(now===0?'0%':'N/A'):(diff/Math.abs(before)*100).toFixed(1)+'%';
+  // Rate differences are percentage points; relative changes can be misleading.
+  const percent=series.unit==='percent'
+   ?(diff>0?'+':'')+diff.toFixed(2)+' pp'
+   :before===0?(now===0?'0%':'N/A'):(diff/Math.abs(before)*100).toFixed(1)+'%';
   const row=body.insertRow();
   [series.name,metricDisplay(now,series),metricDisplay(before,series),(diff>0?'+':'')+metricDisplay(diff,series),percent].forEach(value=>{const td=row.insertCell();td.textContent=value});
  });
