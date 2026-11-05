@@ -6,7 +6,7 @@ if (!in_array((string)$tenant['role'], ['owner','admin','scheduler'], true)) {
 }
 $db=Database::connection(); $tid=(int)$tenant['tenant_id']; $uid=(int)$user['id'];
 $esc=static fn($v)=>htmlspecialchars((string)($v??''),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
-$tabs=['overview'=>'Overview','leads'=>'Leads','customers'=>'Customers','pipeline'=>'Opportunities','activities'=>'Activities','reports'=>'Reports'];
+$tabs=['overview'=>'Overview','leads'=>'Leads','customers'=>'Customers','pipeline'=>'Opportunities','activities'=>'Activities','reports'=>'Reports','segments'=>'Segments & Follow-ups'];
 $tab=(string)($_GET['tab']??'overview'); if(!isset($tabs[$tab]))$tab='overview';
 $base=app_url('/module.php?module=crm');
 $flash=(string)($_GET['notice']??'');
@@ -32,7 +32,36 @@ try {
    if($id && !$checkLink($table,'id',$id))throw new RuntimeException('Invalid or inaccessible linked record.');
    return $id?:null;
   };
-  if($action==='quote_backfill'){
+  if($action==='segment_create'){
+   $name=$required('name',100);$description=$optional('description',500);
+   $q=$db->prepare('INSERT INTO crm_segments(tenant_id,name,description,created_by) VALUES(?,?,?,?)');
+   $q->execute([$tid,$name,$description,$uid]);
+  }elseif($action==='segment_membership'){
+   $segment=$link('segment_id','crm_segments');$client=$link('client_id','clients');
+   if(!$segment||!$client)throw new RuntimeException('Choose a segment and customer.');
+   $membership=$required('membership',10);
+   if($membership==='add'){
+    $q=$db->prepare('INSERT IGNORE INTO crm_customer_segments(tenant_id,client_id,segment_id) VALUES(?,?,?)');
+   }elseif($membership==='remove'){
+    $q=$db->prepare('DELETE FROM crm_customer_segments WHERE tenant_id=? AND client_id=? AND segment_id=?');
+   }else throw new RuntimeException('Invalid membership action.');
+   $q->execute([$tid,$client,$segment]);
+  }elseif($action==='template_create'){
+   $name=$required('name',100);$body=$required('body',5000);
+   $delay=filter_var($_POST['delay_days']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>0,'max_range'=>365]]);
+   if($delay===false)throw new RuntimeException('Follow-up delay must be 0–365 days.');
+   $q=$db->prepare('INSERT INTO crm_followup_templates(tenant_id,name,body,delay_days,created_by) VALUES(?,?,?,?,?)');
+   $q->execute([$tid,$name,$body,$delay,$uid]);
+  }elseif($action==='template_schedule'){
+   $template=$link('template_id','crm_followup_templates');$client=$link('client_id','clients');
+   if(!$template||!$client)throw new RuntimeException('Choose a template and customer.');
+   $q=$db->prepare('SELECT body,delay_days FROM crm_followup_templates WHERE tenant_id=? AND id=?');
+   $q->execute([$tid,$template]);$tpl=$q->fetch(PDO::FETCH_ASSOC);
+   if(!$tpl)throw new RuntimeException('Template unavailable.');
+   $due=(new DateTimeImmutable('today'))->modify('+'.(int)$tpl['delay_days'].' days')->format('Y-m-d');
+   $q=$db->prepare("INSERT INTO crm_activities(tenant_id,client_id,kind,body,due_at,created_by) VALUES(?,?,'follow_up',?,?,?)");
+   $q->execute([$tid,$client,$tpl['body'],$due,$uid]);
+  }elseif($action==='quote_backfill'){
    require_once dirname(__DIR__,2).'/app/CrmQuoteSync.php';
    $q=$db->prepare("SELECT r.id FROM contractor_quote_requests r LEFT JOIN crm_quote_links l ON l.tenant_id=r.tenant_id AND l.request_id=r.id WHERE r.tenant_id=? AND l.request_id IS NULL ORDER BY r.id LIMIT 100");
    $q->execute([$tid]);$ids=$q->fetchAll(PDO::FETCH_COLUMN);
@@ -158,6 +187,8 @@ $customerOptions=static function(?int $selected=null)use($customers,$esc):void {
  <script>document.getElementById('crmCustomerSearch')?.addEventListener('input',function(){const q=this.value.toLocaleLowerCase().trim();document.querySelectorAll('.crm-customer-row').forEach(row=>{row.hidden=!row.dataset.search.includes(q);});});</script>
  <?php elseif($tab==='pipeline'): ?>
  <div class="crm-grid"><div class="crm-panel"><h2>Add opportunity</h2><form method="post" class="crm-form"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="action" value="opportunity_create"><input type="hidden" name="tab" value="pipeline"><label>Title<input name="title" maxlength="190" required></label><label>Related lead<select name="lead_id"><option value="">None</option><?php $leadOptions(); ?></select></label><label>Related customer<select name="client_id"><option value="">None</option><?php $customerOptions(); ?></select></label><label>Estimated value<input type="number" name="estimated_value" min="0" step=".01" value="0" required></label><label>Next follow-up<input type="date" name="next_follow_up"></label><label>Notes<textarea name="notes" maxlength="5000"></textarea></label><button type="submit">Add opportunity</button></form></div><div class="crm-panel"><h2>Opportunities</h2><div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Opportunity</th><th>Value</th><th>Follow-up</th><th>Stage</th></tr></thead><tbody><?php foreach($opportunities as $r): ?><tr><td><strong><?=$esc($r['title'])?></strong><div class="crm-muted"><?=$esc($r['lead_name']??$r['client_name'])?></div></td><td>$<?=number_format((float)$r['estimated_value'],2)?></td><td><?=$esc($r['next_follow_up'])?></td><td><form method="post" class="crm-inline"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="action" value="opportunity_stage"><input type="hidden" name="tab" value="pipeline"><input type="hidden" name="id" value="<?=(int)$r['id']?>"><select name="stage" aria-label="Stage for <?=$esc($r['title'])?>"><?php foreach(['new','contacted','quoted','won','lost'] as $v): ?><option value="<?=$v?>" <?=$r['stage']===$v?'selected':''?>><?=ucfirst($v)?></option><?php endforeach; ?></select><button type="submit">Save</button></form></td></tr><?php endforeach; ?></tbody></table><?php if(!$opportunities): ?><p class="crm-muted">No opportunities yet.</p><?php endif; ?></div></div></div>
+ <?php elseif($tab==='segments'): ?>
+ <?php require __DIR__.'/segments.php'; ?>
  <?php elseif($tab==='reports'): ?>
  <?php require __DIR__.'/reports.php'; ?>
  <?php elseif($tab==='activities'): ?>
