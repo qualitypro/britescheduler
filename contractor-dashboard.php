@@ -172,15 +172,14 @@ require __DIR__.'/partials/app_header.php';
                  role="tabpanel"
                  aria-labelledby="contractorOverviewTab">
 
-            <div class="brite-dashboard-metrics">
+            <div class="brite-dashboard-metrics" id="contractorWidgetGrid">
 
-                <article class="card brite-dashboard-metric">
+                <article class="card brite-dashboard-metric" data-widget-id="assigned_appointments" data-widget-label="Assigned Appointments">
                     <div class="muted">Assigned Appointments</div>
                     <div class="metric"><?=$appointmentCount?></div>
                 </article>
 
-                <article class="card brite-dashboard-metric">
-                    <div class="muted">Business</div>
+                <article class="card brite-dashboard-metric" data-widget-id="business" data-widget-label="Business">
                     <div class="brite-contractor-business-name">
                         <?=htmlspecialchars(
                             $contractor['business_name']
@@ -464,5 +463,21 @@ $assignmentEligible =
     ENT_QUOTES,
     'UTF-8'
 )?>"></script>
+
+<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-widget-layout.css'),ENT_QUOTES,'UTF-8')?>">
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-widget-layout.js'),ENT_QUOTES,'UTF-8')?>"></script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+ const grid=document.getElementById('contractorWidgetGrid');
+ if(grid&&window.BriteWidgetLayout){
+  window.BriteWidgetLayout.mount(grid,{
+   scope: <?=json_encode((string)$tid.'.'.(string)$user['id'].'.contractor',JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>,
+   defaultOrder: ['assigned_appointments','business'],
+   endpoint: <?=json_encode(app_url('/api/dashboard_widget_layout.php?dashboard=contractor'),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>,
+   csrf: <?=json_encode(csrf_token(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>
+  });
+ }
+});
+</script>
 
 <?php require __DIR__.'/partials/app_footer.php'; ?>
