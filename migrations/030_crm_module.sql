@@ -1,0 +1,55 @@
+-- Cycle 76: CRM foundation; activate module separately in tenant settings.
+CREATE TABLE IF NOT EXISTS crm_leads (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ tenant_id BIGINT UNSIGNED NOT NULL,
+ name VARCHAR(190) NOT NULL,
+ email VARCHAR(190) NULL,
+ phone VARCHAR(40) NULL,
+ source VARCHAR(80) NOT NULL DEFAULT 'manual',
+ status ENUM('new','contacted','qualified','converted','lost') NOT NULL DEFAULT 'new',
+ client_id BIGINT UNSIGNED NULL,
+ notes TEXT NULL,
+ created_by BIGINT UNSIGNED NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ KEY idx_crm_leads(tenant_id,status,updated_at),
+ CONSTRAINT fk_crm_leads_tenant FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+ CONSTRAINT fk_crm_leads_client FOREIGN KEY(client_id) REFERENCES clients(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS crm_opportunities (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ tenant_id BIGINT UNSIGNED NOT NULL,
+ title VARCHAR(190) NOT NULL,
+ lead_id BIGINT UNSIGNED NULL,
+ client_id BIGINT UNSIGNED NULL,
+ stage ENUM('new','contacted','quoted','won','lost') NOT NULL DEFAULT 'new',
+ estimated_value DECIMAL(12,2) NOT NULL DEFAULT 0,
+ next_follow_up DATE NULL,
+ notes TEXT NULL,
+ created_by BIGINT UNSIGNED NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ KEY idx_crm_opp(tenant_id,stage,next_follow_up),
+ CONSTRAINT fk_crm_opp_tenant FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+ CONSTRAINT fk_crm_opp_lead FOREIGN KEY(lead_id) REFERENCES crm_leads(id) ON DELETE SET NULL,
+ CONSTRAINT fk_crm_opp_client FOREIGN KEY(client_id) REFERENCES clients(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS crm_activities (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ tenant_id BIGINT UNSIGNED NOT NULL,
+ lead_id BIGINT UNSIGNED NULL,
+ client_id BIGINT UNSIGNED NULL,
+ opportunity_id BIGINT UNSIGNED NULL,
+ kind ENUM('note','call','email','meeting','follow_up') NOT NULL DEFAULT 'note',
+ body TEXT NOT NULL,
+ due_at DATE NULL,
+ completed_at DATETIME NULL,
+ created_by BIGINT UNSIGNED NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ KEY idx_crm_activity(tenant_id,created_at),
+ KEY idx_crm_due(tenant_id,due_at,completed_at),
+ CONSTRAINT fk_crm_activity_tenant FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+ CONSTRAINT fk_crm_activity_lead FOREIGN KEY(lead_id) REFERENCES crm_leads(id) ON DELETE SET NULL,
+ CONSTRAINT fk_crm_activity_client FOREIGN KEY(client_id) REFERENCES clients(id) ON DELETE SET NULL,
+ CONSTRAINT fk_crm_activity_opp FOREIGN KEY(opportunity_id) REFERENCES crm_opportunities(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
