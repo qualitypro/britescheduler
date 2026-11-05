@@ -1930,6 +1930,4 @@ label:has(+ #endsAt),
  #calendar .fc-scroller-harness{min-height:0}
  #calendar .fc-timegrid-body .fc-timegrid-slots table{height:100%}
  #calendar .fc-timegrid-slot{height:1.25em}
- #calendar .fc-scroller{scrollbar-width:none}
- #calendar .fc-scroller::-webkit-scrollbar{width:0;height:0}
 }
