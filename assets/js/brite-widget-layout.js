@@ -122,30 +122,22 @@
     if(getComputedStyle(card).position==='static')card.style.position='relative';
     const controls=document.createElement('div');
     controls.className='brite-widget-controls';
-    const launcher=document.createElement('button');
-    launcher.type='button';
-    launcher.className='brite-widget-launcher';
-    launcher.textContent='⋯';
-    launcher.title='Widget controls';
-    launcher.setAttribute('aria-label','Show controls for '+name);
-    launcher.setAttribute('aria-expanded','false');
-    launcher.setAttribute('aria-haspopup','true');
     const chrome=document.createElement('div');
     chrome.className='brite-widget-chrome';
-    chrome.style.cssText='position:absolute;top:4px;right:4px;left:auto;bottom:auto;width:max-content;height:max-content;max-width:calc(100% - 8px);margin:0;padding:0;flex:none;align-self:auto;z-index:20';
-    const setExpanded=expanded=>{
-     chrome.classList.toggle('brite-widget-chrome-open',expanded);
-     launcher.setAttribute('aria-expanded',String(expanded));
-    };
-    launcher.addEventListener('click',()=>setExpanded(!chrome.classList.contains('brite-widget-chrome-open')));
-    chrome.addEventListener('focusout',event=>{
-     if(!chrome.contains(event.relatedTarget))setExpanded(false);
+    chrome.setAttribute('role','group');
+    chrome.setAttribute('aria-label','Widget actions for '+name);
+    chrome.tabIndex=0;
+    chrome.addEventListener('click',event=>{
+     if(event.target===chrome)chrome.classList.toggle('brite-widget-chrome-open');
     });
-    document.addEventListener('pointerdown',event=>{
-     if(!chrome.contains(event.target))setExpanded(false);
+    chrome.addEventListener('focusout',event=>{
+     if(!chrome.contains(event.relatedTarget))chrome.classList.remove('brite-widget-chrome-open');
     });
     chrome.addEventListener('keydown',event=>{
-     if(event.key==='Escape'){setExpanded(false);launcher.focus();}
+     if(event.key==='Escape'){chrome.classList.remove('brite-widget-chrome-open');chrome.focus();}
+     if((event.key==='Enter'||event.key===' ')&&event.target===chrome){
+      event.preventDefault();chrome.classList.toggle('brite-widget-chrome-open');
+     }
     });
     const handle=document.createElement('button');
     handle.type='button';handle.className='brite-widget-handle';
@@ -196,7 +188,7 @@
      saved.hidden=[...saved.hidden,id];render();persist();announce('Widget hidden; use Show to restore.');
     });
     controls.append(handle,width,hide);
-    chrome.append(launcher,controls);
+    chrome.append(controls);
     card.prepend(chrome);
    }
    reset.addEventListener('click',()=>{
