@@ -10,6 +10,8 @@ require_once dirname(__DIR__).'/app/ContractorEligibilityEngine.php';
 require_once dirname(__DIR__).'/app/ContractorRankingEngine.php';
 require_once dirname(__DIR__).'/app/ContractorAssignmentValidator.php';
 require_once dirname(__DIR__).'/app/ContractorScheduleValidator.php';
+require_once dirname(__DIR__).'/app/AppointmentValidation.php';
+require_once dirname(__DIR__).'/app/TenantClock.php';
 
 Auth::requireUser();
 $tenant=Auth::requireRole('owner','admin','scheduler');
@@ -62,6 +64,43 @@ try{
  unset($candidate);
  $scheduleBlockedCount=count(array_filter($contractors,static fn(array $c):bool=>empty($c['schedule_policy']['allowed'])));
  $contractors=ContractorRankingEngine::rank($pdo,$tenantId,$appointment['starts_at'],$contractors,(int)$id);
+ // Preview up to three alternative time windows in the next seven days.
+ // These are suggestions only; no contractor is assigned or reserved.
+ $alternatives=[];
+ $durationSeconds=(new DateTimeImmutable($appointment['ends_at'],new DateTimeZone('UTC')))->getTimestamp()
+  -(new DateTimeImmutable($appointment['starts_at'],new DateTimeZone('UTC')))->getTimestamp();
+ $tenantNow=TenantClock::now($pdo,$tenantId);
+ $candidateIds=array_values(array_unique(array_map('intval',array_column($contractors,'contractor_id'))));
+ $origin=new DateTimeImmutable($appointment['starts_at'],new DateTimeZone('UTC'));
+ if($durationSeconds>0 && $durationSeconds<=12*3600 && $candidateIds){
+  for($step=1;$step<=28 && count($alternatives)<3;$step++){
+   $candidateStart=$origin->modify('+'.($step*6).' hours');
+   $candidateEnd=$candidateStart->modify('+'.$durationSeconds.' seconds');
+   $startText=$candidateStart->format('Y-m-d H:i:s');
+   $endText=$candidateEnd->format('Y-m-d H:i:s');
+   if($startText<=$tenantNow || $startText===$appointment['starts_at'])continue;
+   if($candidateStart->format('Y-m-d')!==$candidateEnd->format('Y-m-d'))continue;
+   try{
+    validate_appointment_dst($pdo,$tenantId,$startText,$endText);
+   }catch(RuntimeException $e){continue;}
+   $available=[];
+   foreach($contractors as $contractor){
+    if(empty($contractor['assignment_policy']['allowed']))continue;
+    $cid=(int)$contractor['contractor_id'];
+    try{
+     check_contractor_availability($pdo,$tenantId,[$cid],$startText,$endText);
+     check_contractor_conflicts($pdo,$tenantId,[$cid],$startText,$endText,(int)$id);
+     $available[]=$cid;
+    }catch(RuntimeException $e){continue;}
+   }
+   if($available)$alternatives[]=[
+    'starts_at'=>$startText,'ends_at'=>$endText,
+    'available_contractor_count'=>count($available),
+    'contractor_ids'=>$available,
+    'advisory_only'=>true
+   ];
+  }
+ }
  $q=$pdo->prepare('SELECT id FROM appointment_bid_listings WHERE tenant_id=? AND appointment_id=? LIMIT 1');
  $q->execute([$tenantId,(int)$id]);
  $marketplace=(bool)$q->fetchColumn();
@@ -81,6 +120,8 @@ try{
   'count'=>count($contractors),
   'schedule_blocked_count'=>$scheduleBlockedCount,
   'schedule_clear_count'=>count($contractors)-$scheduleBlockedCount,
+  'alternative_time_windows'=>$alternatives,
+  'alternative_search'=>['interval_hours'=>6,'horizon_days'=>7,'max_results'=>3],
   'eligible_for_review_count'=>count(array_filter($contractors,static fn(array $c):bool=>!empty($c['eligible_for_review']))),
   'read_only'=>true,
   'automatic_assignment'=>false,

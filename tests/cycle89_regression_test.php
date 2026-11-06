@@ -18,6 +18,9 @@ $checks=[
  'Notification parameterized type'=>str_contains($api,'AND n.type = ?'),
  'Notification invalid query rejection'=>str_contains($api,"Invalid notification filter"),
  'Owner notification controls'=>str_contains($ui,'Unread only') && str_contains($ui,'renderNotifications'),
+ 'Dispatch alternative suggestions'=>str_contains(file_get_contents($root.'/api/dispatch_appointment_preview.php'),'alternative_time_windows'),
+ 'Dispatch suggestions are read-only'=>str_contains(file_get_contents($root.'/api/dispatch_appointment_preview.php'),"'advisory_only'=>true"),
+ 'Dispatch tenant time validation'=>str_contains(file_get_contents($root.'/api/dispatch_appointment_preview.php'),'validate_appointment_dst'),
  'Owner notification safe rendering'=>str_contains($ui,'heading.textContent = notification.title') && str_contains($ui,'body.textContent = notification.body'),
 ];
 $fail=0;
