@@ -420,7 +420,7 @@ if($briteActiveModules):
  color:#a5b4fc;font-size:.73rem;font-weight:750;letter-spacing:.025em;
  text-align:left;cursor:pointer;
 }
-.brite-app .brite-sidebar-nav .brite-nav-accordion-toggle:hover,
+ .brite-app .brite-sidebar-nav .brite-nav-accordion-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 19px;width:19px;height:19px}\n.brite-app .brite-sidebar-nav .brite-nav-accordion-toggle{justify-content:flex-start;gap:9px}\n.brite-app .brite-sidebar-nav .brite-nav-accordion-toggle:hover,
 .brite-app .brite-sidebar-nav .brite-nav-accordion-toggle:focus-visible{
  background:rgba(255,255,255,.10);color:#fff;
 }
@@ -485,7 +485,29 @@ if($briteActiveModules):
   button.setAttribute('aria-expanded','false');
   const name=document.createElement('span');
   name.textContent=heading.textContent.trim();
-  button.append(name);
+  /* Each top-level group has its own recognizable, decorative icon. */
+  const iconPaths={
+   Workspace:'<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/>',
+   Management:'<rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18"/>',
+   Administration:'<circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.9 4.9l1.5 1.5m11.2 11.2 1.5 1.5M2 12h2m16 0h2M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/>',
+   Subscriptions:'<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><path d="M17 13v8m-4-4h8"/>',
+   Personal:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>'
+  };
+  const groupIcon=document.createElement('span');
+  groupIcon.className='brite-nav-accordion-icon';
+  groupIcon.setAttribute('aria-hidden','true');
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox','0 0 24 24');
+  svg.setAttribute('width','17');
+  svg.setAttribute('height','17');
+  svg.setAttribute('fill','none');
+  svg.setAttribute('stroke','currentColor');
+  svg.setAttribute('stroke-width','1.8');
+  svg.setAttribute('stroke-linecap','round');
+  svg.setAttribute('stroke-linejoin','round');
+  svg.innerHTML=iconPaths[name.textContent]||'<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>';
+  groupIcon.append(svg);
+  button.append(groupIcon,name);
   heading.before(section);
   section.append(button,panel);
   let next=heading.nextElementSibling;
