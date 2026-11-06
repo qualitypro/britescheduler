@@ -113,3 +113,63 @@
  .brite-app .brite-content :is(input,select,textarea):not(.leaflet-container *):not(.mapboxgl-map *){font-size:16px}
  .brite-app .brite-content :is(.card,.brite-ui-card):not(:has(.leaflet-container,.mapboxgl-map,.gm-style)){padding:12px}
 }
+
+/* Cycle 89C: denser, more scannable application workspace.
+   Content-level adjustments are opt-out for map-bearing containers; widget
+   headers, canvas elements and map vendor controls remain untouched. */
+.brite-app .brite-sidebar-nav a:not(.brite-client-booking-nav){
+ font-size:.76rem;min-height:32px;padding:5px 8px;gap:8px;
+}
+.brite-app .brite-nav-group-label{margin-top:9px;margin-bottom:3px}
+.brite-app .brite-content{font-size:.84rem;line-height:1.35}
+.brite-app .brite-content h1{font-size:1.38rem;margin-bottom:6px}
+.brite-app .brite-content h2{font-size:1.12rem;margin-bottom:6px}
+.brite-app .brite-content h3{font-size:.94rem;margin-bottom:5px}
+.brite-app .brite-content :is(.card,.brite-ui-card):not(
+ :has(.leaflet-container,.leaflet-control,.mapboxgl-map,.mapboxgl-ctrl,.gm-style,
+ [id*="mapCanvas"],[class*="map-canvas"],[class*="map-container"],[id*="Map"])
+){padding:10px 12px}
+.brite-app .brite-content :is(.card,.brite-ui-card):not(
+ :has(.leaflet-container,.mapboxgl-map,.gm-style,[id*="Map"],[class*="map-container"])
+)>:is(h1,h2,h3){margin-bottom:5px}
+.brite-app .brite-content :is(.card,.brite-ui-card):not(
+ :has(.leaflet-container,.mapboxgl-map,.gm-style,[id*="Map"],[class*="map-container"])
+)>:is(p,ul,ol){margin-bottom:6px}
+.brite-app .brite-content :is(th,td):not(
+ .leaflet-container *,.mapboxgl-map *,.gm-style *
+){padding:5px 8px;font-size:.78rem;line-height:1.3}
+.brite-app .brite-content :is(label,legend):not(
+ .leaflet-container *,.mapboxgl-map *,.gm-style *
+){font-size:.79rem}
+.brite-app .brite-content :is(button,input,select,textarea):not(
+ .leaflet-container *,.leaflet-control *,.mapboxgl-map *,.mapboxgl-ctrl *,
+ .gm-style *,[class*="map-"] *,[id*="Map"] *,
+ .brite-widget-chrome *,.brite-widget-utility *
+){font-size:.8rem;padding:5px 8px}
+.brite-app .brite-content :is(.brite-tabs,[role="tablist"]):not(
+ .leaflet-container *,.mapboxgl-map *,.gm-style *
+){gap:4px}
+.brite-app .brite-content :is(.brite-tabs,[role="tablist"]) :is(a,button,[role="tab"]):not(
+ .leaflet-container *,.mapboxgl-map *,.gm-style *
+){font-size:.78rem;padding:5px 9px}
+.brite-app .brite-content :is(a,button,[role="tab"]):not(
+ .leaflet-container *,.mapboxgl-map *,.gm-style *
+):focus-visible{outline:2px solid var(--brite-indigo,#4f46e5);outline-offset:2px}
+.brite-app .brite-content :is(th,td){font-variant-numeric:tabular-nums}
+.brite-app .brite-content :is(.brite-page-tools){gap:6px;margin-top:14px;padding-top:8px}
+.brite-app .brite-content :is(.brite-page-tools button){font-size:.78rem;padding:6px 9px}
+@media(min-width:901px){
+ .brite-app .brite-content{padding:10px 14px 18px}
+}
+@media(pointer:coarse){
+ .brite-app .brite-sidebar-nav a:not(.brite-client-booking-nav){min-height:44px;padding-block:10px}
+ .brite-app .brite-content :is(button,input,select):not(
+ .leaflet-container *,.mapboxgl-map *,.gm-style *
+ ){min-height:44px}
+}
+@media(max-width:700px){
+ .brite-app .brite-content{padding:10px 12px 16px}
+ .brite-app .brite-content :is(input,select,textarea):not(
+ .leaflet-container *,.mapboxgl-map *,.gm-style *
+ ){font-size:16px}
+}
