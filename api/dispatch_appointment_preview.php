@@ -60,6 +60,7 @@ try{
   $candidate['assignment_approved']=false;
  }
  unset($candidate);
+ $scheduleBlockedCount=count(array_filter($contractors,static fn(array $c):bool=>empty($c['schedule_policy']['allowed'])));
  $contractors=ContractorRankingEngine::rank($pdo,$tenantId,$appointment['starts_at'],$contractors,(int)$id);
  $q=$pdo->prepare('SELECT id FROM appointment_bid_listings WHERE tenant_id=? AND appointment_id=? LIMIT 1');
  $q->execute([$tenantId,(int)$id]);
@@ -78,6 +79,8 @@ try{
   'marketplace_listing_exists'=>$marketplace,
   'contractors'=>$contractors,
   'count'=>count($contractors),
+  'schedule_blocked_count'=>$scheduleBlockedCount,
+  'schedule_clear_count'=>count($contractors)-$scheduleBlockedCount,
   'eligible_for_review_count'=>count(array_filter($contractors,static fn(array $c):bool=>!empty($c['eligible_for_review']))),
   'read_only'=>true,
   'automatic_assignment'=>false,

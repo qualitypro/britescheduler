@@ -20,6 +20,15 @@ $q=$db->prepare('SELECT created_at event_at,title,notes detail,stage status FROM
 $q->execute([$tid,$customerId,$tid,$customerId]);$add('Opportunity',$q->fetchAll(PDO::FETCH_ASSOC));
 usort($events,static fn($a,$b)=>strcmp($b['date'],$a['date']));
 $events=array_slice($events,0,150);
+// Read-only, tenant-scoped customer summary for the CRM workspace.
+$summary=['appointments'=>0,'upcoming'=>0,'open_quotes'=>0,'open_followups'=>0];
+$q=$db->prepare("SELECT COUNT(*) total, COALESCE(SUM(starts_at >= NOW() AND status IN ('tentative','scheduled','confirmed')),0) upcoming FROM appointments WHERE tenant_id=? AND client_id=?");
+$q->execute([$tid,$customerId]);$counts=$q->fetch(PDO::FETCH_ASSOC);
+$summary['appointments']=(int)$counts['total'];$summary['upcoming']=(int)$counts['upcoming'];
+$q=$db->prepare("SELECT COUNT(*) FROM contractor_quote_requests WHERE tenant_id=? AND client_id=? AND status NOT IN ('accepted','rejected','cancelled','expired','completed')");
+$q->execute([$tid,$customerId]);$summary['open_quotes']=(int)$q->fetchColumn();
+$q=$db->prepare("SELECT COUNT(*) FROM crm_activities WHERE tenant_id=? AND kind='follow_up' AND completed_at IS NULL AND (client_id=? OR lead_id IN (SELECT id FROM crm_leads WHERE tenant_id=? AND client_id=?))");
+$q->execute([$tid,$customerId,$tid,$customerId]);$summary['open_followups']=(int)$q->fetchColumn();
 ?>
 <section class="crm-panel" id="crmCustomer360" aria-label="Customer 360 profile">
  <div style="display:flex;justify-content:space-between;align-items:start;gap:12px;flex-wrap:wrap">
@@ -31,6 +40,11 @@ $events=array_slice($events,0,150);
   <div class="crm-stat"><span class="crm-muted">Email</span><div><?=$esc($customer['email']?:'Not provided')?></div></div>
   <div class="crm-stat"><span class="crm-muted">Phone</span><div><?=$esc($customer['phone']?:'Not provided')?></div></div>
   <div class="crm-stat"><span class="crm-muted">Status</span><div><?=$esc(ucfirst($customer['status']))?></div></div>
+ </div>
+ <div class="crm-stats" aria-label="Customer activity summary">
+  <?php foreach(['appointments'=>'Appointments','upcoming'=>'Upcoming','open_quotes'=>'Open quotes','open_followups'=>'Open follow-ups'] as $key=>$label): ?>
+  <div class="crm-stat"><span class="crm-muted"><?=$esc($label)?></span><div><strong><?=$summary[$key]?></strong></div></div>
+  <?php endforeach; ?>
  </div>
  <?php if($customer['notes']): ?><div class="crm-panel"><h3>Customer notes</h3><p style="white-space:pre-wrap"><?=$esc($customer['notes'])?></p></div><?php endif; ?>
  <h3>Unified activity timeline</h3>

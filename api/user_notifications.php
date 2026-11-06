@@ -46,9 +46,25 @@ try {
 
     $count->execute([$tenantId, $userId]);
 
+    $unreadOnly = isset($_GET['unread_only']) && $_GET['unread_only'] === '1';
+    $typeFilter = trim((string)($_GET['type'] ?? ''));
+    if ($typeFilter !== '' && (!preg_match('/^[a-z][a-z0-9_]{0,63}$/', $typeFilter))) {
+        json_response(['error' => 'Invalid notification type'], 422);
+    }
+
     $all = isset($_GET['all']) && $_GET['all'] === '1';
     $limit = $all ? 500 : 50;
     $offset = $all ? max(0, min(1000000, (int)($_GET['offset'] ?? 0))) : 0;
+
+    $filters = '';
+    $queryParams = [$tenantId, $userId];
+    if ($unreadOnly) {
+        $filters .= ' AND n.read_at IS NULL';
+    }
+    if ($typeFilter !== '') {
+        $filters .= ' AND n.type = ?';
+        $queryParams[] = $typeFilter;
+    }
 
     $query = $pdo->prepare("
         SELECT
@@ -80,11 +96,12 @@ try {
          AND cl.tenant_id = n.tenant_id
         WHERE n.tenant_id = ?
           AND n.user_id = ?
+          {$filters}
         ORDER BY n.created_at DESC, n.id DESC
         LIMIT {$limit} OFFSET {$offset}
     ");
 
-    $query->execute([$tenantId, $userId]);
+    $query->execute($queryParams);
 
     /*
      * Normalize presentation for both historical and new assignment decisions.
@@ -122,7 +139,8 @@ try {
         'unread_count' => (int)$count->fetchColumn(),
         'notifications' => $notifications,
         'limit' => $limit,
-        'offset' => $offset
+        'offset' => $offset,
+        'filters' => ['unread_only' => $unreadOnly, 'type' => $typeFilter]
     ]);
 
 } catch (Throwable $e) {
