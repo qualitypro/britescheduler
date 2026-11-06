@@ -485,10 +485,7 @@ if($briteActiveModules):
   button.setAttribute('aria-expanded','false');
   const name=document.createElement('span');
   name.textContent=heading.textContent.trim();
-  const chevron=document.createElement('span');
-  chevron.className='brite-nav-accordion-chevron';
-  chevron.setAttribute('aria-hidden','true');
-  button.append(name,chevron);
+  button.append(name);
   heading.before(section);
   section.append(button,panel);
   let next=heading.nextElementSibling;
