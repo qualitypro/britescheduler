@@ -407,7 +407,124 @@ if($briteActiveModules):
         My Settings
     </a>
 
+
 </nav>
+<style>
+/* Sidebar accordion: applies only after progressive enhancement initializes. */
+.brite-app .brite-sidebar-nav.brite-nav-accordion{gap:3px}
+.brite-app .brite-sidebar-nav .brite-nav-accordion-section{min-width:0}
+.brite-app .brite-sidebar-nav .brite-nav-accordion-toggle{
+ display:flex;align-items:center;justify-content:space-between;gap:8px;
+ width:100%;min-height:34px;margin:0;padding:7px 10px;
+ background:transparent;border:0;border-radius:7px;
+ color:#a5b4fc;font-size:.73rem;font-weight:750;letter-spacing:.025em;
+ text-align:left;cursor:pointer;
+}
+.brite-app .brite-sidebar-nav .brite-nav-accordion-toggle:hover,
+.brite-app .brite-sidebar-nav .brite-nav-accordion-toggle:focus-visible{
+ background:rgba(255,255,255,.10);color:#fff;
+}
+.brite-app .brite-sidebar-nav .brite-nav-accordion-toggle[aria-expanded="true"]{
+ background:rgba(255,255,255,.08);color:#fff;
+}
+.brite-app .brite-sidebar-nav .brite-nav-accordion-chevron{
+ width:8px;height:8px;flex:none;border-right:1.7px solid currentColor;
+ border-bottom:1.7px solid currentColor;transform:rotate(45deg);
+ transition:transform .16s ease;
+}
+.brite-app .brite-sidebar-nav .brite-nav-accordion-toggle[aria-expanded="true"] .brite-nav-accordion-chevron{
+ transform:rotate(225deg);
+}
+.brite-app .brite-sidebar-nav .brite-nav-accordion-panel{
+ display:flex;flex-direction:column;gap:2px;padding:3px 0 6px 8px;
+}
+.brite-app .brite-sidebar-nav .brite-nav-accordion-panel[hidden]{display:none!important}
+.brite-app .brite-sidebar-nav .brite-nav-accordion-panel>a{
+ margin-inline:0;min-width:0;
+}
+.brite-app .brite-sidebar-nav .brite-nav-accordion-panel>a[aria-current="page"]{
+ border-left:2px solid #a5b4fc;
+}
+@media(pointer:coarse){
+ .brite-app .brite-sidebar-nav .brite-nav-accordion-toggle{min-height:44px}
+}
+@media(prefers-reduced-motion:reduce){
+ .brite-app .brite-sidebar-nav .brite-nav-accordion-chevron{transition:none}
+}
+</style>
+<script>
+/* Single-open sidebar accordion, retaining PHP-rendered role/module links. */
+(function(){
+ const nav=document.querySelector('#briteSidebar .brite-sidebar-nav');
+ if(!nav||nav.classList.contains('brite-nav-accordion'))return;
+ const labels=Array.from(nav.children).filter(el=>el.classList.contains('brite-nav-group-label'));
+ if(!labels.length)return;
+ const sections=[];
+ const currentUrl=new URL(window.location.href);
+ const matches=(link)=>{
+  try{
+   const url=new URL(link.getAttribute('href'),window.location.href);
+   if(url.pathname!==currentUrl.pathname)return false;
+   if(url.pathname.endsWith('/module.php')){
+    return url.searchParams.get('module')===currentUrl.searchParams.get('module');
+   }
+   return true;
+  }catch(_){return false}
+ };
+ labels.forEach((heading,index)=>{
+  const section=document.createElement('div');
+  section.className='brite-nav-accordion-section';
+  const button=document.createElement('button');
+  button.type='button';
+  button.className='brite-nav-accordion-toggle';
+  button.id='briteNavAccordionToggle'+index;
+  const panel=document.createElement('div');
+  panel.className='brite-nav-accordion-panel';
+  panel.id='briteNavAccordionPanel'+index;
+  button.setAttribute('aria-controls',panel.id);
+  button.setAttribute('aria-expanded','false');
+  const name=document.createElement('span');
+  name.textContent=heading.textContent.trim();
+  const chevron=document.createElement('span');
+  chevron.className='brite-nav-accordion-chevron';
+  chevron.setAttribute('aria-hidden','true');
+  button.append(name,chevron);
+  heading.before(section);
+  section.append(button,panel);
+  let next=heading.nextElementSibling;
+  while(next&&!next.classList.contains('brite-nav-group-label')){
+   const following=next.nextElementSibling;
+   panel.append(next);
+   next=following;
+  }
+  heading.remove();
+  sections.push({section,button,panel,key:name.textContent});
+ });
+ const storageKey='brite.sidebar.accordion.'+String(<?=json_encode((string)$tenant['id'])?>)+'.'+String(<?=json_encode((string)$tenant['role'])?>);
+ let saved='';
+ try{saved=window.sessionStorage.getItem(storageKey)||''}catch(_){}
+ const active=sections.find(({panel})=>Array.from(panel.querySelectorAll('a[href]')).some(matches));
+ const initial=active||sections.find(({key})=>key===saved)||sections[0];
+ const open=(selected,remember)=>{
+  sections.forEach(item=>{
+   const expanded=item===selected;
+   item.button.setAttribute('aria-expanded',expanded?'true':'false');
+   item.panel.hidden=!expanded;
+  });
+  if(remember){
+   try{window.sessionStorage.setItem(storageKey,selected?selected.key:'')}catch(_){}
+  }
+ };
+ sections.forEach(item=>{
+  item.button.addEventListener('click',()=>{
+   const expanded=item.button.getAttribute('aria-expanded')==='true';
+   open(expanded?null:item,true);
+  });
+ });
+ nav.classList.add('brite-nav-accordion');
+ open(initial,false);
+})();
+</script>
 
     <div class="brite-sidebar-footer">
         <?=htmlspecialchars($tenant['name'])?>
