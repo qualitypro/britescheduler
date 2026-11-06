@@ -46,6 +46,13 @@ try {
 
     $count->execute([$tenantId, $userId]);
 
+    // Reject non-scalar query values instead of converting arrays to strings.
+    foreach (['unread_only', 'type', 'all', 'offset'] as $key) {
+        if (isset($_GET[$key]) && !is_string($_GET[$key])) {
+            json_response(['error' => 'Invalid notification filter'], 422);
+        }
+    }
+
     $unreadOnly = isset($_GET['unread_only']) && $_GET['unread_only'] === '1';
     $typeFilter = trim((string)($_GET['type'] ?? ''));
     if ($typeFilter !== '' && (!preg_match('/^[a-z][a-z0-9_]{0,63}$/', $typeFilter))) {
@@ -54,7 +61,11 @@ try {
 
     $all = isset($_GET['all']) && $_GET['all'] === '1';
     $limit = $all ? 500 : 50;
-    $offset = $all ? max(0, min(1000000, (int)($_GET['offset'] ?? 0))) : 0;
+    $offsetRaw = $_GET['offset'] ?? '0';
+    if (!preg_match('/^\\d{1,7}$/D', $offsetRaw)) {
+        json_response(['error' => 'Invalid notification offset'], 422);
+    }
+    $offset = $all ? min(1000000, (int)$offsetRaw) : 0;
 
     $filters = '';
     $queryParams = [$tenantId, $userId];

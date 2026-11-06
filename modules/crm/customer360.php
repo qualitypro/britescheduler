@@ -21,9 +21,11 @@ $q->execute([$tid,$customerId,$tid,$customerId]);$add('Opportunity',$q->fetchAll
 usort($events,static fn($a,$b)=>strcmp($b['date'],$a['date']));
 $events=array_slice($events,0,150);
 // Read-only, tenant-scoped customer summary for the CRM workspace.
+require_once dirname(__DIR__,2).'/app/TenantClock.php';
+$tenantNow=TenantClock::now($db,$tid);
 $summary=['appointments'=>0,'upcoming'=>0,'open_quotes'=>0,'open_followups'=>0];
-$q=$db->prepare("SELECT COUNT(*) total, COALESCE(SUM(starts_at >= NOW() AND status IN ('tentative','scheduled','confirmed')),0) upcoming FROM appointments WHERE tenant_id=? AND client_id=?");
-$q->execute([$tid,$customerId]);$counts=$q->fetch(PDO::FETCH_ASSOC);
+$q=$db->prepare("SELECT COUNT(*) total, COALESCE(SUM(starts_at >= ? AND status IN ('tentative','scheduled','confirmed')),0) upcoming FROM appointments WHERE tenant_id=? AND client_id=?");
+$q->execute([$tenantNow,$tid,$customerId]);$counts=$q->fetch(PDO::FETCH_ASSOC);
 $summary['appointments']=(int)$counts['total'];$summary['upcoming']=(int)$counts['upcoming'];
 $q=$db->prepare("SELECT COUNT(*) FROM contractor_quote_requests WHERE tenant_id=? AND client_id=? AND status NOT IN ('accepted','rejected','cancelled','expired','completed')");
 $q->execute([$tid,$customerId]);$summary['open_quotes']=(int)$q->fetchColumn();
@@ -48,9 +50,35 @@ $q->execute([$tid,$customerId,$tid,$customerId]);$summary['open_followups']=(int
  </div>
  <?php if($customer['notes']): ?><div class="crm-panel"><h3>Customer notes</h3><p style="white-space:pre-wrap"><?=$esc($customer['notes'])?></p></div><?php endif; ?>
  <h3>Unified activity timeline</h3>
+ <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+  <label for="crmTimelineType">Show events</label>
+  <select id="crmTimelineType" aria-controls="crmTimelineTable">
+   <option value="">All events</option><option value="Appointment">Appointments</option><option value="Quote request">Quote requests</option><option value="Activity">CRM activities</option><option value="Opportunity">Opportunities</option>
+  </select>
+  <span class="crm-muted" id="crmTimelineCount" role="status" aria-live="polite"></span>
+ </div>
  <p class="crm-muted">Appointments, quote requests, CRM activities and opportunities for this tenant. Most recent 150 events shown.</p>
  <?php if(!$events): ?><p>No customer history yet.</p><?php else: ?>
- <div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>When</th><th>Type</th><th>Event</th><th>Status</th></tr></thead><tbody>
- <?php foreach($events as $event): ?><tr><td><?=$esc($event['date'])?></td><td><span class="crm-pill"><?=$esc($event['type'])?></span></td><td><strong><?=$esc($event['title'])?></strong><?php if($event['detail']): ?><p class="crm-muted" style="white-space:pre-wrap;margin:4px 0"><?=$esc($event['detail'])?></p><?php endif; ?></td><td><?=$esc($event['status'])?></td></tr><?php endforeach; ?>
+ <div class="crm-table-wrap"><table class="crm-table" id="crmTimelineTable"><thead><tr><th>When</th><th>Type</th><th>Event</th><th>Status</th></tr></thead><tbody>
+ <?php foreach($events as $event): ?><tr data-event-type="<?=$esc($event['type'])?>"><td><?=$esc($event['date'])?></td><td><span class="crm-pill"><?=$esc($event['type'])?></span></td><td><strong><?=$esc($event['title'])?></strong><?php if($event['detail']): ?><p class="crm-muted" style="white-space:pre-wrap;margin:4px 0"><?=$esc($event['detail'])?></p><?php endif; ?></td><td><?=$esc($event['status'])?></td></tr><?php endforeach; ?>
  </tbody></table></div><?php endif; ?>
+ <script>
+ (() => {
+   const filter=document.getElementById('crmTimelineType');
+   const table=document.getElementById('crmTimelineTable');
+   const count=document.getElementById('crmTimelineCount');
+   if(!filter||!table||!count)return;
+   const rows=Array.from(table.querySelectorAll('tbody tr[data-event-type]'));
+   const refresh=()=>{
+     let shown=0;
+     for(const row of rows){
+       row.hidden=!!filter.value && row.dataset.eventType!==filter.value;
+       if(!row.hidden)shown++;
+     }
+     count.textContent=shown+' of '+rows.length+' events';
+   };
+   filter.addEventListener('change',refresh);
+   refresh();
+ })();
+ </script>
 </section>

@@ -11,6 +11,33 @@
     const base = (window.BRITE_BASE || '/dashboard')
         .replace(/\/$/, '');
 
+    // Filters are created alongside the existing panel, without changing its PHP template.
+    const controls = document.createElement('div');
+    controls.style.display = 'flex';
+    controls.style.flexWrap = 'wrap';
+    controls.style.gap = '8px';
+    controls.style.marginBottom = '12px';
+    const unreadLabel = document.createElement('label');
+    const unreadToggle = document.createElement('input');
+    unreadToggle.type = 'checkbox';
+    unreadToggle.style.marginRight = '6px';
+    unreadLabel.append(unreadToggle, document.createTextNode('Unread only'));
+    const typeLabel = document.createElement('label');
+    typeLabel.textContent = 'Category ';
+    const typeSelect = document.createElement('select');
+    for (const [value, title] of [['', 'All'], ['appointment', 'Bookings'], ['crm_task', 'CRM tasks']]) {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = title;
+        typeSelect.appendChild(option);
+    }
+    typeLabel.appendChild(typeSelect);
+    controls.append(unreadLabel, typeLabel);
+    list.parentNode.insertBefore(controls, list);
+    let cachedNotifications = [];
+    unreadToggle.addEventListener('change', renderNotifications);
+    typeSelect.addEventListener('change', renderNotifications);
+
     async function markNotificationRead(notificationId, button) {
         button.disabled = true;
         button.textContent = 'Saving…';
@@ -71,17 +98,31 @@
             }
 
             count.textContent = String(data.unread_count);
-            list.replaceChildren();
+            cachedNotifications = data.notifications;
+            renderNotifications();
+        } catch (error) {
+            status.hidden = false;
+            status.textContent = 'Unable to load notifications.';
+            console.error('Owner notifications:', error);
+        }
+    }
 
-            if (data.notifications.length === 0) {
+    function renderNotifications() {
+            list.replaceChildren();
+            const notifications = cachedNotifications.filter(notification =>
+                (!unreadToggle.checked || notification.read_at === null) &&
+                (!typeSelect.value || notification.type === typeSelect.value)
+            );
+
+            if (notifications.length === 0) {
                 status.hidden = false;
-                status.textContent = 'No notifications yet.';
+                status.textContent = cachedNotifications.length ? 'No notifications match these filters.' : 'No notifications yet.';
                 return;
             }
 
             status.hidden = true;
 
-            for (const notification of data.notifications) {
+            for (const notification of notifications) {
                 const item = document.createElement('article');
                 item.className = 'brite-dashboard-quick-action';
                 item.style.display = 'block';
@@ -143,11 +184,6 @@
                 list.appendChild(item);
             }
 
-        } catch (error) {
-            status.hidden = false;
-            status.textContent = 'Unable to load notifications.';
-            console.error('Owner notifications:', error);
-        }
     }
 
     loadNotifications();
