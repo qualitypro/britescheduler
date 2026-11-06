@@ -420,7 +420,7 @@ if($briteActiveModules):
  color:#a5b4fc;font-size:.73rem;font-weight:750;letter-spacing:.025em;
  text-align:left;cursor:pointer;
 }
- .brite-app .brite-sidebar-nav .brite-nav-accordion-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 19px;width:19px;height:19px}\n.brite-app .brite-sidebar-nav .brite-nav-accordion-toggle{justify-content:flex-start;gap:9px}\n.brite-app .brite-sidebar-nav .brite-nav-accordion-toggle:hover,
+ .brite-app .brite-sidebar-nav .brite-nav-accordion-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 19px;width:19px;height:19px}\n.brite-app .brite-sidebar-nav .brite-nav-accordion-toggle{justify-content:space-between;gap:9px}\n.brite-app .brite-sidebar-nav .brite-nav-accordion-toggle>span:first-child{text-align:left;flex:1;min-width:0}\n.brite-app .brite-sidebar-nav .brite-nav-accordion-toggle:hover,
 .brite-app .brite-sidebar-nav .brite-nav-accordion-toggle:focus-visible{
  background:rgba(255,255,255,.10);color:#fff;
 }
@@ -507,7 +507,7 @@ if($briteActiveModules):
   svg.setAttribute('stroke-linejoin','round');
   svg.innerHTML=iconPaths[name.textContent]||'<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>';
   groupIcon.append(svg);
-  button.append(groupIcon,name);
+  button.append(name,groupIcon);
   heading.before(section);
   section.append(button,panel);
   let next=heading.nextElementSibling;
