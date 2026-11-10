@@ -316,7 +316,8 @@ $crmTotals=['customers'=>0,'open_leads'=>0,'open_opportunities'=>0,'due'=>0];
 $crmStages=array_fill_keys(['new','contacted','quoted','won','lost'],0);
 $dueFollowUps=[];
 if($tab==='overview'){
- $today=(new DateTimeImmutable('today'))->format('Y-m-d');
+ require_once dirname(__DIR__,2).'/app/TenantClock.php';
+ $today=TenantClock::today($db,$tid);
  $queries=[
   'customers'=>"SELECT COUNT(*) FROM clients WHERE tenant_id=?",
   'open_leads'=>"SELECT COUNT(*) FROM crm_leads WHERE tenant_id=? AND status NOT IN ('converted','lost')",

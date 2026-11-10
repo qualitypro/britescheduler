@@ -226,7 +226,12 @@
                 this.pageSize = Number(this.size.value);
                 this.goTo(1);
             });
-            this.nav.append(this.info, this.previous, this.next, this.size);
+            this.retry = document.createElement('button');
+            this.retry.type = 'button';
+            this.retry.textContent = 'Retry';
+            this.retry.hidden = true;
+            this.retry.addEventListener('click', () => this.refresh());
+            this.nav.append(this.info, this.previous, this.next, this.size, this.retry);
             this.container.appendChild(this.nav);
             this.refresh();
         }
@@ -243,6 +248,7 @@
             this.previous.disabled = true;
             this.next.disabled = true;
             this.info.textContent = 'Loading records…';
+            this.retry.hidden = true;
             try {
                 const result = await this.load({
                     page: this.page,
@@ -266,6 +272,7 @@
             } catch (error) {
                 if (request !== this.sequence) return;
                 this.info.textContent = 'Unable to load records';
+                this.retry.hidden = false;
                 if (typeof this.onError === 'function') this.onError(error);
             }
         }
