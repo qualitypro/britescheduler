@@ -881,7 +881,14 @@ require __DIR__.'/partials/app_header.php';
         scrollbar-width: thin;
     }
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit.brite-month-overflow {
-        overflow-y: auto; /* Only for genuinely unusable viewport heights. */
+        overflow-y: auto; /* Last resort for extremely small browser heights. */
+    }
+    /* FullCalendar's internal scroller should not introduce a second
+       scrollbar inside a viewport-fitted month grid. */
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-body,
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-scroller {
+        overflow-x: hidden !important;
+        overflow-y: hidden !important;
     }
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .scheduler-layout,
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .scheduler-layout > .card {
@@ -968,9 +975,43 @@ require __DIR__.'/partials/app_header.php';
         overflow: visible;
         white-space: normal;
     }
-    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-more-link {
-        font-size: 10px;
-        line-height: 1.1;
+    /* Treat overflow appointments as an obvious interactive card. */
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-more-link,
+    #calendar .fc-daygrid-more-link {
+        display: block;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        padding: 3px 6px;
+        margin: 2px 0 0;
+        border: 1px solid #1d4ed8;
+        border-radius: 5px;
+        background: #1d4ed8;
+        color: #fff !important;
+        font-size: 11px;
+        font-weight: 750;
+        line-height: 1.2;
+        text-align: left;
+        text-decoration: none !important;
+        cursor: pointer;
+        white-space: normal;
+    }
+    #calendar .fc-daygrid-more-link:hover,
+    #calendar .fc-daygrid-more-link:focus-visible {
+        background: #1e3a8a;
+        border-color: #93c5fd;
+        color: #fff !important;
+        outline: 2px solid #93c5fd;
+        outline-offset: 1px;
+    }
+    #calendar .fc-daygrid-more-link:active {
+        background: #172554;
+    }
+    #calendar .fc-daygrid-more-link::before {
+        content: '+';
+        display: inline-block;
+        margin-right: 4px;
+        font-weight: 900;
     }
     /* Week/Day time slots scroll inside FullCalendar only. */
     #schedulingWorkspace #calendar .fc-timegrid-body {
