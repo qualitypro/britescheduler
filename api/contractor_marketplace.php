@@ -49,6 +49,33 @@ if (!$contractorId) {
  * This endpoint exposes no client contact details.
  */
 
+$paging = null;
+if (isset($_GET['page']) || isset($_GET['per_page'])) {
+    require_once dirname(__DIR__).'/app/ServerPagination.php';
+    try { $paging=ServerPagination::fromQuery($_GET); }
+    catch (InvalidArgumentException $e) {
+        json_response(['error'=>$e->getMessage()],422);
+    }
+}
+$today=TenantClock::today($pdo,$tid);
+$marketWhere="a.tenant_id = ?
+      AND a.starts_at >= ?
+      AND a.status IN ('tentative','scheduled','confirmed')
+      AND NOT EXISTS (
+          SELECT 1 FROM appointment_contractors ac
+          WHERE ac.appointment_id = a.id
+      )";
+$marketJoin="INNER JOIN appointment_bid_listings l
+      ON l.tenant_id = a.tenant_id
+     AND l.appointment_id = a.id
+     AND l.status = 'open'";
+$total=null;
+if ($paging !== null) {
+    $count=$pdo->prepare("SELECT COUNT(*) FROM appointments a {$marketJoin} WHERE {$marketWhere}");
+    $count->execute([$tid,$today]);
+    $total=(int)$count->fetchColumn();
+}
+$marketLimit=$paging===null?'LIMIT 200':'LIMIT '.$paging['per_page'].' OFFSET '.$paging['offset'];
 $q = $pdo->prepare("
     SELECT
         a.id AS appointment_id,
@@ -63,34 +90,20 @@ $q = $pdo->prepare("
         s.name AS service_name,
         a.created_at
     FROM appointments a
-    INNER JOIN appointment_bid_listings l
-      ON l.tenant_id = a.tenant_id
-     AND l.appointment_id = a.id
-     AND l.status = 'open'
+    {$marketJoin}
     LEFT JOIN services s
       ON s.id = a.service_id
      AND s.tenant_id = a.tenant_id
-    WHERE a.tenant_id = ?
-      AND a.starts_at >= ?
-      AND a.status IN (
-          'tentative',
-          'scheduled',
-          'confirmed'
-      )
-      AND NOT EXISTS (
-          SELECT 1
-          FROM appointment_contractors ac
-          WHERE ac.appointment_id = a.id
-      )
+    WHERE {$marketWhere}
     ORDER BY
         a.starts_at ASC,
         a.id ASC
-    LIMIT 200
+    {$marketLimit}
 ");
 
 $q->execute([
     $tid,
-    TenantClock::today($pdo, $tid)
+    $today
 ]);
 
 $appointments = $q->fetchAll(PDO::FETCH_ASSOC);
@@ -113,5 +126,6 @@ json_response([
     'contractor_id' => $contractorId,
     'appointments' => $appointments,
     'count' => count($appointments),
-    'limit' => 200
+    'limit' => $paging===null?200:$paging['per_page'],
+    'pagination' => $paging===null?null:ServerPagination::metadata($paging,$total)
 ]);

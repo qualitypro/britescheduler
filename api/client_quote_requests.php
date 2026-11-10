@@ -10,11 +10,26 @@ $q->execute([$tid,(int)$user['id']]);$clientId=(int)($q->fetchColumn()?:0);
 if (!$clientId) json_response(['error'=>'Active client account required'],403);
 $method=$_SERVER['REQUEST_METHOD']??'GET';
 if ($method==='GET') {
- $q=$pdo->prepare("SELECT r.id,r.contractor_id,r.client_location_id,r.service_id,r.description,r.preferred_date,r.status,r.created_at,COALESCE(NULLIF(c.business_name,''),CONCAT(c.first_name,' ',c.last_name)) AS contractor_name FROM contractor_quote_requests r JOIN contractors c ON c.id=r.contractor_id AND c.tenant_id=r.tenant_id WHERE r.tenant_id=? AND r.client_id=? ORDER BY r.id DESC LIMIT 100");
+ $paging = null;
+ if (isset($_GET['page']) || isset($_GET['per_page'])) {
+     require_once dirname(__DIR__).'/app/ServerPagination.php';
+     try { $paging=ServerPagination::fromQuery($_GET); }
+     catch (InvalidArgumentException $e) {
+         json_response(['error'=>$e->getMessage()],422);
+     }
+ }
+ 
+ $total=null;
+ if($paging!==null){
+  $count=$pdo->prepare('SELECT COUNT(*) FROM contractor_quote_requests WHERE tenant_id=? AND client_id=?');
+  $count->execute([$tid,$clientId]);$total=(int)$count->fetchColumn();
+ }
+ $limitSql=$paging===null?'LIMIT 100':'LIMIT '.$paging['per_page'].' OFFSET '.$paging['offset'];
+ $q=$pdo->prepare(""SELECT r.id,r.contractor_id,r.client_location_id,r.service_id,r.description,r.preferred_date,r.status,r.created_at,COALESCE(NULLIF(c.business_name,''),CONCAT(c.first_name,' ',c.last_name)) AS contractor_name FROM contractor_quote_requests r JOIN contractors c ON c.id=r.contractor_id AND c.tenant_id=r.tenant_id WHERE r.tenant_id=? AND r.client_id=? ORDER BY r.id DESC {$limitSql}");
  $q->execute([$tid,$clientId]);$requests=$q->fetchAll(PDO::FETCH_ASSOC);
  $photos=$pdo->prepare('SELECT id FROM contractor_quote_request_photos WHERE tenant_id=? AND request_id=? ORDER BY id LIMIT 10');
  foreach($requests as &$request){$photos->execute([$tid,(int)$request['id']]);$request['photos']=array_map(static fn($p)=>['id'=>(int)$p['id'],'url'=>app_url('/api/quote_request_photo.php?id='.(int)$p['id'])],$photos->fetchAll(PDO::FETCH_ASSOC));}unset($request);
- json_response(['ok'=>true,'requests'=>$requests]);
+ json_response(['ok'=>true,'requests'=>$requests,'pagination'=>$paging===null?null:ServerPagination::metadata($paging,$total)]);
 }
 if ($method!=='POST') {header('Allow: GET, POST');json_response(['error'=>'Method not allowed'],405);}
 verify_csrf();
