@@ -948,6 +948,95 @@ require __DIR__.'/partials/app_header.php';
     }
 }
 
+
+/* Cycle 90AC: compact the selected-appointment details dialog only.
+   Keep all fields and action handlers intact; never clip long data. */
+#appointmentDetailsDialog {
+    box-sizing: border-box;
+    width: min(760px, calc(100vw - 24px));
+    max-height: calc(100dvh - 24px);
+    padding: 12px 16px;
+    overflow-x: hidden;
+    overflow-y: auto; /* Safety fallback for tiny viewports/long values. */
+    font-size: 12px;
+    line-height: 1.3;
+}
+#appointmentDetailsDialog .appointment-dialog-header {
+    gap: 8px;
+    margin-bottom: 8px;
+}
+#appointmentDetailsDialog .appointment-dialog-header h2 {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.2;
+}
+#appointmentDetailsDialog .appointment-dialog-header button,
+#appointmentDetailsDialog .appointment-details-actions button {
+    min-height: 30px;
+    padding: 5px 9px;
+    font-size: 12px;
+    line-height: 1.2;
+}
+#appointmentDetailsDialog .appointment-details-grid {
+    grid-template-columns: minmax(65px, .6fr) minmax(0, 1.4fr) minmax(65px, .6fr) minmax(0, 1.4fr);
+    gap: 8px 16px;
+    margin: 0;
+}
+#appointmentDetailsDialog .appointment-details-grid > dt {
+    margin: 0 0 2px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.15;
+}
+#appointmentDetailsDialog .appointment-details-grid > dd {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+#appointmentDetailsDialog .appointment-details-grid > dt,
+#appointmentDetailsDialog .appointment-details-grid > dd {
+    min-width: 0;
+}
+#appointmentDetailsDialog .appointment-details-grid > dt:nth-of-type(n) {
+    color: #64748b;
+}
+/* Group each label/value pair in a single grid cell without changing
+   the existing semantic definition list or its JavaScript population. */
+#appointmentDetailsDialog .appointment-details-grid {
+    grid-auto-flow: row;
+}
+#appointmentDetailsDialog .appointment-details-grid > dt {
+    grid-row: auto;
+}
+#appointmentDetailsDialog .appointment-details-grid > dd {
+    margin-top: 0;
+}
+#appointmentDetailsDialog #appointmentDetailsEditStatus:empty {
+    display: none;
+}
+#appointmentDetailsDialog #appointmentDetailsEditStatus:not(:empty) {
+    margin: 6px 0;
+    font-size: 11px;
+}
+#appointmentDetailsDialog .appointment-details-actions {
+    gap: 6px;
+    margin-top: 10px;
+}
+@media (max-width: 520px) {
+    #appointmentDetailsDialog {
+        padding: 10px 12px;
+    }
+    #appointmentDetailsDialog .appointment-details-grid {
+        grid-template-columns: minmax(85px, .7fr) minmax(0, 1.3fr);
+        gap: 5px;
+    }
+    #appointmentDetailsDialog .appointment-details-grid > dd {
+        margin-top: 0;
+        margin-bottom: 0;
+    }
+}
+
 </style>
 
 <link rel="stylesheet"
