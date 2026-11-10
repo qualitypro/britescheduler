@@ -239,6 +239,55 @@ try{
  $q=$db->prepare('SELECT COUNT(*) FROM contractor_quote_requests WHERE tenant_id=?');$q->execute([$tid]);$quoteCount=(int)$q->fetchColumn();
  $q=$db->prepare('SELECT COUNT(*) FROM appointments WHERE tenant_id=?');$q->execute([$tid]);$appointmentCount=(int)$q->fetchColumn();
 }catch(PDOException $e){echo '<section class="card"><h1>CRM setup required</h1><p>Apply migration <code>030_crm_module.sql</code> before using this module.</p></section>';return;}
+// Dedicated SQL-backed list pages; retain existing 150-record arrays for legacy
+// form selectors and overview calculations until those are independently migrated.
+$crmListRows=[];
+$crmListTotal=0;
+$crmListPage=1;
+$crmListSize=25;
+$crmListSearch='';
+$crmListStage='all';
+if(in_array($tab,['customers','pipeline'],true)){
+ $crmListPage=filter_var($_GET['crm_page']??1,FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>100000]]);
+ $crmListSize=filter_var($_GET['crm_size']??25,FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>100]]);
+ if($crmListPage===false||$crmListSize===false){$crmListPage=1;$crmListSize=25;$flash='Invalid pagination parameters.';}
+ $crmListSearch=$_GET['crm_search']??'';
+ if(!is_string($crmListSearch))$crmListSearch='';
+ $crmListSearch=mb_substr(trim($crmListSearch),0,150);
+ $crmListStage=$_GET['crm_stage']??'all';
+ if(!is_string($crmListStage)||!in_array($crmListStage,['all','new','contacted','quoted','won','lost'],true))$crmListStage='all';
+ $params=[$tid];
+ if($tab==='customers'){
+  $where='tenant_id=?';
+  if($crmListSearch!==''){
+   $where.=" AND (first_name LIKE ? OR last_name LIKE ? OR company_name LIKE ? OR email LIKE ? OR phone LIKE ?)";
+   for($i=0;$i<5;$i++)$params[]='%'.$crmListSearch.'%';
+  }
+  $count=$db->prepare("SELECT COUNT(*) FROM clients WHERE {$where}");
+  $count->execute($params);$crmListTotal=(int)$count->fetchColumn();
+  $crmListPage=min($crmListPage,max(1,(int)ceil($crmListTotal/$crmListSize)));
+  $offset=($crmListPage-1)*$crmListSize;
+  $list=$db->prepare("SELECT id,first_name,last_name,company_name,email,phone,status FROM clients WHERE {$where} ORDER BY last_name,first_name,id LIMIT {$crmListSize} OFFSET {$offset}");
+ }else{
+  $where='o.tenant_id=?';
+  if($crmListStage!=='all'){$where.=' AND o.stage=?';$params[]=$crmListStage;}
+  if($crmListSearch!==''){
+   $where.=" AND (o.title LIKE ? OR l.name LIKE ? OR c.first_name LIKE ? OR c.last_name LIKE ?)";
+   for($i=0;$i<4;$i++)$params[]='%'.$crmListSearch.'%';
+  }
+  $joins='LEFT JOIN crm_leads l ON l.id=o.lead_id AND l.tenant_id=o.tenant_id LEFT JOIN clients c ON c.id=o.client_id AND c.tenant_id=o.tenant_id';
+  $count=$db->prepare("SELECT COUNT(*) FROM crm_opportunities o {$joins} WHERE {$where}");
+  $count->execute($params);$crmListTotal=(int)$count->fetchColumn();
+  $crmListPage=min($crmListPage,max(1,(int)ceil($crmListTotal/$crmListSize)));
+  $offset=($crmListPage-1)*$crmListSize;
+  $list=$db->prepare("SELECT o.*,l.name lead_name,CONCAT(c.first_name,' ',c.last_name) client_name FROM crm_opportunities o {$joins} WHERE {$where} ORDER BY o.updated_at DESC,o.id DESC LIMIT {$crmListSize} OFFSET {$offset}");
+ }
+ $list->execute($params);$crmListRows=$list->fetchAll(PDO::FETCH_ASSOC);
+}
+$crmListUrl=static function(int $page)use($base,$tab,$crmListSize,$crmListSearch,$crmListStage):string{
+ return $base.'&'.http_build_query(['tab'=>$tab,'crm_page'=>$page,'crm_size'=>$crmListSize,'crm_search'=>$crmListSearch,'crm_stage'=>$crmListStage]);
+};
+$crmListPages=max(1,(int)ceil($crmListTotal/$crmListSize));
 $dueFollowUps=array_values(array_filter($activities,static fn($r)=>$r['due_at']!==null && $r['completed_at']===null && $r['due_at']<=date('Y-m-d')));
 $token=csrf_token();
 $leadOptions=static function(?int $selected=null)use($leads,$esc):void {foreach($leads as $r)echo '<option value="'.(int)$r['id'].'"'.($selected===(int)$r['id']?' selected':'').'>'.$esc($r['name']).'</option>';};
@@ -268,14 +317,14 @@ $customerOptions=static function(?int $selected=null)use($customers,$esc):void {
  <div class="crm-panel"><h2>Leads</h2><div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Name</th><th>Contact</th><th>Source</th><th>Status</th></tr></thead><tbody><?php foreach($leads as $r): ?><tr><td><strong><?=$esc($r['name'])?></strong></td><td><?=$esc($r['email'])?><div class="crm-muted"><?=$esc($r['phone'])?></div></td><td><?=$esc($r['source'])?></td><td><form method="post" class="crm-inline"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="tab" value="leads"><input type="hidden" name="action" value="lead_status"><input type="hidden" name="id" value="<?=(int)$r['id']?>"><select name="status" aria-label="Status for <?=$esc($r['name'])?>"><?php foreach(['new','contacted','qualified','converted','lost'] as $v): ?><option value="<?=$v?>" <?=$r['status']===$v?'selected':''?>><?=ucfirst($v)?></option><?php endforeach; ?></select><button type="submit">Save</button></form><?php if($r['status']!=='converted'): ?><form method="post" class="crm-convert-form" style="margin-top:5px" onsubmit="return confirm('Create a scheduling customer from this lead?')"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="action" value="lead_convert"><input type="hidden" name="tab" value="leads"><input type="hidden" name="id" value="<?=(int)$r['id']?>"><button type="submit">Convert to customer</button></form><?php elseif($r['client_id']): ?><small class="crm-muted">Customer #<?=(int)$r['client_id']?></small><?php endif; ?></td></tr><?php endforeach; ?></tbody></table><?php if(!$leads): ?><p class="crm-muted">No leads yet.</p><?php endif; ?></div></div></div>
  <?php elseif($tab==='customers'): ?>
  <div class="crm-panel"><h2>Scheduling customers</h2><p class="crm-muted">Select a customer to inspect their complete CRM and service history.</p>
- <label for="crmCustomerSearch">Find customer</label><input id="crmCustomerSearch" type="search" placeholder="Search name, company, email or phone…" style="width:100%;min-height:36px;margin:6px 0 12px">
+ <form method="get" class="crm-inline" style="flex-wrap:wrap;margin:8px 0"><input type="hidden" name="module" value="crm"><input type="hidden" name="tab" value="customers"><label for="crmCustomerSearch">Find customer</label><input id="crmCustomerSearch" name="crm_search" value="<?=$esc($crmListSearch)?>" type="search" placeholder="Search all customers…" style="min-width:220px;flex:1"><button type="submit">Search</button></form>
  <div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Customer</th><th>Email</th><th>Phone</th><th>Status</th></tr></thead><tbody>
- <?php foreach($customers as $r): ?><tr class="crm-customer-row" data-search="<?=$esc(strtolower(implode(' ',[$r['first_name'],$r['last_name'],$r['company_name'],$r['email'],$r['phone']])))?>"><td><a href="<?=$esc($base.'&tab=customers&client_id='.(int)$r['id'].'#crmCustomer360')?>"><strong><?=$esc(trim($r['first_name'].' '.$r['last_name']))?></strong></a><div class="crm-muted"><?=$esc($r['company_name'])?></div></td><td><?=$esc($r['email'])?></td><td><?=$esc($r['phone'])?></td><td><?=$esc($r['status'])?></td></tr><?php endforeach; ?>
+ <?php foreach($crmListRows as $r): ?><tr class="crm-customer-row" data-search="<?=$esc(strtolower(implode(' ',[$r['first_name'],$r['last_name'],$r['company_name'],$r['email'],$r['phone']])))?>"><td><a href="<?=$esc($base.'&tab=customers&client_id='.(int)$r['id'].'#crmCustomer360')?>"><strong><?=$esc(trim($r['first_name'].' '.$r['last_name']))?></strong></a><div class="crm-muted"><?=$esc($r['company_name'])?></div></td><td><?=$esc($r['email'])?></td><td><?=$esc($r['phone'])?></td><td><?=$esc($r['status'])?></td></tr><?php endforeach; ?>
  </tbody></table></div><?php if(!$customers): ?><p class="crm-muted">No customers yet.</p><?php endif; ?></div>
  <?php if((int)($_GET['client_id']??0)>0)require __DIR__.'/customer360.php'; ?>
- <script>document.getElementById('crmCustomerSearch')?.addEventListener('input',function(){const q=this.value.toLocaleLowerCase().trim();document.querySelectorAll('.crm-customer-row').forEach(row=>{row.hidden=!row.dataset.search.includes(q);});});</script>
+ 
  <?php elseif($tab==='pipeline'): ?>
- <div class="crm-grid"><div class="crm-panel"><h2>Add opportunity</h2><form method="post" class="crm-form"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="action" value="opportunity_create"><input type="hidden" name="tab" value="pipeline"><label>Title<input name="title" maxlength="190" required></label><label>Related lead<select name="lead_id"><option value="">None</option><?php $leadOptions(); ?></select></label><label>Related customer<select name="client_id"><option value="">None</option><?php $customerOptions(); ?></select></label><label>Estimated value<input type="number" name="estimated_value" min="0" step=".01" value="0" required></label><label>Next follow-up<input type="date" name="next_follow_up"></label><label>Notes<textarea name="notes" maxlength="5000"></textarea></label><button type="submit">Add opportunity</button></form></div><div class="crm-panel"><h2>Opportunities</h2><div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Opportunity</th><th>Value</th><th>Follow-up</th><th>Stage</th></tr></thead><tbody><?php foreach($opportunities as $r): ?><tr><td><strong><?=$esc($r['title'])?></strong><div class="crm-muted"><?=$esc($r['lead_name']??$r['client_name'])?></div></td><td>$<?=number_format((float)$r['estimated_value'],2)?></td><td><?=$esc($r['next_follow_up'])?></td><td><form method="post" class="crm-inline"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="action" value="opportunity_stage"><input type="hidden" name="tab" value="pipeline"><input type="hidden" name="id" value="<?=(int)$r['id']?>"><select name="stage" aria-label="Stage for <?=$esc($r['title'])?>"><?php foreach(['new','contacted','quoted','won','lost'] as $v): ?><option value="<?=$v?>" <?=$r['stage']===$v?'selected':''?>><?=ucfirst($v)?></option><?php endforeach; ?></select><button type="submit">Save</button></form></td></tr><?php endforeach; ?></tbody></table><?php if(!$opportunities): ?><p class="crm-muted">No opportunities yet.</p><?php endif; ?></div></div></div>
+ <div class="crm-grid"><div class="crm-panel"><h2>Add opportunity</h2><form method="post" class="crm-form"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="action" value="opportunity_create"><input type="hidden" name="tab" value="pipeline"><label>Title<input name="title" maxlength="190" required></label><label>Related lead<select name="lead_id"><option value="">None</option><?php $leadOptions(); ?></select></label><label>Related customer<select name="client_id"><option value="">None</option><?php $customerOptions(); ?></select></label><label>Estimated value<input type="number" name="estimated_value" min="0" step=".01" value="0" required></label><label>Next follow-up<input type="date" name="next_follow_up"></label><label>Notes<textarea name="notes" maxlength="5000"></textarea></label><button type="submit">Add opportunity</button></form></div><div class="crm-panel"><h2>Opportunities</h2><form method="get" class="crm-inline" style="flex-wrap:wrap;margin:8px 0"><input type="hidden" name="module" value="crm"><input type="hidden" name="tab" value="pipeline"><input name="crm_search" value="<?=$esc($crmListSearch)?>" type="search" placeholder="Search opportunities…" aria-label="Search opportunities"><select name="crm_stage" aria-label="Opportunity stage"><?php foreach(['all','new','contacted','quoted','won','lost'] as $stage): ?><option value="<?=$stage?>" <?=$crmListStage===$stage?'selected':''?>><?=ucfirst($stage)?></option><?php endforeach; ?></select><button type="submit">Filter</button></form><div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Opportunity</th><th>Value</th><th>Follow-up</th><th>Stage</th></tr></thead><tbody><?php foreach($crmListRows as $r): ?><tr><td><strong><?=$esc($r['title'])?></strong><div class="crm-muted"><?=$esc($r['lead_name']??$r['client_name'])?></div></td><td>$<?=number_format((float)$r['estimated_value'],2)?></td><td><?=$esc($r['next_follow_up'])?></td><td><form method="post" class="crm-inline"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="action" value="opportunity_stage"><input type="hidden" name="tab" value="pipeline"><input type="hidden" name="id" value="<?=(int)$r['id']?>"><select name="stage" aria-label="Stage for <?=$esc($r['title'])?>"><?php foreach(['new','contacted','quoted','won','lost'] as $v): ?><option value="<?=$v?>" <?=$r['stage']===$v?'selected':''?>><?=ucfirst($v)?></option><?php endforeach; ?></select><button type="submit">Save</button></form></td></tr><?php endforeach; ?></tbody></table><?php if(!$crmListRows): ?><p class="crm-muted">No matching opportunities.</p><?php endif; ?></div><?php require __DIR__.'/list_pager.php'; ?></div></div>
  <?php elseif($tab==='tasks'): ?>
  <?php require __DIR__.'/tasks.php'; ?>
  <?php elseif($tab==='smart'): ?>
