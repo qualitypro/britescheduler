@@ -450,6 +450,20 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
         }
     }
 
+    async function loadProjectServiceFacets() {
+        try {
+            const data = await getJSON('/api/contractor_marketplace.php?facets=services');
+            const selected = serviceFilter.value;
+            serviceFilter.replaceChildren(new Option('All services',''));
+            for (const service of (Array.isArray(data.services) ? data.services : [])) {
+                serviceFilter.add(new Option(service.service_name, String(service.service_id)));
+            }
+            serviceFilter.value = selected;
+        } catch (error) {
+            projectStatus.textContent = 'Unable to load service filters: ' + error.message;
+        }
+    }
+
     function refreshProjectFilter() {
         if (!projectPager) { renderProjects(); return; }
         projectPager.goTo(1);
@@ -471,21 +485,6 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
                 projects = records;
                 // Service options come from the current page. Retain a selected
                 // service across page transitions, even when no row on this page matches.
-                const services = new Map();
-                projects.forEach(project => {
-                    if (project.service_id != null) {
-                        services.set(String(project.service_id),
-                            project.service_name || 'Service ' + project.service_id);
-                    }
-                });
-                const selected = serviceFilter.value;
-                const known = new Map([...serviceFilter.options]
-                    .filter(option => option.value)
-                    .map(option => [option.value, option.textContent]));
-                services.forEach((name,id) => known.set(id,name));
-                serviceFilter.replaceChildren(new Option('All services',''));
-                known.forEach((name,id) => serviceFilter.add(new Option(name,id)));
-                serviceFilter.value = selected;
                 renderProjects();
             },
             onError: error => {
@@ -564,7 +563,8 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
             loadBids();
         });
 
-    if (!projectPager) loadProjects();
+    if (projectPager) loadProjectServiceFacets();
+    else loadProjects();
     loadBids();
 })();
 </script>

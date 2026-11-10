@@ -69,6 +69,18 @@ $marketJoin="INNER JOIN appointment_bid_listings l
       ON l.tenant_id = a.tenant_id
      AND l.appointment_id = a.id
      AND l.status = 'open'";
+// Return all service facets for eligible tenant listings, not just the current page.
+if (($_GET['facets'] ?? '') === 'services') {
+    $facet=$pdo->prepare("
+        SELECT DISTINCT a.service_id, COALESCE(s.name,CONCAT('Service ',a.service_id)) AS service_name
+        FROM appointments a {$marketJoin}
+        LEFT JOIN services s ON s.id=a.service_id AND s.tenant_id=a.tenant_id
+        WHERE {$marketWhere} AND a.service_id IS NOT NULL
+        ORDER BY service_name ASC, a.service_id ASC
+    ");
+    $facet->execute([$tid,$today]);
+    json_response(['services'=>$facet->fetchAll(PDO::FETCH_ASSOC)]);
+}
 $marketParams=[$tid,$today];
 if ($paging !== null) {
     $term=$_GET['search']??'';
