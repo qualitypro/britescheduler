@@ -4208,6 +4208,10 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                 // when a dense day exceeds the available row height.
                 // Week/Day retain their normal time-grid behavior.
                 contentHeight: 'auto',
+                // Month view uses only the necessary week rows; dates from
+                // adjacent months remain blank instead of displaying events.
+                fixedWeekCount: false,
+                showNonCurrentDates: false,
                 dayMaxEvents: false,
                 dayMaxEventRows: false,
                 firstDay: calendarPreferences.week_starts_on === 'monday' ? 1 : 0,
