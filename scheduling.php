@@ -1007,12 +1007,6 @@ require __DIR__.'/partials/app_header.php';
     #calendar .fc-daygrid-more-link:active {
         background: #172554;
     }
-    #calendar .fc-daygrid-more-link::before {
-        content: '+';
-        display: inline-block;
-        margin-right: 4px;
-        font-weight: 900;
-    }
     /* Week/Day time slots scroll inside FullCalendar only. */
     #schedulingWorkspace #calendar .fc-timegrid-body {
         min-width: 0;
