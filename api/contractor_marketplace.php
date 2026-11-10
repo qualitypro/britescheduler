@@ -69,10 +69,29 @@ $marketJoin="INNER JOIN appointment_bid_listings l
       ON l.tenant_id = a.tenant_id
      AND l.appointment_id = a.id
      AND l.status = 'open'";
+$marketParams=[$tid,$today];
+if ($paging !== null) {
+    $term=$_GET['search']??'';
+    $service=$_GET['service_id']??'';
+    if (!is_string($term) || mb_strlen($term)>150 || !is_string($service) ||
+        ($service!=='' && (!ctype_digit($service) || (int)$service<1))) {
+        json_response(['error'=>'Invalid marketplace filters'],422);
+    }
+    $term=trim($term);
+    if($term!==''){
+        $marketWhere.=" AND (a.title LIKE ? OR a.description LIKE ? OR a.location LIKE ? OR s.name LIKE ?)";
+        for($i=0;$i<4;$i++)$marketParams[]='%'.$term.'%';
+    }
+    if($service!==''){
+        $marketWhere.=' AND a.service_id=?';
+        $marketParams[]=(int)$service;
+    }
+}
+$serviceJoin="LEFT JOIN services s ON s.id=a.service_id AND s.tenant_id=a.tenant_id";
 $total=null;
 if ($paging !== null) {
-    $count=$pdo->prepare("SELECT COUNT(*) FROM appointments a {$marketJoin} WHERE {$marketWhere}");
-    $count->execute([$tid,$today]);
+    $count=$pdo->prepare("SELECT COUNT(*) FROM appointments a {$marketJoin} {$serviceJoin} WHERE {$marketWhere}");
+    $count->execute($marketParams);
     $total=(int)$count->fetchColumn();
 }
 $marketLimit=$paging===null?'LIMIT 200':'LIMIT '.$paging['per_page'].' OFFSET '.$paging['offset'];
@@ -91,9 +110,7 @@ $q = $pdo->prepare("
         a.created_at
     FROM appointments a
     {$marketJoin}
-    LEFT JOIN services s
-      ON s.id = a.service_id
-     AND s.tenant_id = a.tenant_id
+    {$serviceJoin}
     WHERE {$marketWhere}
     ORDER BY
         a.starts_at ASC,
@@ -101,10 +118,7 @@ $q = $pdo->prepare("
     {$marketLimit}
 ");
 
-$q->execute([
-    $tid,
-    $today
-]);
+$q->execute($marketParams);
 
 $appointments = $q->fetchAll(PDO::FETCH_ASSOC);
 
