@@ -3085,16 +3085,44 @@ function calendarEventContent(info) {
     return { domNodes: [root] };
 }
 
+// Use the server's tenant-local day/week/month windows when they match
+// FullCalendar's visible event-fetch interval. Preserve the legacy feed for
+// custom/alternate month grids so no appointments disappear at the edges.
 async function loadEvents(info,success,failure){
 
     try {
-
-        const d=await api(
-            '/api/appointments.php?start='+
-            encodeURIComponent(info.startStr)+
-            '&end='+
-            encodeURIComponent(info.endStr)
-        );
+        const legacyUrl = '/api/appointments.php?start=' +
+            encodeURIComponent(info.startStr) + '&end=' +
+            encodeURIComponent(info.endStr);
+        const viewTypes = {
+            dayGridMonth: 'month',
+            timeGridWeek: 'week',
+            timeGridDay: 'day'
+        };
+        const activeView = calendar && calendar.view
+            ? viewTypes[calendar.view.type] : null;
+        let d;
+        if (activeView) {
+            const focused = calendar.getDate();
+            // FullCalendar is configured for UTC-as-tenant-wall-clock.
+            const focusDate = focused.toISOString().slice(0, 10);
+            const firstDay = calendar.getOption('firstDay') === 1 ? 1 : 0;
+            const query = new URLSearchParams({
+                view: activeView,
+                date: focusDate,
+                week_start: String(firstDay)
+            });
+            const serverResult = await api('/api/appointments.php?' + query);
+            const expectedStart = info.startStr.slice(0, 10);
+            const expectedEnd = info.endStr.slice(0, 10);
+            const range = serverResult.range;
+            const matches = range &&
+                range.start.slice(0, 10) === expectedStart &&
+                range.end.slice(0, 10) === expectedEnd;
+            d = matches ? serverResult : await api(legacyUrl);
+        } else {
+            d = await api(legacyUrl);
+        }
 
         success(d.appointments.map(a=>({
 
