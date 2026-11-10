@@ -432,8 +432,13 @@
 .brite-app .brite-sidebar-nav .brite-nav-accordion-panel[hidden] {
     display: none !important;
 }
+.brite-app .brite-sidebar-nav .brite-nav-accordion-panel {
+    padding-left: 16px;
+    border-left: 1px solid rgba(165, 180, 252, .28);
+    margin-left: 18px;
+}
 .brite-app .brite-sidebar-nav .brite-nav-accordion-panel a {
     min-height: 35px;
-    padding: 7px 10px;
+    padding: 7px 9px;
     font-size: .8rem;
 }
