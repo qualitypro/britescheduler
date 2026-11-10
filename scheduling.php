@@ -3834,7 +3834,8 @@ document.addEventListener('DOMContentLoaded',async ()=>{
         let fittedMonthHeight = null;
         function fitCalendarMonth() {
             if (!calendar || !calendarPanel || calendarPanel.hidden) return;
-            const isMonth = calendar.view.type === 'dayGridMonth';
+            const desktopViewport = window.matchMedia('(min-width: 900px) and (min-height: 500px)').matches;
+            const isMonth = desktopViewport && calendar.view.type === 'dayGridMonth';
             calendarPanel.classList.toggle('brite-month-fit', isMonth);
             if (!isMonth) {
                 if (fittedMonthHeight !== null) {
