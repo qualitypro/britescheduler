@@ -1327,6 +1327,15 @@ require __DIR__.'/partials/app_header.php';
         line-height: 1.1;
         font-size: var(--brite-month-event-font, 11px);
     }
+    /* Make the week table consume the grid height rather than keeping
+       intrinsic content-sized rows in short (4/5-week) months. */
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-body,
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-body > table {
+        height: 100% !important;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-body > table > tbody > tr {
+        height: var(--brite-month-week-height, auto);
+    }
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-day-frame {
         min-height: 0;
     }
@@ -4371,6 +4380,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                 if (fittedMonthHeight !== null) {
                     fittedMonthHeight = null;
                     calendarElement.style.height = '';
+                    calendarPanel.style.removeProperty('--brite-month-week-height');
                     calendar.setOption('height', 'auto');
                     calendar.setOption('dayMaxEventRows', false);
                 }
@@ -4399,7 +4409,25 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             ).length || calendarElement.querySelectorAll(
                 '.fc-daygrid-body tbody tr'
             ).length || 6;
-            const perWeek = Math.max(0, available - 90) / weekRows;
+            // The grid's own visible height is authoritative. A fixed
+            // FullCalendar height alone can leave its daygrid rows at
+            // content height, producing blank space below short months.
+            // Reserve the toolbar and weekday header, then explicitly
+            // distribute the remaining space across the rendered weeks.
+            const fcToolbar = calendarElement.querySelector('.fc-header-toolbar');
+            const weekdayHeader = calendarElement.querySelector('.fc-col-header');
+            const toolbarHeight = fcToolbar
+                ? fcToolbar.getBoundingClientRect().height +
+                    (parseFloat(getComputedStyle(fcToolbar).marginBottom) || 0)
+                : 0;
+            const weekdayHeight = weekdayHeader
+                ? weekdayHeader.getBoundingClientRect().height : 0;
+            const gridHeight = Math.max(0, available - toolbarHeight - weekdayHeight - 6);
+            const weekHeight = Math.max(28, Math.floor(gridHeight / weekRows));
+            calendarPanel.style.setProperty(
+                '--brite-month-week-height', weekHeight + 'px'
+            );
+            const perWeek = gridHeight / weekRows;
             const compact = perWeek < 85;
             calendarPanel.style.setProperty(
                 '--brite-month-event-font', compact ? '10px' : '11px'
