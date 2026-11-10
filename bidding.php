@@ -559,7 +559,12 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
 
     document.getElementById('biddingRefresh')
         .addEventListener('click', () => {
-            loadProjects();
+            if (projectPager) {
+                projectPager.refresh();
+                loadProjectServiceFacets();
+            } else {
+                loadProjects();
+            }
             loadBids();
         });
 
@@ -1812,7 +1817,9 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
 <?php endif; ?>
 
 </div>
+<?php if ($marketplaceRole !== 'contractor'): ?>
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-pagination.js'), ENT_QUOTES, 'UTF-8')?>" defer></script>
+<?php endif; ?>
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-marketplace-records.js'), ENT_QUOTES, 'UTF-8')?>" defer></script>
 <link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-single-active-records.css'),ENT_QUOTES,'UTF-8')?>">
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-single-active-records.js'),ENT_QUOTES,'UTF-8')?>" defer></script>
