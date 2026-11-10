@@ -893,10 +893,18 @@ require __DIR__.'/partials/app_header.php';
     }
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .scheduler-layout,
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .scheduler-layout > .card {
+        box-sizing: border-box;
         height: 100%;
+        min-height: 0;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .scheduler-layout > .card {
+        display: flex;
+        flex-direction: column;
     }
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit #calendar {
-        height: 100%;
+        box-sizing: border-box;
+        flex: 1 1 0;
+        height: auto; /* JS sets the exact pixel height on FullCalendar. */
         min-height: 0 !important; /* Override legacy 700px minimum. */
     }
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc,
@@ -916,7 +924,7 @@ require __DIR__.'/partials/app_header.php';
         margin-bottom: 5px;
     }
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit #calendar .fc {
-        height: 100%;
+        min-height: 0;
     }
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-calendar-event {
         padding: 1px 3px;
@@ -3970,7 +3978,14 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             // padding. Avoid fixed 700px minimums and guessed top offsets.
             const panelRect = calendarPanel.getBoundingClientRect();
             const calendarRect = calendarElement.getBoundingClientRect();
-            const available = Math.floor(panelRect.bottom - calendarRect.top - 4);
+            const card = calendarElement.closest('.card');
+            const cardStyle = card ? getComputedStyle(card) : null;
+            const bottomPadding = cardStyle
+                ? parseFloat(cardStyle.paddingBottom) || 0 : 0;
+            const available = Math.floor(
+                Math.min(panelRect.bottom, window.innerHeight) -
+                calendarRect.top - bottomPadding - 2
+            );
             if (available < 100) return;
 
             // FullCalendar month can contain 4, 5 or 6 rows. Calculate
@@ -3994,10 +4009,12 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             // Complete titles need variable card height; limit how many
             // cards appear per day instead of truncating card text.
             const eventRows = perWeek >= 145 ? 2 : 1;
-            const minUsableWeek = 64;
-            calendarPanel.classList.toggle(
-                'brite-month-overflow', perWeek < minUsableWeek
-            );
+            // The panel is viewport-fitted. Avoid triggering a scrollbar
+            // solely because the per-week height is compact; the +more
+            // popover handles excess appointments instead.
+            // Extremely short viewports can still use the responsive
+            // non-desktop layout below 500px.
+
             if (fittedMonthHeight !== available) {
                 fittedMonthHeight = available;
                 calendar.setOption('height', available);
