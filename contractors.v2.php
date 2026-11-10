@@ -39,6 +39,7 @@ window.BRITE_QUALIFICATION_CAN_EDIT =
     <?=json_encode($qualificationCanEdit)?>;
 function esc(s){return String(s??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[x]))}
 
+let contractorSortField='name',contractorSortDirection=1;
 const contractorPager = new BriteServerPagination({
     container: document.getElementById('contractorPagination'),
     load: async ({page,per_page}) => {
@@ -180,7 +181,6 @@ const contractorPager = new BriteServerPagination({
     }
 });
 
-let contractorSortField='name',contractorSortDirection=1;
 function updateContractorSortButtons(){
  document.querySelectorAll('#contractorSort [data-sort]').forEach(button=>{
   const active=button.dataset.sort===contractorSortField;
