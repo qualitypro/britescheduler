@@ -1037,6 +1037,114 @@ require __DIR__.'/partials/app_header.php';
     }
 }
 
+
+/* Cycle 90AD: dense appointment summary and stacked assignment pills.
+   Scoped to details only; keep all actions and statuses functional. */
+#appointmentDetailsDialog {
+    width: min(850px, calc(100vw - 24px));
+    padding: 10px 14px;
+    max-height: calc(100dvh - 16px);
+    overflow-y: auto; /* Only when content truly cannot fit. */
+    line-height: 1.2;
+}
+#appointmentDetailsDialog .appointment-dialog-header {
+    margin-bottom: 6px;
+}
+#appointmentDetailsDialog .appointment-details-grid {
+    grid-template-columns: minmax(65px, .55fr) minmax(0, 1.45fr)
+                           minmax(65px, .55fr) minmax(0, 1.45fr);
+    gap: 5px 9px;
+}
+#appointmentDetailsDialog .appointment-details-grid dt,
+#appointmentDetailsDialog .appointment-details-grid dd {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.25;
+}
+#appointmentDetailsDialog .brite-owner-assignment-details {
+    margin-top: 8px;
+    padding: 0;
+}
+#appointmentDetailsDialog .brite-owner-assignment-details h3 {
+    margin: 0 0 5px;
+    font-size: 12px;
+    line-height: 1.2;
+}
+#appointmentDetailsDialog .brite-assignment-pill-list {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+#appointmentDetailsDialog .brite-assignment-status-row {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    width: fit-content;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 4px 9px;
+    border: 1px solid #bfdbfe;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #1e3a8a;
+    font-size: 11px;
+    line-height: 1.25;
+}
+#appointmentDetailsDialog .brite-assignment-status-row > span {
+    font-weight: 650;
+    overflow-wrap: anywhere;
+}
+#appointmentDetailsDialog .brite-assignment-status-row > strong {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 2px 6px;
+    background: #dbeafe;
+    color: #1e40af;
+    font-size: 10px;
+    line-height: 1.1;
+    text-transform: capitalize;
+}
+#appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-declined,
+#appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-rejected {
+    background: #fee2e2;
+    color: #991b1b;
+}
+#appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-accepted,
+#appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-confirmed {
+    background: #dcfce7;
+    color: #166534;
+}
+#appointmentDetailsDialog .brite-assignment-status-row > small {
+    font-size: 10px;
+}
+#appointmentDetailsDialog .appointment-details-actions {
+    margin-top: 8px;
+    gap: 5px;
+}
+#appointmentDetailsDialog .brite-reassignment-controls {
+    max-width: 100%;
+    padding: 5px 8px;
+    margin: 2px 0 5px;
+}
+#appointmentDetailsDialog .brite-reassignment-controls label,
+#appointmentDetailsDialog .brite-reassignment-controls select,
+#appointmentDetailsDialog .brite-reassignment-controls button {
+    font-size: 11px;
+}
+#appointmentDetailsDialog .brite-reassignment-controls p:empty {
+    display: none;
+}
+@media (max-width: 650px) {
+    #appointmentDetailsDialog .appointment-details-grid {
+        grid-template-columns: minmax(72px, .65fr) minmax(0, 1.35fr);
+    }
+}
+
 </style>
 
 <link rel="stylesheet"
