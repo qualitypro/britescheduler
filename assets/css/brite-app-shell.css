@@ -442,3 +442,15 @@
     padding: 7px 9px;
     font-size: .8rem;
 }
+
+
+/* Cycle 90AL: module content must not create horizontal page scrollbars. */
+.brite-app:has(.crm-shell) .brite-content,
+.brite-app:has(.msg-workspace) .brite-content,
+.brite-app:has(.crm-shell) .brite-workspace,
+.brite-app:has(.msg-workspace) .brite-workspace {
+    min-width:0;
+    max-width:100%;
+}
+.brite-app:has(.crm-shell) .brite-content,
+.brite-app:has(.msg-workspace) .brite-content {overflow-x:clip}

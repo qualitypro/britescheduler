@@ -341,12 +341,47 @@ $leadOptions=static function(?int $selected=null)use($leads,$esc):void {foreach(
 $customerOptions=static function(?int $selected=null)use($customers,$esc):void {foreach($customers as $r)echo '<option value="'.(int)$r['id'].'"'.($selected===(int)$r['id']?' selected':'').'>'.$esc(trim($r['first_name'].' '.$r['last_name'])).'</option>';};
 ?>
 <style>
-.crm-shell{display:grid;gap:12px}.crm-tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid #cbd5e1}.crm-tabs a{white-space:nowrap;text-decoration:none;color:inherit;padding:10px 13px;border-bottom:3px solid transparent}.crm-tabs a[aria-current=page]{font-weight:700;border-bottom-color:#2563eb;background:rgba(37,99,235,.07)}.crm-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px}.crm-stat{border:1px solid #cbd5e1;border-radius:8px;padding:12px}.crm-stat strong{font-size:1.55rem;display:block}.crm-grid{display:grid;grid-template-columns:minmax(240px,320px) minmax(0,1fr);gap:12px}.crm-panel{border:1px solid #cbd5e1;border-radius:9px;padding:12px;min-width:0}.crm-form{display:grid;gap:9px}.crm-form label{display:grid;gap:3px;font-size:.88rem;font-weight:600}.crm-form input,.crm-form select,.crm-form textarea{width:100%;min-height:36px;box-sizing:border-box;border-radius:5px!important;padding:7px 9px!important}.crm-form textarea{min-height:72px}.crm-form button{justify-self:start}.crm-table-wrap{overflow-x:auto}.crm-table{width:100%;border-collapse:collapse;font-size:.88rem}.crm-table th,.crm-table td{padding:8px;border-bottom:1px solid #cbd5e1;text-align:left;vertical-align:middle}.crm-inline{display:flex;gap:6px;align-items:center}.crm-inline select{min-width:110px;max-width:160px}.crm-inline button{padding:6px 8px}.crm-muted{font-size:.83rem;color:var(--brite-muted,#64748b)}.crm-pill{display:inline-block;border:1px solid #cbd5e1;border-radius:6px;padding:2px 7px}.crm-shell [hidden]{display:none!important}.crm-customer-row[hidden]{display:none!important}@media(max-width:760px){.crm-grid{grid-template-columns:1fr}.crm-tabs a{padding:9px}}
+.crm-shell{display:grid;gap:12px}.crm-tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid #cbd5e1}.crm-tabs a{white-space:nowrap;text-decoration:none;color:inherit;padding:10px 13px;border-bottom:3px solid transparent}.crm-tabs a[aria-current=page]{font-weight:700;border-bottom-color:#2563eb;background:rgba(37,99,235,.07)}.crm-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px}.crm-stat{border:1px solid #cbd5e1;border-radius:8px;padding:12px}.crm-stat strong{font-size:1.55rem;display:block}.crm-grid{display:grid;grid-template-columns:minmax(240px,320px) minmax(0,1fr);gap:12px}.crm-panel{border:1px solid #cbd5e1;border-radius:9px;padding:12px;min-width:0}.crm-form{display:grid;gap:9px}.crm-form label{display:grid;gap:3px;font-size:.88rem;font-weight:600}.crm-form input,.crm-form select,.crm-form textarea{width:100%;min-height:36px;box-sizing:border-box;border-radius:5px!important;padding:7px 9px!important}.crm-form textarea{min-height:72px}.crm-form button{justify-self:start}.crm-table-wrap{overflow-x:auto}.crm-table{width:100%;border-collapse:collapse;font-size:.88rem}.crm-table th,.crm-table td{padding:8px;border-bottom:1px solid #cbd5e1;text-align:left;vertical-align:middle}.crm-inline{display:flex;gap:6px;align-items:center}.crm-inline select{min-width:110px;max-width:160px}.crm-inline button{padding:6px 8px}.crm-muted{font-size:.83rem;color:var(--brite-muted,#64748b)}.crm-pill{display:inline-block;border:1px solid #cbd5e1;border-radius:6px;padding:2px 7px}
+/* Cycle 90AL: compact vertical module tabs, no horizontal navigation scrolling. */
+.crm-shell{min-width:0;max-width:100%;padding:12px!important;gap:9px}
+.crm-workspace-layout{display:grid;grid-template-columns:174px minmax(0,1fr);gap:12px;min-width:0;align-items:start}
+.crm-workspace-content{display:grid;gap:10px;min-width:0;max-width:100%}
+.crm-shell .crm-tabs{display:flex;flex-direction:column;align-items:stretch;gap:2px;min-width:0;overflow:visible;border:0;border-right:1px solid #cbd5e1;padding-right:8px}
+.crm-shell .crm-tabs a{display:flex;align-items:center;gap:7px;min-width:0;white-space:normal;overflow-wrap:anywhere;padding:7px 8px;border:0;border-left:3px solid transparent;border-radius:6px;font-size:11.5px;line-height:1.25;font-weight:600}
+.crm-shell .crm-tabs a[aria-current=page]{border-left-color:#2563eb;border-bottom-color:transparent}
+.crm-tab-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 17px}
+.crm-shell .crm-panel{padding:9px;max-width:100%;overflow-wrap:anywhere}
+.crm-shell .crm-stat{padding:8px}
+.crm-shell .crm-stat strong{font-size:1.25rem}
+.crm-shell .crm-grid{grid-template-columns:minmax(0,280px) minmax(0,1fr)}
+.crm-shell .crm-table-wrap{max-width:100%;overflow-x:visible}
+.crm-shell .crm-table{table-layout:fixed;font-size:11.5px}
+.crm-shell .crm-table th,.crm-shell .crm-table td{padding:5px;overflow-wrap:anywhere;word-break:normal}
+.crm-shell .crm-inline{flex-wrap:wrap;min-width:0}
+.crm-shell .crm-inline select{min-width:0;max-width:100%}
+.crm-shell input,.crm-shell select,.crm-shell textarea{max-width:100%;min-width:0}
+@media(max-width:1100px){.crm-shell .crm-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:650px){.crm-workspace-layout{grid-template-columns:1fr}.crm-shell .crm-tabs{border-right:0;border-bottom:1px solid #cbd5e1;padding:0 0 8px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.crm-shell .crm-tabs a{font-size:11px}}
+
+.crm-shell [hidden]{display:none!important}.crm-customer-row[hidden]{display:none!important}@media(max-width:760px){.crm-grid{grid-template-columns:1fr}.crm-tabs a{padding:9px}}
 </style>
 <section class="card crm-shell" data-brite-pills="off">
  <div><h1 style="margin:0">CRM</h1><p class="crm-muted" style="margin:4px 0 0">Customers, leads, opportunities and follow-ups in one tenant workspace.</p></div>
  <?php if($flash): ?><p role="status" class="crm-pill"><?=$esc($flash==='saved'?'Changes saved.':$flash)?></p><?php endif; ?>
- <nav class="crm-tabs" aria-label="CRM sections"><?php foreach($tabs as $key=>$label): ?><a href="<?=$esc($base.'&tab='.$key)?>" <?=$tab===$key?'aria-current="page"':''?>><?=$esc($label)?></a><?php endforeach; ?></nav>
+ <?php $crmNavIcons=[
+'overview'=>'<rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/>',
+'leads'=>'<path d="M4 4h16v4l-6 6v6l-4-2v-4L4 8z"/>',
+'customers'=>'<circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2M17 8h5M19.5 5.5v5"/>',
+'pipeline'=>'<path d="M3 5h18M3 12h13M3 19h8"/><circle cx="19" cy="12" r="2"/><circle cx="14" cy="19" r="2"/>',
+'activities'=>'<path d="M3 12h4l3-7 4 14 3-7h4"/>',
+'reports'=>'<path d="M4 20V4M4 20h16M8 16v-5M13 16V7M18 16v-9"/>',
+'segments'=>'<circle cx="8" cy="8" r="3"/><circle cx="17" cy="8" r="3"/><path d="M2 21v-2a6 6 0 0 1 12 0v2M13 21v-2a5 5 0 0 1 9-3"/>',
+'smart'=>'<path d="m12 2 2.2 6.8L21 11l-6.8 2.2L12 20l-2.2-6.8L3 11l6.8-2.2zM19 18v4M17 20h4"/>',
+'tasks'=>'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8 9 2 2 4-4M8 16h8"/>'
+]; ?>
+<div class="crm-workspace-layout">
+<nav class="crm-tabs" aria-label="CRM sections"><?php foreach($tabs as $key=>$label): ?><a href="<?=$esc($base.'&tab='.$key)?>" <?=$tab===$key?'aria-current="page"':''?>><span class="crm-tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><?=$crmNavIcons[$key]?></svg></span><span><?=$esc($label)?></span></a><?php endforeach; ?></nav>
+<div class="crm-workspace-content">
  <?php if($tab==='overview'):
  $openLeads=$crmTotals['open_leads'];
  $openOpps=$crmTotals['open_opportunities'];
@@ -383,4 +418,6 @@ $customerOptions=static function(?int $selected=null)use($customers,$esc):void {
  <?php elseif($tab==='activities'): ?>
  <div class="crm-grid"><div class="crm-panel"><h2>Log activity or follow-up</h2><form method="post" class="crm-form"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="action" value="activity_create"><input type="hidden" name="tab" value="activities"><label>Type<select name="kind"><?php foreach(['note','call','email','meeting','follow_up'] as $v): ?><option value="<?=$v?>"><?=ucwords(str_replace('_',' ',$v))?></option><?php endforeach; ?></select></label><label>Lead<select name="lead_id"><option value="">None</option><?php $leadOptions(); ?></select></label><label>Customer<select name="client_id"><option value="">None</option><?php $customerOptions(); ?></select></label><label>Opportunity<select name="opportunity_id"><option value="">None</option><?php foreach($opportunities as $r): ?><option value="<?=(int)$r['id']?>"><?=$esc($r['title'])?></option><?php endforeach; ?></select></label><label>Details<textarea name="body" maxlength="5000" required></textarea></label><label>Due date<input type="date" name="due_at"></label><button type="submit">Save activity</button></form></div><div class="crm-panel"><h2>Recent activity</h2><form method="get" class="crm-inline" style="flex-wrap:wrap;margin:8px 0"><input type="hidden" name="module" value="crm"><input type="hidden" name="tab" value="activities"><input type="search" name="crm_search" value="<?=$esc($crmListSearch)?>" placeholder="Search activities" aria-label="Search activities" style="min-width:190px;flex:1"><button type="submit">Search</button></form><div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Activity</th><th>Related to</th><th>Due</th><th>Status</th></tr></thead><tbody><?php foreach($crmListRows as $r): ?><tr><td><strong><?=$esc(ucwords(str_replace('_',' ',$r['kind'])))?></strong><div><?=$esc($r['body'])?></div><small class="crm-muted"><?=$esc($r['created_at'])?></small></td><td><?=$esc($r['lead_name']??$r['client_name']??$r['opportunity_title'])?></td><td><?=$esc($r['due_at'])?></td><td><?php if($r['completed_at']): ?>Done<?php else: ?><form method="post"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="tab" value="activities"><input type="hidden" name="action" value="activity_complete"><input type="hidden" name="id" value="<?=(int)$r['id']?>"><button type="submit">Complete</button></form><?php endif; ?></td></tr><?php endforeach; ?></tbody></table><?php if(!$crmListRows): ?><p class="crm-muted">No matching activities.</p><?php endif; ?></div><?php require __DIR__.'/list_pager.php'; ?></div></div>
  <?php endif; ?>
+</div>
+</div>
 </section>
