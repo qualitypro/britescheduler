@@ -784,6 +784,61 @@ require __DIR__.'/partials/app_header.php';
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'), ENT_QUOTES, 'UTF-8')?>">
 
+<style>
+/* Calendar-only viewport layout: one scroll owner per view. */
+@media (min-width: 900px) and (min-height: 500px) {
+    html:has(#schedulingWorkspace), body:has(#schedulingWorkspace) {
+        height: 100%;
+        overflow: hidden;
+    }
+    .brite-app:has(#schedulingWorkspace) .brite-content {
+        max-width: none;
+        height: calc(100dvh - var(--brite-topbar-height, 64px));
+        padding: 8px 12px;
+        overflow: hidden;
+    }
+    #schedulingWorkspace[data-viewport="true"] {
+        height: calc(100dvh - var(--brite-workspace-top, 80px) - 8px);
+        min-height: 0;
+        overflow: hidden;
+    }
+    #schedulingWorkspace > .brite-tab-panels {
+        overflow: hidden;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel:not([hidden]) {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel .scheduler-layout,
+    #schedulingWorkspace #scheduleCalendarPanel .scheduler-layout > .card {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+        min-width: 0;
+        overflow: hidden;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel .scheduler-layout > .card {
+        padding: 8px;
+    }
+    #schedulingWorkspace #calendar {
+        flex: 1 1 auto;
+        min-height: 0;
+        height: 100%;
+        overflow: hidden;
+    }
+    #schedulingWorkspace #calendar .fc {
+        height: 100%;
+        min-height: 0;
+    }
+    /* Week/Day time slots scroll inside FullCalendar only. */
+    #schedulingWorkspace #calendar .fc-timegrid-body {
+        min-width: 0;
+    }
+}
+</style>
+
 <div class="brite-tab-workspace"
      id="schedulingWorkspace"
      data-viewport="true"
@@ -3537,6 +3592,11 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             document.getElementById('calendar'),
             {
                 initialView: preferredViews[calendarPreferences.calendar_view],
+                // Fill the calendar panel instead of expanding the page.
+                height: '100%',
+                expandRows: true,
+                // Month rows remain visible; overflowing events use +more.
+                dayMaxEvents: true,
                 firstDay: calendarPreferences.week_starts_on === 'monday' ? 1 : 0,
                 eventTimeFormat: {
                     hour: '2-digit',
@@ -3646,6 +3706,14 @@ document.addEventListener('DOMContentLoaded',async ()=>{
         );
 
         calendar.render();
+        // FullCalendar must recalculate dimensions after a hidden tab opens.
+        document.getElementById('schedulingWorkspace')
+            ?.addEventListener('brite:tabchange', event => {
+                if (event.detail?.panel?.id === 'scheduleCalendarPanel') {
+                    requestAnimationFrame(() => calendar.updateSize());
+                }
+            });
+
 
         // Position the month view at the earliest upcoming appointment
         // visible to this authenticated user. The endpoint derives
