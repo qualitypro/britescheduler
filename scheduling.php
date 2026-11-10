@@ -933,8 +933,40 @@ require __DIR__.'/partials/app_header.php';
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-event-status {
         display: none; /* Full details remain in the expanded hover card. */
     }
+    /* Month appointment cards must display their complete time and title. */
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-event-heading {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1px;
+        min-width: 0;
+        white-space: normal;
+    }
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-event-time {
+        display: block;
+        flex: none;
         font-size: inherit;
+        font-weight: 700;
+        white-space: normal;
+        overflow: visible;
+        overflow-wrap: anywhere;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-event-title {
+        display: block;
+        flex: none;
+        width: 100%;
+        min-width: 0;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        overflow-wrap: anywhere;
+        word-break: normal;
+        line-height: 1.15;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-calendar-event,
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-event-main {
+        overflow: visible;
+        white-space: normal;
     }
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-more-link {
         font-size: 10px;
@@ -3923,8 +3955,10 @@ document.addEventListener('DOMContentLoaded',async ()=>{
 
             // Keep at least one visible appointment in each cell when
             // possible; overflow appointments remain accessible via +more.
-            const eventRows = perWeek >= 112 ? 3 : perWeek >= 62 ? 2 : 1;
-            const minUsableWeek = 40;
+            // Complete titles need variable card height; limit how many
+            // cards appear per day instead of truncating card text.
+            const eventRows = perWeek >= 145 ? 2 : 1;
+            const minUsableWeek = 64;
             calendarPanel.classList.toggle(
                 'brite-month-overflow', perWeek < minUsableWeek
             );
