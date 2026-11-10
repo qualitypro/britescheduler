@@ -18,8 +18,10 @@ require __DIR__.'/partials/app_header.php';
 </div>
 <p id="contractorQuoteStatus" role="status" aria-live="polite">Loading quote requests...</p>
 <div id="contractorQuoteInbox" style="display:grid;gap:16px"></div>
+<div id="contractorQuotePagination"></div>
 </section>
 <script src="<?=htmlspecialchars(app_url('/assets/js/quote-conversation.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-formal-quote.js'),ENT_QUOTES,'UTF-8')?>"></script>
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-pagination.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <script src="<?=htmlspecialchars(app_url('/assets/js/contractor-quote-inbox.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <?php require __DIR__.'/partials/app_footer.php'; ?>
