@@ -117,6 +117,8 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 <script defer src="<?=htmlspecialchars(app_url('/assets/js/brite-photo-lightbox.js'),ENT_QUOTES,'UTF-8')?>"></script>
+<script defer src="<?=htmlspecialchars(app_url('/assets/js/brite-sidebar-accordion.js?v=90ak'),ENT_QUOTES,'UTF-8')?>"></script>
+
 <style>
 .brite-msg-alert{position:relative;display:flex;align-items:center}.brite-msg-alert>button{display:flex;gap:7px;align-items:center;background:transparent;color:inherit;border:1px solid currentColor;border-radius:9px;padding:8px 10px}.brite-msg-alert #briteMsgCount{border-radius:20px;background:#dc2626;color:white;font-weight:700;padding:2px 7px;font-size:.75rem}.brite-msg-alert #briteMsgDropdown{position:absolute;right:0;top:calc(100% + 8px);z-index:1000;width:min(320px,85vw);max-height:350px;overflow:auto;background:white;color:#172033;border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 12px 25px #0003;padding:14px}.brite-msg-alert #briteMsgDropdown a{display:block;margin-top:10px}.brite-msg-alert .brite-msg-item{display:block;padding:9px 0;border-bottom:1px solid #e5e7eb;text-decoration:none;color:#172033}.brite-msg-alert .brite-msg-item small{display:block;color:#64748b}
 </style>

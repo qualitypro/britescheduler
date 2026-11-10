@@ -383,3 +383,57 @@
 .brite-app[data-brite-reduced-motion="1"] .brite-sidebar {
     transition: none;
 }
+
+
+/* Cycle 90AK: compact left-aligned accordion headers, no drop arrows. */
+.brite-app .brite-sidebar-nav .brite-nav-accordion-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+    width: 100%;
+    min-height: 35px;
+    gap: 9px;
+    margin: 5px 0 1px;
+    padding: 7px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #a5b4fc;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: .045em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+.brite-app .brite-sidebar-nav .brite-nav-accordion-trigger:hover,
+.brite-app .brite-sidebar-nav .brite-nav-accordion-trigger:focus-visible,
+.brite-app .brite-sidebar-nav .brite-nav-accordion-trigger[aria-expanded="true"] {
+    background: rgba(255,255,255,.1);
+    color: #fff;
+}
+.brite-app .brite-sidebar-nav .brite-nav-accordion-trigger:focus-visible {
+    outline: 2px solid #a5b4fc;
+    outline-offset: 1px;
+}
+.brite-app .brite-nav-accordion-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    flex: 0 0 20px;
+}
+.brite-app .brite-sidebar-nav .brite-nav-accordion-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+.brite-app .brite-sidebar-nav .brite-nav-accordion-panel[hidden] {
+    display: none !important;
+}
+.brite-app .brite-sidebar-nav .brite-nav-accordion-panel a {
+    min-height: 35px;
+    padding: 7px 10px;
+    font-size: .8rem;
+}
