@@ -24,9 +24,9 @@ $checks=[
  ['api/contractor_quote_inbox.php',"r.tenant_id=? AND r.contractor_id=?"],
  ['api/contractor_marketplace.php',"Auth::requireRole('contractor')"],
  ['api/client_quote_requests.php',"Auth::requireRole('client')"],
- ['api/contractor_marketplace.php',"$marketParams=[$tid,$today]"],
- ['api/client_quote_requests.php',"if(!is_string($rawSearch))"],
- ['api/contractor_quote_inbox.php',"if(!is_string($rawSearch))"],
+ ['api/contractor_marketplace.php','$marketParams=[$tid,$today]'],
+ ['api/client_quote_requests.php','if(!is_string($rawSearch))'],
+ ['api/contractor_quote_inbox.php','if(!is_string($rawSearch))'],
 ];
 foreach($checks as [$path,$needle]){
  if(!str_contains($read($path),$needle)){
