@@ -1312,6 +1312,15 @@ require __DIR__.'/partials/app_header.php';
     }
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit #calendar .fc {
         min-height: 0;
+        /* The shared stylesheet sets .fc to height:auto. Override that
+           month-only rule so expandRows can fill the measured viewport. */
+        height: 100% !important;
+        display: flex;
+        flex-direction: column;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit #calendar .fc-view-harness {
+        flex: 1 1 auto;
+        min-height: 0;
     }
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-calendar-event {
         padding: 1px 3px;
@@ -4361,6 +4370,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             if (!month) {
                 if (fittedMonthHeight !== null) {
                     fittedMonthHeight = null;
+                    calendarElement.style.height = '';
                     calendar.setOption('height', 'auto');
                     calendar.setOption('dayMaxEventRows', false);
                 }
@@ -4409,6 +4419,10 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             // Extremely short viewports can still use the responsive
             // non-desktop layout below 500px.
 
+            // Give both the FullCalendar host and its root an explicit
+            // height. The outer flex card otherwise permits an auto-height
+            // calendar to leave a large blank region beneath the last week.
+            calendarElement.style.height = available + 'px';
             if (fittedMonthHeight !== available) {
                 fittedMonthHeight = available;
                 calendar.setOption('height', available);
