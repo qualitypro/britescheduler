@@ -1165,6 +1165,49 @@ require __DIR__.'/partials/app_header.php';
     }
 }
 
+
+/* Cycle 90AF: richer contractor assignment pill colors. */
+#appointmentDetailsDialog .brite-assignment-status-row {
+    background: #1d4ed8;
+    border-color: #1e40af;
+    color: #ffffff;
+}
+#appointmentDetailsDialog .brite-assignment-status-row > strong {
+    background: #1e3a8a;
+    color: #ffffff;
+}
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-accepted),
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-confirmed) {
+    background: #15803d;
+    border-color: #166534;
+    color: #ffffff;
+}
+#appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-accepted,
+#appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-confirmed {
+    background: #14532d;
+    color: #ffffff;
+}
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-pending) {
+    background: #b45309;
+    border-color: #92400e;
+    color: #ffffff;
+}
+#appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-pending {
+    background: #78350f;
+    color: #ffffff;
+}
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-declined),
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-rejected) {
+    background: #b91c1c;
+    border-color: #991b1b;
+    color: #ffffff;
+}
+#appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-declined,
+#appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-rejected {
+    background: #7f1d1d;
+    color: #ffffff;
+}
+
 </style>
 
 <link rel="stylesheet"
