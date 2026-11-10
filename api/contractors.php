@@ -74,7 +74,26 @@ if ($_SERVER['REQUEST_METHOD']==='GET') {
         $total=(int)$count->fetchColumn();
         $limit=$paging['per_page'];
         $offset=$paging['offset'];
-        $q=$pdo->prepare("SELECT * FROM contractors WHERE tenant_id=? ORDER BY last_name,first_name,id LIMIT {$limit} OFFSET {$offset}");
+        // Only allow known sortable columns; never interpolate user input.
+        $sort = $_GET['sort'] ?? 'name';
+        $direction = $_GET['direction'] ?? 'asc';
+        if (!is_string($sort) || !in_array($sort,['name','created_at','updated_at','status'],true) ||
+            !is_string($direction) || !in_array($direction,['asc','desc'],true)) {
+            json_response(['error'=>'Invalid sort parameters'],422);
+        }
+        $order = [
+            'name'=>'last_name,first_name',
+            'created_at'=>'created_at',
+            'updated_at'=>'updated_at',
+            'status'=>'status'
+        ][$sort];
+        $dir = strtoupper($direction);
+        if ($sort==='name') {
+            $order='last_name '.$dir.',first_name '.$dir;
+        } else {
+            $order.=' '.$dir;
+        }
+        $q=$pdo->prepare("SELECT * FROM contractors WHERE tenant_id=? ORDER BY {$order},id {$dir} LIMIT {$limit} OFFSET {$offset}");
         $q->execute([$tid]);
         json_response(['contractors'=>$q->fetchAll(), 'pagination'=>ServerPagination::metadata($paging,$total)]);
     }
