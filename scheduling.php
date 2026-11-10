@@ -64,7 +64,8 @@ require __DIR__.'/partials/app_header.php';
 /* Expanded appointment preview is rendered outside clipped calendar cells. */
 .brite-calendar-hover-preview {
     position: fixed;
-    z-index: 1200;
+    /* Above FullCalendar's +more popover and application modal layers. */
+    z-index: 2147483000;
     pointer-events: none;
     max-height: min(360px, calc(100dvh - 24px));
     overflow: auto;
