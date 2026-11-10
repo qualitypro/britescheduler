@@ -1072,9 +1072,11 @@ require __DIR__.'/partials/app_header.php';
 }
 #appointmentDetailsDialog .brite-assignment-pill-list {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     align-items: flex-start;
-    gap: 4px;
+    align-content: flex-start;
+    gap: 5px 6px;
 }
 #appointmentDetailsDialog .brite-assignment-status-row {
     display: inline-flex;
@@ -1108,6 +1110,24 @@ require __DIR__.'/partials/app_header.php';
     font-size: 10px;
     line-height: 1.1;
     text-transform: capitalize;
+}
+/* Color-code the whole pill, not only the status label. */
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-accepted),
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-confirmed) {
+    background: #f0fdf4;
+    border-color: #86efac;
+    color: #166534;
+}
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-declined),
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-rejected) {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: #991b1b;
+}
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-pending) {
+    background: #fffbeb;
+    border-color: #fcd34d;
+    color: #92400e;
 }
 #appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-declined,
 #appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-rejected {
