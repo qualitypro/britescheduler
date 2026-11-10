@@ -191,6 +191,7 @@
             this.container = options.container;
             this.load = options.load;
             this.render = options.render;
+            this.onError = options.onError;
             this.page = 1;
             this.pageSize = 25;
             this.sequence = 0;

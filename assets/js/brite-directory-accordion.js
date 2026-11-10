@@ -114,13 +114,44 @@ async function mount(type) {
   const schema=schemas[type];
   const list=root.querySelector('[data-directory-list]');
   const status=root.querySelector('[data-directory-status]');
+  // Client directory uses the server for record counts and page selection.
+  // Other directory consumers retain their existing loading behavior.
+  let serverPager=null;
+  const renderPage=records=>{
+    list.replaceChildren(...records.map(record=>renderRecord(record,schema,type)));
+    if(!records.length){
+      const empty=document.createElement('p');
+      empty.textContent='No records found on this page.';
+      list.append(empty);
+    }
+  };
+  if(type==='clients' && typeof window.BriteServerPagination==='function'){
+    const mount=root.querySelector('[data-directory-pagination]');
+    if(mount){
+      serverPager=new window.BriteServerPagination({
+        container:mount,
+        load:async ({page,per_page})=>{
+          const data=await api(schema.endpoint+'?page='+page+'&per_page='+per_page);
+          return {records:data[schema.key],pagination:data.pagination};
+        },
+        render:records=>{
+          renderPage(records);
+          status.textContent='Client directory loaded';
+        },
+        onError:error=>{status.textContent='Unable to load clients: '+error.message;}
+      });
+    }
+  }
   const reload=async()=>{
     status.textContent='Loading records…';
+    if(serverPager){
+      await serverPager.refresh();
+      return;
+    }
     try {
       const data=await api(schema.endpoint);
       const records=Array.isArray(data[schema.key])?data[schema.key]:[];
-      list.replaceChildren(...records.map(record=>renderRecord(record,schema,type)));
-      if(!records.length){const empty=document.createElement('p');empty.textContent='No records found.';list.append(empty);}
+      renderPage(records);
       status.textContent=records.length+' record(s)';
     }catch(error){status.textContent='Unable to load records: '+error.message;}
   };
@@ -135,7 +166,7 @@ async function mount(type) {
     }catch(error){status.textContent='Create failed: '+error.message;}
     finally{button.disabled=false;}
   });
-  await reload();
+  if(!serverPager) await reload();
 }
 document.addEventListener('DOMContentLoaded',()=>{mount('clients');mount('contractors');});
 })();

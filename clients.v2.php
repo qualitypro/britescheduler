@@ -16,7 +16,9 @@ require __DIR__.'/partials/app_header.php';
   </details>
   <p data-directory-status role="status" aria-live="polite">Loading…</p>
   <section class="brite-directory-list" data-directory-list aria-label="Clients directory"></section>
+  <div data-directory-pagination></div>
 </main>
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-pagination.js'),ENT_QUOTES,'UTF-8')?>" defer></script>
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-directory-accordion.js'),ENT_QUOTES,'UTF-8')?>" defer></script>
 <link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-single-active-records.css'),ENT_QUOTES,'UTF-8')?>">
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-owner-single-active.js'),ENT_QUOTES,'UTF-8')?>" defer></script>
