@@ -821,6 +821,133 @@ require __DIR__.'/partials/app_header.php';
     display: none !important;
 }
 
+
+/* Cycle 90AB: scheduling control density only. No behavior or DOM changes. */
+#schedulingWorkspace .brite-tab-toolbar {
+    gap: 6px 10px;
+    padding-block: 4px;
+    margin-bottom: 6px;
+}
+#schedulingWorkspace .brite-tab-list {
+    gap: 3px;
+}
+#schedulingWorkspace .brite-tab-button {
+    min-height: 30px;
+    padding: 5px 10px;
+    font-size: 12px;
+    line-height: 1.2;
+}
+#schedulingWorkspace .brite-tab-toolbar > button,
+#schedulingWorkspace #scheduleActionsPanel button {
+    min-height: 32px;
+    padding: 5px 10px;
+    font-size: 12px;
+    line-height: 1.25;
+}
+#schedulingWorkspace #scheduleActionsPanel > .card {
+    padding: 12px;
+}
+#schedulingWorkspace #scheduleActionsPanel h2 {
+    margin: 0 0 6px;
+    font-size: 16px;
+}
+#schedulingWorkspace #scheduleActionsPanel p {
+    margin: 0 0 10px;
+    font-size: 12px;
+    line-height: 1.45;
+}
+#schedulingWorkspace #calendar .fc-header-toolbar {
+    gap: 6px 10px;
+    margin-bottom: 6px;
+}
+#schedulingWorkspace #calendar .fc-toolbar-chunk {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+#schedulingWorkspace #calendar .fc-toolbar-title {
+    font-size: clamp(14px, 1.25vw, 18px);
+    line-height: 1.2;
+}
+#schedulingWorkspace #calendar .fc-button {
+    min-height: 29px;
+    padding: 4px 8px;
+    font-size: 11px;
+    line-height: 1.2;
+    border-radius: 4px;
+}
+#schedulingWorkspace #calendar .fc-button .fc-icon {
+    font-size: 13px;
+    vertical-align: middle;
+}
+#schedulingWorkspace #calendar .fc-col-header-cell-cushion {
+    padding: 3px 4px;
+    font-size: 11px;
+    line-height: 1.2;
+}
+/* Compact the appointment wizard while preserving form structure,
+   input types, button actions, and keyboard focus behavior. */
+#appointmentDialog {
+    width: min(720px, calc(100vw - 24px));
+    padding: 14px 16px;
+    font-size: 12px;
+}
+#appointmentDialog .appointment-dialog-header {
+    gap: 8px;
+    margin-bottom: 8px;
+}
+#appointmentDialog .appointment-dialog-header h2 {
+    font-size: 17px;
+}
+#appointmentDialog #formTitle {
+    margin: 0 0 6px;
+    font-size: 15px;
+}
+#appointmentDialog .scheduler-form label {
+    margin-top: 7px;
+    font-size: 12px;
+}
+#appointmentDialog .scheduler-form input:not([type="checkbox"]):not([type="radio"]),
+#appointmentDialog .scheduler-form select,
+#appointmentDialog .scheduler-form textarea {
+    min-height: 32px;
+    padding: 5px 8px;
+    font-size: 12px;
+}
+#appointmentDialog .scheduler-form textarea {
+    min-height: 58px;
+}
+#appointmentDialog button {
+    min-height: 30px;
+    padding: 5px 9px;
+    font-size: 12px;
+    line-height: 1.25;
+}
+#appointmentDialog .appointment-wizard-progress {
+    margin-bottom: 7px;
+}
+#appointmentDialog .appointment-wizard-progress-heading {
+    margin-bottom: 5px;
+}
+#appointmentDialog .appointment-wizard-steps {
+    gap: 4px;
+}
+#appointmentDialog .appointment-wizard-footer {
+    gap: 6px;
+    padding-block: 8px;
+}
+@media (max-width: 700px) {
+    #schedulingWorkspace #calendar .fc-header-toolbar {
+        flex-wrap: wrap;
+    }
+    #schedulingWorkspace #calendar .fc-toolbar-title {
+        font-size: 14px;
+    }
+    #appointmentDialog {
+        padding: 10px;
+    }
+}
+
 </style>
 
 <link rel="stylesheet"
