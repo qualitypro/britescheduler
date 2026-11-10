@@ -875,6 +875,24 @@ require __DIR__.'/partials/app_header.php';
         height: auto;
         min-height: 0;
     }
+    /* Month fills the viewport; only genuinely crowded dates use +more. */
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit {
+        overflow-y: hidden;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .scheduler-layout,
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .scheduler-layout > .card {
+        height: 100%;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit #calendar {
+        height: 100%;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit #calendar .fc {
+        height: 100%;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-calendar-event {
+        padding: 2px 4px;
+        line-height: 1.15;
+    }
     /* Week/Day time slots scroll inside FullCalendar only. */
     #schedulingWorkspace #calendar .fc-timegrid-body {
         min-width: 0;
@@ -3676,8 +3694,9 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             document.getElementById('calendar'),
             {
                 initialView: preferredViews[calendarPreferences.calendar_view],
-                // Month cells must show appointment cards, not collapse them.
-                // The panel scrolls only when the grid cannot fit.
+                // Month: show appointment cards, with a +more popover only
+                // when a dense day exceeds the available row height.
+                // Week/Day retain their normal time-grid behavior.
                 contentHeight: 'auto',
                 dayMaxEvents: false,
                 dayMaxEventRows: false,
@@ -3694,6 +3713,13 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                 },
                 // UTC represents tenant-local wall-clock values here.
                 timeZone:'UTC',
+
+                datesSet: () => {
+                    // View changes are dispatched after the calendar is ready.
+                    if (typeof scheduleCalendarFit === 'function') {
+                        requestAnimationFrame(scheduleCalendarFit);
+                    }
+                },
 
                 headerToolbar:{
                     left:'prev,next today',
@@ -3799,11 +3825,51 @@ document.addEventListener('DOMContentLoaded',async ()=>{
         );
 
         calendar.render();
+
+        // Fit month rows to the visible calendar panel, not the whole document.
+        // A minimum of two event rows remains visible in crowded day cells.
+        const calendarPanel = document.getElementById('scheduleCalendarPanel');
+        const calendarElement = document.getElementById('calendar');
+        let calendarFitFrame = 0;
+        let fittedMonthHeight = null;
+        function fitCalendarMonth() {
+            if (!calendar || !calendarPanel || calendarPanel.hidden) return;
+            const isMonth = calendar.view.type === 'dayGridMonth';
+            calendarPanel.classList.toggle('brite-month-fit', isMonth);
+            if (!isMonth) {
+                if (fittedMonthHeight !== null) {
+                    fittedMonthHeight = null;
+                    calendar.setOption('height', 'auto');
+                    calendar.setOption('dayMaxEventRows', false);
+                }
+                calendar.updateSize();
+                return;
+            }
+            const panelRect = calendarPanel.getBoundingClientRect();
+            const calendarRect = calendarElement.getBoundingClientRect();
+            const available = Math.floor(panelRect.bottom - calendarRect.top - 8);
+            if (available < 240) return;
+            if (fittedMonthHeight !== available) {
+                fittedMonthHeight = available;
+                calendar.setOption('height', available);
+            }
+            // Preserve visible appointment cards; overflow is available
+            // through FullCalendar's native +more popover.
+            calendar.setOption('dayMaxEventRows', 3);
+            calendar.updateSize();
+        }
+        function scheduleCalendarFit() {
+            cancelAnimationFrame(calendarFitFrame);
+            calendarFitFrame = requestAnimationFrame(fitCalendarMonth);
+        }
+        window.addEventListener('resize', scheduleCalendarFit, {passive: true});
+        scheduleCalendarFit();
+
         // FullCalendar must recalculate dimensions after a hidden tab opens.
         document.getElementById('schedulingWorkspace')
             ?.addEventListener('brite:tabchange', event => {
                 if (event.detail?.panel?.id === 'scheduleCalendarPanel') {
-                    requestAnimationFrame(() => calendar.updateSize());
+                    scheduleCalendarFit();
                 }
             });
 
