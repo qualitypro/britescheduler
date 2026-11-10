@@ -877,8 +877,11 @@ require __DIR__.'/partials/app_header.php';
     }
     /* Month fills the viewport; only genuinely crowded dates use +more. */
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit {
-        overflow-y: auto; /* Never clip the final week. */
+        overflow-y: hidden;
         scrollbar-width: thin;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit.brite-month-overflow {
+        overflow-y: auto; /* Only for genuinely unusable viewport heights. */
     }
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .scheduler-layout,
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .scheduler-layout > .card {
@@ -908,8 +911,34 @@ require __DIR__.'/partials/app_header.php';
         height: 100%;
     }
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-calendar-event {
-        padding: 2px 4px;
-        line-height: 1.15;
+        padding: 1px 3px;
+        line-height: 1.1;
+        font-size: var(--brite-month-event-font, 11px);
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-day-frame {
+        min-height: 0;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-day-top {
+        min-height: 0;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-day-number {
+        padding: var(--brite-month-date-padding, 2px) 3px;
+        line-height: 1.1;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-event {
+        margin-top: 0;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-event-client,
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-event-contractors,
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-event-status {
+        display: none; /* Full details remain in the expanded hover card. */
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-event-time {
+        font-size: inherit;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-more-link {
+        font-size: 10px;
+        line-height: 1.1;
     }
     /* Week/Day time slots scroll inside FullCalendar only. */
     #schedulingWorkspace #calendar .fc-timegrid-body {
@@ -3852,10 +3881,14 @@ document.addEventListener('DOMContentLoaded',async ()=>{
         let fittedMonthHeight = null;
         function fitCalendarMonth() {
             if (!calendar || !calendarPanel || calendarPanel.hidden) return;
-            const desktopViewport = window.matchMedia('(min-width: 900px) and (min-height: 500px)').matches;
-            const isMonth = desktopViewport && calendar.view.type === 'dayGridMonth';
-            calendarPanel.classList.toggle('brite-month-fit', isMonth);
-            if (!isMonth) {
+            const desktop = window.matchMedia(
+                '(min-width: 900px) and (min-height: 500px)'
+            ).matches;
+            const month = desktop && calendar.view.type === 'dayGridMonth';
+            calendarPanel.classList.toggle('brite-month-fit', month);
+            calendarPanel.classList.remove('brite-month-overflow');
+
+            if (!month) {
                 if (fittedMonthHeight !== null) {
                     fittedMonthHeight = null;
                     calendar.setOption('height', 'auto');
@@ -3864,22 +3897,44 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                 calendar.updateSize();
                 return;
             }
+
+            // Measure the *actual* panel space after tabs, toolbar and card
+            // padding. Avoid fixed 700px minimums and guessed top offsets.
             const panelRect = calendarPanel.getBoundingClientRect();
             const calendarRect = calendarElement.getBoundingClientRect();
-            const available = Math.floor(panelRect.bottom - calendarRect.top - 8);
-            if (available < 160) return;
+            const available = Math.floor(panelRect.bottom - calendarRect.top - 4);
+            if (available < 100) return;
+
+            // FullCalendar month can contain 4, 5 or 6 rows. Calculate
+            // row density from the current rendered month, not a constant.
+            const weekRows = calendarElement.querySelectorAll(
+                '.fc-daygrid-body > table > tbody > tr'
+            ).length || calendarElement.querySelectorAll(
+                '.fc-daygrid-body tbody tr'
+            ).length || 6;
+            const perWeek = Math.max(0, available - 90) / weekRows;
+            const compact = perWeek < 85;
+            calendarPanel.style.setProperty(
+                '--brite-month-event-font', compact ? '10px' : '11px'
+            );
+            calendarPanel.style.setProperty(
+                '--brite-month-date-padding', compact ? '1px' : '2px'
+            );
+
+            // Keep at least one visible appointment in each cell when
+            // possible; overflow appointments remain accessible via +more.
+            const eventRows = perWeek >= 112 ? 3 : perWeek >= 62 ? 2 : 1;
+            const minUsableWeek = 40;
+            calendarPanel.classList.toggle(
+                'brite-month-overflow', perWeek < minUsableWeek
+            );
             if (fittedMonthHeight !== available) {
                 fittedMonthHeight = available;
                 calendar.setOption('height', available);
             }
-            // Preserve visible appointment cards; overflow is available
-            // through FullCalendar's native +more popover.
-            // Dynamically reserve space for every month week row.
-            const rowCount = calendarElement.querySelectorAll(
-                '.fc-daygrid-body table tbody tr'
-            ).length || 6;
-            const rowHeight = Math.max(0, available - 105) / Math.max(4, rowCount);
-            calendar.setOption('dayMaxEventRows', rowHeight >= 100 ? 3 : 2);
+            if (calendar.getOption('dayMaxEventRows') !== eventRows) {
+                calendar.setOption('dayMaxEventRows', eventRows);
+            }
             calendar.updateSize();
         }
         function scheduleCalendarFit() {
