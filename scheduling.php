@@ -4212,6 +4212,9 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                 // adjacent months remain blank instead of displaying events.
                 fixedWeekCount: false,
                 showNonCurrentDates: false,
+                // Distribute available height across the actual 4/5/6
+                // week rows instead of leaving unused space below them.
+                expandRows: true,
                 dayMaxEvents: false,
                 dayMaxEventRows: false,
                 firstDay: calendarPreferences.week_starts_on === 'monday' ? 1 : 0,
