@@ -21,7 +21,9 @@ $where='r.tenant_id=? AND r.contractor_id=?';
 $params=[$tid,$cid];
 if($paging!==null){
  $filter=$_GET['status']??'all';
- $search=trim((string)($_GET['search']??''));
+$rawSearch=$_GET['search']??'';
+ if(!is_string($rawSearch)){json_response(['error'=>'Invalid quote filters'],422);}
+ $search=trim($rawSearch);
  if(!is_string($filter)||!in_array($filter,['all','new','waiting','closed'],true)||mb_strlen($search)>150){
   json_response(['error'=>'Invalid quote filters'],422);
  }

@@ -86,7 +86,7 @@ if ($paging !== null) {
     $term=$_GET['search']??'';
     $service=$_GET['service_id']??'';
     if (!is_string($term) || mb_strlen($term)>150 || !is_string($service) ||
-        ($service!=='' && (!ctype_digit($service) || (int)$service<1))) {
+        ($service!=='' && (!preg_match('/^[1-9][0-9]{0,9}$/D', $service) || (int)$service>2147483647))) {
         json_response(['error'=>'Invalid marketplace filters'],422);
     }
     $term=trim($term);
