@@ -806,18 +806,18 @@ require __DIR__.'/partials/app_header.php';
         overflow: hidden;
     }
     #schedulingWorkspace #scheduleCalendarPanel:not([hidden]) {
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
+        display: block;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior-y: contain;
     }
     #schedulingWorkspace #scheduleCalendarPanel .scheduler-layout,
     #schedulingWorkspace #scheduleCalendarPanel .scheduler-layout > .card {
-        display: flex;
-        flex: 1 1 auto;
-        flex-direction: column;
+        display: block;
         min-height: 0;
         min-width: 0;
-        overflow: hidden;
+        overflow: visible;
     }
     #schedulingWorkspace #scheduleCalendarPanel .scheduler-layout > .card {
         padding: 8px;
@@ -825,11 +825,11 @@ require __DIR__.'/partials/app_header.php';
     #schedulingWorkspace #calendar {
         flex: 1 1 auto;
         min-height: 0;
-        height: 100%;
-        overflow: hidden;
+        height: auto;
+        overflow: visible;
     }
     #schedulingWorkspace #calendar .fc {
-        height: 100%;
+        height: auto;
         min-height: 0;
     }
     /* Week/Day time slots scroll inside FullCalendar only. */
@@ -3592,11 +3592,11 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             document.getElementById('calendar'),
             {
                 initialView: preferredViews[calendarPreferences.calendar_view],
-                // Fill the calendar panel instead of expanding the page.
-                height: '100%',
-                expandRows: true,
-                // Month rows remain visible; overflowing events use +more.
-                dayMaxEvents: true,
+                // Month cells must show appointment cards, not collapse them.
+                // The panel scrolls only when the grid cannot fit.
+                contentHeight: 'auto',
+                dayMaxEvents: false,
+                dayMaxEventRows: false,
                 firstDay: calendarPreferences.week_starts_on === 'monday' ? 1 : 0,
                 eventTimeFormat: {
                     hour: '2-digit',
