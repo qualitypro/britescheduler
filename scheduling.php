@@ -61,6 +61,49 @@ require __DIR__.'/partials/app_header.php';
     min-height:700px;
 }
 
+/* Expanded appointment preview is rendered outside clipped calendar cells. */
+.brite-calendar-hover-preview {
+    position: fixed;
+    z-index: 1200;
+    pointer-events: none;
+    max-height: min(360px, calc(100dvh - 24px));
+    overflow: auto;
+    padding: 10px 12px;
+    border: 1px solid #a5b4fc;
+    border-radius: 10px;
+    background: #172554;
+    color: #fff;
+    box-shadow: 0 14px 38px rgba(15, 23, 42, .32);
+    font-size: 13px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+.brite-calendar-hover-preview[hidden] { display: none !important; }
+.brite-calendar-hover-preview .brite-event-heading {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 8px;
+    font-weight: 750;
+}
+.brite-calendar-hover-preview .brite-event-title,
+.brite-calendar-hover-preview .brite-event-client,
+.brite-calendar-hover-preview .brite-event-contractors {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    margin-top: 4px;
+}
+.brite-calendar-hover-preview .brite-event-status {
+    display: inline-block;
+    padding: 2px 7px;
+    margin-top: 6px;
+    border-radius: 5px;
+    background: rgba(255,255,255,.18);
+}
+@media (hover: none), (pointer: coarse) {
+    .brite-calendar-hover-preview { display: none !important; }
+}
+
 /* Compact, status-colored calendar appointments. */
 #calendar .fc-event {
     cursor: pointer;
@@ -3083,6 +3126,47 @@ function appointmentContractorNames(appointment) {
     });
 }
 
+// A viewport-level preview avoids FullCalendar's clipped day-cell overflow.
+let calendarHoverPreview = null;
+let calendarHoverOwner = null;
+function hideCalendarHoverPreview() {
+    if (calendarHoverPreview) calendarHoverPreview.hidden = true;
+    calendarHoverOwner = null;
+}
+function showCalendarHoverPreview(element) {
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    const content = element.querySelector('.brite-calendar-event');
+    if (!content) return;
+    if (!calendarHoverPreview) {
+        calendarHoverPreview = document.createElement('div');
+        calendarHoverPreview.className = 'brite-calendar-hover-preview';
+        calendarHoverPreview.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(calendarHoverPreview);
+        window.addEventListener('scroll', hideCalendarHoverPreview, true);
+        window.addEventListener('resize', hideCalendarHoverPreview);
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') hideCalendarHoverPreview();
+        });
+    }
+    calendarHoverOwner = element;
+    calendarHoverPreview.replaceChildren(content.cloneNode(true));
+    calendarHoverPreview.hidden = false;
+    const rect = element.getBoundingClientRect();
+    const width = Math.min(340, Math.max(220, window.innerWidth - 24));
+    const left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
+    calendarHoverPreview.style.width = width + 'px';
+    calendarHoverPreview.style.left = left + 'px';
+    // Prefer below the card, but stay inside the viewport.
+    calendarHoverPreview.style.top = '0px';
+    const height = calendarHoverPreview.getBoundingClientRect().height;
+    const below = rect.bottom + 6;
+    const above = rect.top - height - 6;
+    const top = below + height <= window.innerHeight - 12
+        ? below
+        : above >= 12 ? above : Math.max(12, window.innerHeight - height - 12);
+    calendarHoverPreview.style.top = top + 'px';
+}
+
 function calendarEventContent(info) {
     const event = info.event;
     const appointment = event.extendedProps || {};
@@ -3656,7 +3740,16 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                         const names = appointmentContractorNames(a);
                         if (names.length) lines.push('Contractors: ' + names.join(', '));
                     }
-                    info.el.title = lines.join('\n');
+                    // The expanded card replaces the browser's truncated title hint.
+                    info.el.removeAttribute('title');
+                    info.el.addEventListener('mouseenter', () => showCalendarHoverPreview(info.el));
+                    info.el.addEventListener('mouseleave', () => {
+                        if (calendarHoverOwner === info.el) hideCalendarHoverPreview();
+                    });
+                    info.el.addEventListener('focusin', () => showCalendarHoverPreview(info.el));
+                    info.el.addEventListener('focusout', () => {
+                        if (calendarHoverOwner === info.el) hideCalendarHoverPreview();
+                    });
                     info.el.setAttribute('aria-label', lines.join('. '));
                 },
 
