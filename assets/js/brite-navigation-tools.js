@@ -102,7 +102,10 @@ const copy=make('button','','Copy page link');copy.type='button';copy.addEventLi
   copy.textContent='Link copied';setTimeout(()=>{copy.textContent='Copy page link';},1800);
  }catch(_){copy.textContent='Copy unavailable';setTimeout(()=>{copy.textContent='Copy page link';},1800);}
 });
-tools.append(top,copy);main.append(tools);
+// Scheduling calendar pages do not offer the redundant page-link action.
+const isSchedulingCalendar = /(?:^|\/)scheduling\.php$/i.test(window.location.pathname);
+if(isSchedulingCalendar){tools.append(top);}else{tools.append(top,copy);}
+main.append(tools);
 const updateTop=()=>{top.hidden=window.scrollY<300;};
 window.addEventListener('scroll',updateTop,{passive:true});updateTop();
 })();
