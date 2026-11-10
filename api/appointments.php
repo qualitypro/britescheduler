@@ -270,6 +270,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         );
     };
 
+    // Optional server-generated date window for API clients.
+    // Existing FullCalendar start/end requests remain unchanged.
+    if (isset($_GET['view']) || isset($_GET['date'])) {
+        require_once dirname(__DIR__).'/app/ServerCalendar.php';
+        require_once dirname(__DIR__).'/app/TenantClock.php';
+        try {
+            if (isset($_GET['start']) || isset($_GET['end'])) {
+                throw new InvalidArgumentException('Use either view/date or start/end');
+            }
+            $view = $_GET['view'] ?? 'month';
+            $date = $_GET['date'] ?? substr(TenantClock::now($pdo,$tid),0,10);
+            $weekStart = $_GET['week_start'] ?? '0';
+            if (!is_string($view) || !is_string($date) ||
+                !is_string($weekStart) || !in_array($weekStart,['0','1'],true)) {
+                throw new InvalidArgumentException('Invalid calendar parameters');
+            }
+            $serverRange=ServerCalendar::range($date,$view,(int)$weekStart);
+            $_GET['start']=$serverRange['start'];
+            $_GET['end']=$serverRange['end'];
+        } catch (InvalidArgumentException $e) {
+            json_response(['error'=>$e->getMessage()],422);
+        }
+    }
+
     $start = $normalizeCalendarBoundary(
         (string)($_GET['start'] ?? date('Y-m-01 00:00:00'))
     );
@@ -485,11 +509,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         ORDER BY a.starts_at
     ";
 
+    // Pagination applies only when explicitly requested; the calendar grid
+    // continues receiving all appointments in its visible date range.
+    if (isset($_GET['page']) || isset($_GET['per_page'])) {
+        require_once dirname(__DIR__).'/app/ServerPagination.php';
+        try {
+            $paging=ServerPagination::fromQuery($_GET);
+        } catch (InvalidArgumentException $e) {
+            json_response(['error'=>$e->getMessage()],422);
+        }
+        $countQuery=$pdo->prepare("SELECT COUNT(*) FROM appointments a WHERE {$where}");
+        $countQuery->execute($params);
+        $total=(int)$countQuery->fetchColumn();
+        $sql .= ', a.id';
+        $sql .= ' LIMIT '.$paging['per_page'].' OFFSET '.$paging['offset'];
+        $q=$pdo->prepare($sql);
+        $q->execute($params);
+        json_response([
+            'appointments'=>$q->fetchAll(),
+            'pagination'=>ServerPagination::metadata($paging,$total),
+            'range'=>$serverRange??null
+        ]);
+    }
+
     $q=$pdo->prepare($sql);
     $q->execute($params);
-
     json_response([
-        'appointments'=>$q->fetchAll()
+        'appointments'=>$q->fetchAll(),
+        'range'=>$serverRange??null
     ]);
 }
 

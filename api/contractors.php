@@ -61,6 +61,24 @@ if ($_SERVER['REQUEST_METHOD']==='GET') {
         'scheduler'
     );
 
+    // Opt-in pagination; preserve unpaginated responses for existing selects.
+    if (isset($_GET['page']) || isset($_GET['per_page'])) {
+        require_once dirname(__DIR__).'/app/ServerPagination.php';
+        try {
+            $paging=ServerPagination::fromQuery($_GET);
+        } catch (InvalidArgumentException $e) {
+            json_response(['error'=>$e->getMessage()],422);
+        }
+        $count=$pdo->prepare('SELECT COUNT(*) FROM contractors WHERE tenant_id=?');
+        $count->execute([$tid]);
+        $total=(int)$count->fetchColumn();
+        $limit=$paging['per_page'];
+        $offset=$paging['offset'];
+        $q=$pdo->prepare("SELECT * FROM contractors WHERE tenant_id=? ORDER BY last_name,first_name,id LIMIT {$limit} OFFSET {$offset}");
+        $q->execute([$tid]);
+        json_response(['contractors'=>$q->fetchAll(), 'pagination'=>ServerPagination::metadata($paging,$total)]);
+    }
+
     $q=$pdo->prepare("
         SELECT *
         FROM contractors
