@@ -288,7 +288,30 @@ $crmListUrl=static function(int $page)use($base,$tab,$crmListSize,$crmListSearch
  return $base.'&'.http_build_query(['tab'=>$tab,'crm_page'=>$page,'crm_size'=>$crmListSize,'crm_search'=>$crmListSearch,'crm_stage'=>$crmListStage]);
 };
 $crmListPages=max(1,(int)ceil($crmListTotal/$crmListSize));
-$dueFollowUps=array_values(array_filter($activities,static fn($r)=>$r['due_at']!==null && $r['completed_at']===null && $r['due_at']<=date('Y-m-d')));
+// Tenant-wide aggregates, independent of capped legacy form selectors.
+$crmTotals=['customers'=>0,'open_leads'=>0,'open_opportunities'=>0,'due'=>0];
+$crmStages=array_fill_keys(['new','contacted','quoted','won','lost'],0);
+$dueFollowUps=[];
+if($tab==='overview'){
+ $today=(new DateTimeImmutable('today'))->format('Y-m-d');
+ $queries=[
+  'customers'=>"SELECT COUNT(*) FROM clients WHERE tenant_id=?",
+  'open_leads'=>"SELECT COUNT(*) FROM crm_leads WHERE tenant_id=? AND status NOT IN ('converted','lost')",
+  'open_opportunities'=>"SELECT COUNT(*) FROM crm_opportunities WHERE tenant_id=? AND stage NOT IN ('won','lost')",
+  'due'=>"SELECT COUNT(*) FROM crm_activities WHERE tenant_id=? AND completed_at IS NULL AND due_at<=?"
+ ];
+ foreach($queries as $key=>$sql){
+  $q=$db->prepare($sql);$q->execute($key==='due'?[$tid,$today]:[$tid]);
+  $crmTotals[$key]=(int)$q->fetchColumn();
+ }
+ $q=$db->prepare("SELECT stage,COUNT(*) AS total FROM crm_opportunities WHERE tenant_id=? GROUP BY stage");
+ $q->execute([$tid]);
+ foreach($q->fetchAll(PDO::FETCH_ASSOC) as $record){
+  if(array_key_exists($record['stage'],$crmStages))$crmStages[$record['stage']]=(int)$record['total'];
+ }
+ $q=$db->prepare("SELECT id,due_at,kind,body FROM crm_activities WHERE tenant_id=? AND completed_at IS NULL AND due_at<=? ORDER BY due_at ASC,id ASC LIMIT 10");
+ $q->execute([$tid,$today]);$dueFollowUps=$q->fetchAll(PDO::FETCH_ASSOC);
+}
 $token=csrf_token();
 $leadOptions=static function(?int $selected=null)use($leads,$esc):void {foreach($leads as $r)echo '<option value="'.(int)$r['id'].'"'.($selected===(int)$r['id']?' selected':'').'>'.$esc($r['name']).'</option>';};
 $customerOptions=static function(?int $selected=null)use($customers,$esc):void {foreach($customers as $r)echo '<option value="'.(int)$r['id'].'"'.($selected===(int)$r['id']?' selected':'').'>'.$esc(trim($r['first_name'].' '.$r['last_name'])).'</option>';};
@@ -301,17 +324,17 @@ $customerOptions=static function(?int $selected=null)use($customers,$esc):void {
  <?php if($flash): ?><p role="status" class="crm-pill"><?=$esc($flash==='saved'?'Changes saved.':$flash)?></p><?php endif; ?>
  <nav class="crm-tabs" aria-label="CRM sections"><?php foreach($tabs as $key=>$label): ?><a href="<?=$esc($base.'&tab='.$key)?>" <?=$tab===$key?'aria-current="page"':''?>><?=$esc($label)?></a><?php endforeach; ?></nav>
  <?php if($tab==='overview'):
- $openLeads=count(array_filter($leads,static fn($r)=>!in_array($r['status'],['converted','lost'],true)));
- $openOpps=array_filter($opportunities,static fn($r)=>!in_array($r['stage'],['won','lost'],true));
- $due=count(array_filter($activities,static fn($r)=>$r['due_at']!==null&&$r['completed_at']===null&&$r['due_at']<=date('Y-m-d')));
+ $openLeads=$crmTotals['open_leads'];
+ $openOpps=$crmTotals['open_opportunities'];
+ $due=$crmTotals['due'];
  ?>
  <div class="crm-stats">
- <?php foreach([['Customers',count($customers)],['Open leads',$openLeads],['Open opportunities',count($openOpps)],['Follow-ups due',$due],['Quote requests',$quoteCount],['Appointments',$appointmentCount]] as $stat): ?><div class="crm-stat"><span class="crm-muted"><?=$esc($stat[0])?></span><strong><?=$esc($stat[1])?></strong></div><?php endforeach; ?>
+ <?php foreach([['Customers',$crmTotals['customers']],['Open leads',$openLeads],['Open opportunities',$openOpps],['Follow-ups due',$due],['Quote requests',$quoteCount],['Appointments',$appointmentCount]] as $stat): ?><div class="crm-stat"><span class="crm-muted"><?=$esc($stat[0])?></span><strong><?=$esc($stat[1])?></strong></div><?php endforeach; ?>
  </div>
- <div class="crm-panel"><h2>Pipeline snapshot</h2><div class="crm-stats"><?php foreach(['new','contacted','quoted','won','lost'] as $stage): ?><div class="crm-stat"><span class="crm-muted"><?=ucfirst($stage)?></span><strong><?=count(array_filter($opportunities,static fn($r)=>$r['stage']===$stage))?></strong></div><?php endforeach; ?></div></div>
+ <div class="crm-panel"><h2>Pipeline snapshot</h2><div class="crm-stats"><?php foreach(['new','contacted','quoted','won','lost'] as $stage): ?><div class="crm-stat"><span class="crm-muted"><?=ucfirst($stage)?></span><strong><?= (int)$crmStages[$stage] ?></strong></div><?php endforeach; ?></div></div>
  <div class="crm-panel"><h2>Quote integration</h2><p class="crm-muted">New quote requests and formal quote updates are automatically linked to CRM opportunities while CRM is active. Import earlier quote requests in batches of up to 100.</p><form method="post"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="action" value="quote_backfill"><input type="hidden" name="tab" value="overview"><button type="submit">Import existing quote requests</button></form></div>
- <div class="crm-panel"><h2>Follow-ups requiring attention</h2><?php if(!$dueFollowUps): ?><p class="crm-muted">You're all caught up on logged follow-ups.</p><?php else: ?><div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Due</th><th>Type</th><th>Details</th><th>Action</th></tr></thead><tbody><?php foreach(array_slice($dueFollowUps,0,10) as $item): ?><tr><td><?=$esc($item['due_at'])?></td><td><?=$esc($item['kind'])?></td><td><?=$esc($item['body'])?></td><td><form method="post"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="tab" value="overview"><input type="hidden" name="action" value="activity_complete"><input type="hidden" name="id" value="<?=(int)$item['id']?>"><button type="submit">Complete</button></form></td></tr><?php endforeach; ?></tbody></table></div><?php endif; ?></div>
- <p class="crm-muted">Counts for leads, customers, opportunities and activities reflect the most recent 150 records in each list. Quote requests and appointments are tenant-wide totals.</p>
+ <div class="crm-panel"><h2>Follow-ups requiring attention</h2><?php if(!$dueFollowUps): ?><p class="crm-muted">You're all caught up on logged follow-ups.</p><?php else: ?><div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Due</th><th>Type</th><th>Details</th><th>Action</th></tr></thead><tbody><?php foreach($dueFollowUps as $item): ?><tr><td><?=$esc($item['due_at'])?></td><td><?=$esc($item['kind'])?></td><td><?=$esc($item['body'])?></td><td><form method="post"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="tab" value="overview"><input type="hidden" name="action" value="activity_complete"><input type="hidden" name="id" value="<?=(int)$item['id']?>"><button type="submit">Complete</button></form></td></tr><?php endforeach; ?></tbody></table></div><?php endif; ?></div>
+ <p class="crm-muted">Overview totals and pipeline stages are tenant-wide. The due queue shows the earliest 10 outstanding follow-ups; other CRM form selectors may still use capped records.</p>
  <?php elseif($tab==='leads'): ?>
  <div class="crm-grid"><div class="crm-panel"><h2>Add lead</h2><form method="post" class="crm-form"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="action" value="lead_create"><input type="hidden" name="tab" value="leads"><label>Name<input name="name" maxlength="190" required></label><label>Email<input name="email" type="email" maxlength="190"></label><label>Phone<input name="phone" maxlength="40"></label><label>Source<input name="source" maxlength="80" placeholder="Website, referral, phone…"></label><label>Notes<textarea name="notes" maxlength="5000"></textarea></label><button type="submit">Add lead</button></form></div>
  <div class="crm-panel"><h2>Leads</h2><div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Name</th><th>Contact</th><th>Source</th><th>Status</th></tr></thead><tbody><?php foreach($leads as $r): ?><tr><td><strong><?=$esc($r['name'])?></strong></td><td><?=$esc($r['email'])?><div class="crm-muted"><?=$esc($r['phone'])?></div></td><td><?=$esc($r['source'])?></td><td><form method="post" class="crm-inline"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="tab" value="leads"><input type="hidden" name="action" value="lead_status"><input type="hidden" name="id" value="<?=(int)$r['id']?>"><select name="status" aria-label="Status for <?=$esc($r['name'])?>"><?php foreach(['new','contacted','qualified','converted','lost'] as $v): ?><option value="<?=$v?>" <?=$r['status']===$v?'selected':''?>><?=ucfirst($v)?></option><?php endforeach; ?></select><button type="submit">Save</button></form><?php if($r['status']!=='converted'): ?><form method="post" class="crm-convert-form" style="margin-top:5px" onsubmit="return confirm('Create a scheduling customer from this lead?')"><input type="hidden" name="_csrf" value="<?=$esc($token)?>"><input type="hidden" name="action" value="lead_convert"><input type="hidden" name="tab" value="leads"><input type="hidden" name="id" value="<?=(int)$r['id']?>"><button type="submit">Convert to customer</button></form><?php elseif($r['client_id']): ?><small class="crm-muted">Customer #<?=(int)$r['client_id']?></small><?php endif; ?></td></tr><?php endforeach; ?></tbody></table><?php if(!$leads): ?><p class="crm-muted">No leads yet.</p><?php endif; ?></div></div></div>
