@@ -877,7 +877,8 @@ require __DIR__.'/partials/app_header.php';
     }
     /* Month fills the viewport; only genuinely crowded dates use +more. */
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit {
-        overflow-y: hidden;
+        overflow-y: auto; /* Never clip the final week. */
+        scrollbar-width: thin;
     }
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .scheduler-layout,
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .scheduler-layout > .card {
@@ -885,6 +886,23 @@ require __DIR__.'/partials/app_header.php';
     }
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit #calendar {
         height: 100%;
+        min-height: 0 !important; /* Override legacy 700px minimum. */
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc,
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-view-harness,
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid,
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-scrollgrid {
+        min-height: 0;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-day-number {
+        padding: 2px 4px;
+        font-size: 12px;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-col-header-cell-cushion {
+        padding: 3px 4px;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-toolbar {
+        margin-bottom: 5px;
     }
     #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit #calendar .fc {
         height: 100%;
@@ -3849,14 +3867,19 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             const panelRect = calendarPanel.getBoundingClientRect();
             const calendarRect = calendarElement.getBoundingClientRect();
             const available = Math.floor(panelRect.bottom - calendarRect.top - 8);
-            if (available < 240) return;
+            if (available < 160) return;
             if (fittedMonthHeight !== available) {
                 fittedMonthHeight = available;
                 calendar.setOption('height', available);
             }
             // Preserve visible appointment cards; overflow is available
             // through FullCalendar's native +more popover.
-            calendar.setOption('dayMaxEventRows', 3);
+            // Dynamically reserve space for every month week row.
+            const rowCount = calendarElement.querySelectorAll(
+                '.fc-daygrid-body table tbody tr'
+            ).length || 6;
+            const rowHeight = Math.max(0, available - 105) / Math.max(4, rowCount);
+            calendar.setOption('dayMaxEventRows', rowHeight >= 100 ? 3 : 2);
             calendar.updateSize();
         }
         function scheduleCalendarFit() {
