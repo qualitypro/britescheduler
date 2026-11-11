@@ -1,0 +1,83 @@
+<?php
+declare(strict_types=1);
+require_once dirname(__DIR__,2).'/app/bootstrap.php';
+require_once dirname(__DIR__,2).'/app/ModuleRegistry.php';
+require_once __DIR__.'/Providers.php';
+header('Content-Type: application/json; charset=utf-8');
+try {
+    Auth::requireUser();
+    $tenant=Auth::tenant();
+    if (!isset(ModuleRegistry::activeFor($tenant)['intelligence'])) {
+        http_response_code(403); echo json_encode(['error'=>'Intelligence is not enabled for this role']); exit;
+    }
+    $tid=(int)$tenant['tenant_id'];
+    $metrics=[
+        'appointments'=>['name'=>'Appointments','source'=>'Scheduling','table'=>'appointments','date'=>'starts_at','expr'=>'COUNT(*)'],
+        'completed'=>['name'=>'Completed appointments','source'=>'Scheduling','table'=>'appointments','date'=>'starts_at','expr'=>"SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END)"],
+        'cancelled'=>['name'=>'Cancelled appointments','source'=>'Scheduling','table'=>'appointments','date'=>'starts_at','expr'=>"SUM(CASE WHEN status='cancelled' THEN 1 ELSE 0 END)"],
+        'no_shows'=>['name'=>'No-show appointments','source'=>'Scheduling','table'=>'appointments','date'=>'starts_at','expr'=>"SUM(CASE WHEN status='no_show' THEN 1 ELSE 0 END)"],
+        'confirmed'=>['name'=>'Confirmed appointments','source'=>'Scheduling','table'=>'appointments','date'=>'starts_at','expr'=>"SUM(CASE WHEN status='confirmed' THEN 1 ELSE 0 END)"],
+        'in_progress'=>['name'=>'In-progress appointments','source'=>'Scheduling','table'=>'appointments','date'=>'starts_at','expr'=>"SUM(CASE WHEN status='in_progress' THEN 1 ELSE 0 END)"],
+        'completion_rate'=>['name'=>'Completion rate (%)','source'=>'Scheduling · rates','table'=>'appointments','date'=>'starts_at','expr'=>"ROUND(100*SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END)/NULLIF(COUNT(*),0),2)",'unit'=>'percent','rollup'=>'weighted'],
+        'cancellation_rate'=>['name'=>'Cancellation rate (%)','source'=>'Scheduling · rates','table'=>'appointments','date'=>'starts_at','expr'=>"ROUND(100*SUM(CASE WHEN status='cancelled' THEN 1 ELSE 0 END)/NULLIF(COUNT(*),0),2)",'unit'=>'percent','rollup'=>'weighted'],
+        'no_show_rate'=>['name'=>'No-show rate (%)','source'=>'Scheduling · rates','table'=>'appointments','date'=>'starts_at','expr'=>"ROUND(100*SUM(CASE WHEN status='no_show' THEN 1 ELSE 0 END)/NULLIF(COUNT(*),0),2)",'unit'=>'percent','rollup'=>'weighted'],
+        'completed_hours'=>['name'=>'Completed service hours','source'=>'Scheduling','table'=>'appointments','date'=>'starts_at','expr'=>"ROUND(SUM(CASE WHEN status='completed' THEN GREATEST(TIMESTAMPDIFF(MINUTE,starts_at,ends_at),0) ELSE 0 END)/60,2)"],
+        'cancelled_hours'=>['name'=>'Cancelled service hours','source'=>'Scheduling','table'=>'appointments','date'=>'starts_at','expr'=>"ROUND(SUM(CASE WHEN status='cancelled' THEN GREATEST(TIMESTAMPDIFF(MINUTE,starts_at,ends_at),0) ELSE 0 END)/60,2)"],
+        'scheduled_hours'=>['name'=>'Scheduled hours','source'=>'Scheduling','table'=>'appointments','date'=>'starts_at','expr'=>'ROUND(SUM(GREATEST(TIMESTAMPDIFF(MINUTE,starts_at,ends_at),0))/60,2)'],
+        'new_clients'=>['name'=>'New clients','source'=>'Clients','table'=>'clients','date'=>'created_at','expr'=>'COUNT(*)'],
+        'new_contractors'=>['name'=>'New contractors','source'=>'Contractors','table'=>'contractors','date'=>'created_at','expr'=>'COUNT(*)'],
+        'invoices'=>['name'=>'Invoices issued','source'=>'Finance','table'=>'invoices','date'=>'created_at','expr'=>'COUNT(*)'],
+        'invoice_total'=>['name'=>'Invoiced amount','source'=>'Finance','table'=>'invoices','date'=>'created_at','expr'=>'ROUND(SUM(total),2)'],
+        'outstanding'=>['name'=>'Outstanding balance','source'=>'Finance','table'=>'invoices','date'=>'created_at','expr'=>'ROUND(SUM(balance_due),2)'],
+        'payments'=>['name'=>'Successful payments','source'=>'Finance','table'=>'payments','date'=>'paid_at','expr'=>"ROUND(SUM(CASE WHEN status='succeeded' THEN amount ELSE 0 END),2)"],
+    ];
+    $pdo=Database::connection();
+    // Catalog and series requests use the same bounded, read-only method contract.
+    if(!in_array($_SERVER['REQUEST_METHOD']??'GET',['GET','HEAD'],true)){
+        header('Allow: GET, HEAD');http_response_code(405);
+        echo json_encode(['error'=>'Method not allowed']);exit;
+    }
+    $metrics=array_merge($metrics,IntelligenceProviders::discover($pdo,$tenant));
+    header('Cache-Control: no-store');
+    $catalog=array_map(static fn($k,$m)=>['key'=>$k,'name'=>$m['name'],'source'=>$m['source'],'unit'=>$m['unit']??'number','rollup'=>$m['rollup']??'sum'],array_keys($metrics),array_values($metrics));
+    if (($_GET['action']??'')==='catalog') {
+        echo json_encode(['metrics'=>$catalog],JSON_THROW_ON_ERROR); exit;
+    }
+    $requested=(string)($_GET['metrics']??'appointments,completed');
+    if(strlen($requested)>1024)throw new InvalidArgumentException('Metric selection is too long');
+    $keys=array_values(array_unique(array_filter(explode(',',$requested))));
+    if (!$keys || count($keys)>8 || array_diff($keys,array_keys($metrics))) throw new InvalidArgumentException('Select 1–8 valid metrics');
+    $interval=(string)($_GET['interval']??'month');
+    if (!in_array($interval,['day','week','month'],true)) throw new InvalidArgumentException('Invalid interval');
+    $from=(string)($_GET['from']??date('Y-m-01',strtotime('-5 months')));
+    $to=(string)($_GET['to']??date('Y-m-d'));
+    foreach ([$from,$to] as $date) {
+        $dt=DateTimeImmutable::createFromFormat('!Y-m-d',$date);
+        if (!$dt || $dt->format('Y-m-d')!==$date) throw new InvalidArgumentException('Invalid date');
+    }
+    if ($from>$to || (new DateTimeImmutable($from))->diff(new DateTimeImmutable($to))->days>730) throw new InvalidArgumentException('Date range must be 0–730 days');
+    $bucket=match($interval) {
+        'day'=>'DATE_FORMAT(%s,\'%%Y-%%m-%%d\')',
+        'week'=>'DATE_FORMAT(DATE_SUB(%s,INTERVAL WEEKDAY(%s) DAY),\'%%Y-%%m-%%d\')',
+        default=>'DATE_FORMAT(%s,\'%%Y-%%m\')'
+    };
+    $series=[];
+    foreach($keys as $key){
+        $m=$metrics[$key];$date=$m['date'];
+        $group=sprintf($bucket,$date,$date);
+        $isRate=($m['rollup']??'')==='weighted';
+        $extra=$isRate?', COUNT(*) AS weight':'';
+        $sql="SELECT $group AS bucket, {$m['expr']} AS value$extra FROM {$m['table']} WHERE tenant_id=? AND $date >= ? AND $date < DATE_ADD(?,INTERVAL 1 DAY) GROUP BY bucket ORDER BY bucket";
+        $stmt=$pdo->prepare($sql);$stmt->execute([$tid,$from,$to]);
+        $rows=$stmt->fetchAll(PDO::FETCH_ASSOC);
+        $points=array_map(static fn($r)=>['bucket'=>$r['bucket'],'value'=>(float)$r['value']]+(isset($r['weight'])?['weight'=>(int)$r['weight']]:[]),$rows);
+        $series[]=['key'=>$key,'name'=>$m['name'],'source'=>$m['source'],'unit'=>$m['unit']??'number','rollup'=>$m['rollup']??'sum','points'=>$points];
+    }
+    header('Cache-Control: no-store');
+    echo json_encode(['from'=>$from,'to'=>$to,'interval'=>$interval,'series'=>$series],JSON_THROW_ON_ERROR);
+} catch (InvalidArgumentException $e) {
+    http_response_code(422);echo json_encode(['error'=>$e->getMessage()]);
+} catch (Throwable $e) {
+    error_log('Intelligence metrics: '.$e->getMessage());
+    http_response_code(500);echo json_encode(['error'=>'Unable to load Intelligence metrics']);
+}
