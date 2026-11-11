@@ -454,3 +454,14 @@
 }
 .brite-app:has(.crm-shell) .brite-content,
 .brite-app:has(.msg-workspace) .brite-content {overflow-x:clip}
+
+/* Cycle 90AM: accordion headers remain interactive above submenu regions. */
+.brite-app .brite-sidebar-nav .brite-nav-accordion-trigger {
+    position: relative;
+    z-index: 1;
+    pointer-events: auto;
+    flex: 0 0 auto;
+}
+.brite-app .brite-sidebar-nav .brite-nav-accordion-panel[hidden] {
+    display: none !important;
+}

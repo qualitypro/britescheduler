@@ -55,10 +55,17 @@
                 group.region.hidden = !expanded;
             }
         }
-        for (const group of groups) {
-            group.button.addEventListener('click', () =>
-                activate(group.button.getAttribute('aria-expanded') === 'true' ? null : group));
-        }
+        // Delegate to the nav: resilient to other navigation scripts and
+        // avoids losing handlers if a header is re-rendered.
+        nav.addEventListener('click', event => {
+            const button = event.target.closest('.brite-nav-accordion-trigger');
+            if (!button || !nav.contains(button)) return;
+            event.preventDefault();
+            const group = groups.find(item => item.button === button);
+            if (!group) return;
+            const wasExpanded = button.getAttribute('aria-expanded') === 'true';
+            activate(wasExpanded ? null : group);
+        });
         // Current page is visible on load; only one section opens at a time.
         activate(groups.find(group => group.active) || groups[0]);
         nav.dataset.accordionReady = '1';
