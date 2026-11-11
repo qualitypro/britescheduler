@@ -217,6 +217,52 @@ section.bi-workspace[aria-labelledby="biTitle"] .bi-heading h1{font-size:1.18rem
  section.bi-workspace[aria-labelledby="biTitle"]>.bi-tabs button{width:auto;flex:1 1 110px}
  section.bi-workspace[aria-labelledby="biTitle"]>[role="tabpanel"]{grid-column:1;grid-row:3}
 }
+
+/* Cycle 90AQ: streamline Intelligence without changing its reporting logic. */
+section.bi-workspace[aria-labelledby="biTitle"]{
+ --bi-density-gap:8px;
+ gap:var(--bi-density-gap);
+}
+section.bi-workspace[aria-labelledby="biTitle"] .bi-heading{align-items:center;gap:6px 12px}
+section.bi-workspace[aria-labelledby="biTitle"] .bi-heading p{font-size:.72rem}
+section.bi-workspace[aria-labelledby="biTitle"]>[role="tabpanel"]{gap:8px;overflow-wrap:anywhere}
+section.bi-workspace[aria-labelledby="biTitle"] .bi-panel{padding:9px 11px;border-radius:6px}
+section.bi-workspace[aria-labelledby="biTitle"] .bi-panel h2{font-size:.9rem!important;margin:0 0 6px!important}
+section.bi-workspace[aria-labelledby="biTitle"] .bi-toolbar,
+section.bi-workspace[aria-labelledby="biTitle"] .bi-fin-config{
+ display:flex;flex-wrap:wrap;align-items:end;gap:6px 7px;
+}
+section.bi-workspace[aria-labelledby="biTitle"] .bi-toolbar label,
+section.bi-workspace[aria-labelledby="biTitle"] .bi-fin-config label{min-width:0!important}
+section.bi-workspace[aria-labelledby="biTitle"] .bi-toolbar button,
+section.bi-workspace[aria-labelledby="biTitle"] .bi-fin-config button{
+ flex:0 0 auto;min-height:29px!important;height:29px!important;
+ padding:4px 7px!important;font-size:.72rem!important;
+}
+section.bi-workspace[aria-labelledby="biTitle"] .bi-layout{gap:8px;min-width:0}
+section.bi-workspace[aria-labelledby="biTitle"] .bi-metrics{gap:2px}
+section.bi-workspace[aria-labelledby="biTitle"] .bi-metrics label{font-size:.74rem!important}
+section.bi-workspace[aria-labelledby="biTitle"] .bi-fin-totals{gap:6px}
+section.bi-workspace[aria-labelledby="biTitle"] .bi-fin-total{padding:7px 9px}
+section.bi-workspace[aria-labelledby="biTitle"] .bi-fin-total strong{font-size:1rem}
+section.bi-workspace[aria-labelledby="biTitle"] .bi-legend{gap:6px 10px}
+section.bi-workspace[aria-labelledby="biTitle"] .bi-note{font-size:.72rem;line-height:1.4}
+section.bi-workspace[aria-labelledby="biTitle"] .bi-widget-grid{gap:8px}
+section.bi-workspace[aria-labelledby="biTitle"] .bi-fin-table,
+section.bi-workspace[aria-labelledby="biTitle"] .bi-panel>div[style*="overflow-x"]{max-width:100%;overflow-x:auto}
+section.bi-workspace[aria-labelledby="biTitle"] table{font-size:.75rem}
+section.bi-workspace[aria-labelledby="biTitle"] th,
+section.bi-workspace[aria-labelledby="biTitle"] td{padding:5px 7px}
+@media(max-width:1000px){
+ section.bi-workspace[aria-labelledby="biTitle"]{grid-template-columns:130px minmax(0,1fr)}
+ section.bi-workspace[aria-labelledby="biTitle"] .bi-layout{grid-template-columns:minmax(0,1fr)}
+ section.bi-workspace[aria-labelledby="biTitle"] .bi-series-panel{height:auto!important;max-height:260px;overflow:auto}
+}
+@media(max-width:700px){
+ section.bi-workspace[aria-labelledby="biTitle"]{grid-template-columns:minmax(0,1fr)}
+ section.bi-workspace[aria-labelledby="biTitle"] .bi-toolbar input[type=date],
+ section.bi-workspace[aria-labelledby="biTitle"] .bi-fin-config input[type=date]{min-width:115px!important}
+}
 </style>
 <link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-widget-layout.css'),ENT_QUOTES,'UTF-8')?>">
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-widget-layout.js'),ENT_QUOTES,'UTF-8')?>"></script>
