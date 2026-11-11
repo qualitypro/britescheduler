@@ -254,6 +254,21 @@ Trends
 </a>
 <?php endif; ?>
 
+<?php
+require_once dirname(__DIR__).'/app/ModuleRegistry.php';
+$briteActiveModules=ModuleRegistry::activeFor($tenant);
+if($briteActiveModules):
+?>
+<div class="brite-nav-group-label">Subscriptions</div>
+<?php foreach($briteActiveModules as $briteModule): ?>
+<a href="<?=htmlspecialchars(app_url('/module.php?module='.rawurlencode($briteModule['key'])),ENT_QUOTES,'UTF-8')?>">
+<span class="brite-nav-icon" aria-hidden="true"><?php if($briteModule['key']==='messaging'): ?><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z"/><path d="M8.5 11.5h7M8.5 14.5h4.5"/></svg><?php else: ?>▦<?php endif; ?></span>
+<?=htmlspecialchars($briteModule['menu_label'],ENT_QUOTES,'UTF-8')?>
+</a>
+<?php endforeach; ?>
+<?php endif; ?>
+
+
 <?php if(in_array($tenant['role'],['owner','admin','accounting'],true)): ?>
 <div class="brite-nav-group-label">Administration</div>
 <a href="<?=htmlspecialchars(app_url('/billing.php'))?>">
@@ -322,20 +337,6 @@ My Locations
 </a>
 <?php endif; ?>
 
-
-<?php
-require_once dirname(__DIR__).'/app/ModuleRegistry.php';
-$briteActiveModules=ModuleRegistry::activeFor($tenant);
-if($briteActiveModules):
-?>
-<div class="brite-nav-group-label">Subscriptions</div>
-<?php foreach($briteActiveModules as $briteModule): ?>
-<a href="<?=htmlspecialchars(app_url('/module.php?module='.rawurlencode($briteModule['key'])),ENT_QUOTES,'UTF-8')?>">
-<span class="brite-nav-icon" aria-hidden="true"><?php if($briteModule['key']==='messaging'): ?><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z"/><path d="M8.5 11.5h7M8.5 14.5h4.5"/></svg><?php else: ?>▦<?php endif; ?></span>
-<?=htmlspecialchars($briteModule['menu_label'],ENT_QUOTES,'UTF-8')?>
-</a>
-<?php endforeach; ?>
-<?php endif; ?>
 
     <div class="brite-nav-group-label">Personal</div>
     <a href="<?=htmlspecialchars(
