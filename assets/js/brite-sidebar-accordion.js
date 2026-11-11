@@ -45,29 +45,54 @@
             label.replaceWith(button);
             button.after(region);
             region.append(...items);
-            return {button, region, active: !!region.querySelector('a[aria-current="page"]')};
+            return {key, button, region, active: !!region.querySelector('a[aria-current="page"]')};
         });
         if (!groups.length) return;
-        function activate(selected) {
+        // Persist the user's open section across full-page navigation.
+        // Scope it to this tenant/role so switching workspaces cannot
+        // restore an unrelated section.
+        const tenantLabel = document.querySelector('#briteSidebar .brite-sidebar-footer')?.textContent.trim() || '';
+        const role = document.querySelector('.brite-account-role')?.textContent.trim() || '';
+        const storageKey = 'brite:sidebar:open:' + tenantLabel + ':' + role;
+        function readStored() {
+            try { return sessionStorage.getItem(storageKey); } catch (_) { return null; }
+        }
+        function saveStored(key) {
+            try {
+                if (key === null) sessionStorage.removeItem(storageKey);
+                else sessionStorage.setItem(storageKey, key);
+            } catch (_) { /* Storage may be unavailable. */ }
+        }
+        function activate(selected, persist = true) {
             for (const group of groups) {
                 const expanded = group === selected;
                 group.button.setAttribute('aria-expanded', String(expanded));
                 group.region.hidden = !expanded;
             }
+            if (persist) saveStored(selected ? selected.key : null);
         }
-        // Delegate to the nav: resilient to other navigation scripts and
-        // avoids losing handlers if a header is re-rendered.
         nav.addEventListener('click', event => {
             const button = event.target.closest('.brite-nav-accordion-trigger');
-            if (!button || !nav.contains(button)) return;
-            event.preventDefault();
-            const group = groups.find(item => item.button === button);
-            if (!group) return;
-            const wasExpanded = button.getAttribute('aria-expanded') === 'true';
-            activate(wasExpanded ? null : group);
+            if (button && nav.contains(button)) {
+                event.preventDefault();
+                const group = groups.find(item => item.button === button);
+                if (!group) return;
+                activate(button.getAttribute('aria-expanded') === 'true' ? null : group);
+                return;
+            }
+            const link = event.target.closest('.brite-nav-accordion-panel a[href]');
+            if (link && nav.contains(link)) {
+                const group = groups.find(item => item.region.contains(link));
+                if (group) saveStored(group.key);
+            }
         });
-        // Current page is visible on load; only one section opens at a time.
-        activate(groups.find(group => group.active) || groups[0]);
+        const storedKey = readStored();
+        // A stored open section takes precedence on reload; on first visit
+        // show the section containing the active page.
+        const initial = storedKey === null
+            ? (groups.find(group => group.active) || groups[0])
+            : groups.find(group => group.key === storedKey);
+        activate(initial || groups.find(group => group.active) || groups[0], false);
         nav.dataset.accordionReady = '1';
     }
     if (document.readyState === 'loading') {
