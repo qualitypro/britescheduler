@@ -52,6 +52,7 @@ body{font-family:system-ui,sans-serif;margin:0;background:#f5f7fb;color:#1f2937}
 </style>
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-themes.css'), ENT_QUOTES, 'UTF-8')?>">
+<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-compact-headings.css?v=90ao'),ENT_QUOTES,'UTF-8')?>">
 <script>
 window.BRITE_CSRF=<?=json_encode($csrf)?>;
 window.BRITE_BASE=<?=json_encode(app_url())?>;
