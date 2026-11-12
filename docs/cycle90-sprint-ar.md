@@ -1,0 +1,3 @@
+# Cycle 90AR — Sitewide compact page headings and controls
+
+Uses the Scheduling density scheme for authenticated page headings, top filtering and quick-action bars, dashboard action links, directory sorting, Activity Hub filters and stats, and Administration tabs. Centralized in the existing compact-heading stylesheet with cache bust 90ar. Scoped to `.brite-content` and named page-level toolbars; deliberately does not target sidebar/topbar, modal content, FullCalendar controls, or general edit forms. Existing JavaScript interactions and role permissions remain untouched. Remote code review only; visual browser regression testing pending.

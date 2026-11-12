@@ -26,3 +26,82 @@
 @media (max-width: 680px) {
     .brite-app .brite-content :is(h1,h2,h3,h4,h5,h6) { line-height: 1.3 !important; }
 }
+
+/* Cycle 90AR — Scheduling-density page headings and top action/filter bars.
+   Excludes sidebar, topbar, modals, calendars, and ordinary edit forms. */
+.brite-app .brite-content{
+ --brite-page-heading-size:1.16rem;
+ --brite-section-heading-size:.98rem;
+ --brite-control-height:31px;
+ --brite-control-gap:7px;
+}
+.brite-app .brite-content :is(h1,.brite-dashboard-heading h1,.brite-directory-header h1){
+ font-size:var(--brite-page-heading-size)!important;
+ line-height:1.22!important;
+ margin-block:0 .25rem!important;
+ letter-spacing:-.015em;
+}
+.brite-app .brite-content :is(h2,.brite-dashboard-panel h2){
+ font-size:var(--brite-section-heading-size)!important;
+ line-height:1.25!important;
+ margin-block:0 .35rem!important;
+}
+.brite-app .brite-content :is(h3,h4){line-height:1.25!important;margin-block:0 .35rem!important}
+.brite-app .brite-content :is(
+ .brite-dashboard-header,.brite-directory-header,.bi-heading,
+ .page-header,.section-header
+){gap:8px!important;margin-block-end:9px!important}
+.brite-app .brite-content :is(
+ .brite-dashboard-heading,.brite-directory-header,.page-header,.section-header
+) p{font-size:.76rem;line-height:1.4;margin-block:2px 0}
+.brite-app .brite-content :is(
+ .brite-dashboard-actions,.brite-activity-toolbar,.brite-tab-toolbar,
+ .brite-settings-tabs,.brite-list-card-headings,.bi-toolbar,
+ .bi-fin-config,.crm-toolbar,.crm-filters,.msg-toolbar,
+ .filter-bar,.filters-bar,.quick-actions-bar,.page-actions
+){gap:var(--brite-control-gap)!important}
+.brite-app .brite-content :is(
+ .brite-dashboard-actions,.brite-activity-toolbar,.brite-tab-toolbar,
+ .brite-settings-tabs,.bi-toolbar,.bi-fin-config,.crm-toolbar,
+ .crm-filters,.msg-toolbar,.filter-bar,.filters-bar,.quick-actions-bar,.page-actions
+){margin-block:6px 9px!important}
+.brite-app .brite-content :is(
+ .brite-dashboard-actions,.brite-activity-toolbar,.brite-tab-toolbar,
+ .brite-settings-tabs,.brite-list-card-headings,.crm-toolbar,.crm-filters,
+ .msg-toolbar,.filter-bar,.filters-bar,.quick-actions-bar,.page-actions
+) :is(button,.brite-ui-button,input:not([type="checkbox"]):not([type="radio"]),select){
+ box-sizing:border-box;
+ min-height:var(--brite-control-height)!important;
+ height:auto;
+ padding:5px 9px!important;
+ border-radius:5px!important;
+ font-size:.76rem!important;
+ line-height:1.3!important;
+}
+.brite-app .brite-content :is(
+ .brite-dashboard-actions,.brite-activity-toolbar,.brite-tab-toolbar,
+ .brite-settings-tabs,.brite-list-card-headings,.crm-toolbar,.crm-filters,
+ .msg-toolbar,.filter-bar,.filters-bar,.quick-actions-bar,.page-actions
+) :is(button,.brite-ui-button){white-space:normal}
+.brite-app .brite-content .brite-settings-tabs{
+ margin-block:8px 12px!important;padding-bottom:6px!important
+}
+.brite-app .brite-content .brite-activity-page{padding:10px 12px!important}
+.brite-app .brite-content .brite-activity-stats{gap:6px!important}
+.brite-app .brite-content .brite-activity-stats span{
+ padding:5px 9px!important;font-size:.76rem!important;border-radius:5px!important
+}
+.brite-app .brite-content .brite-activity-toolbar input{
+ min-width:min(170px,100%)!important
+}
+.brite-app .brite-content .brite-dashboard-header{
+ padding-block:8px!important
+}
+@media(max-width:680px){
+ .brite-app .brite-content :is(
+  .brite-dashboard-actions,.brite-activity-toolbar,.brite-tab-toolbar,
+  .brite-settings-tabs,.crm-toolbar,.crm-filters,.msg-toolbar,
+  .filter-bar,.filters-bar,.quick-actions-bar,.page-actions
+ ){flex-wrap:wrap;max-width:100%}
+ .brite-app .brite-content .brite-activity-toolbar input{flex:1 1 100%}
+}
