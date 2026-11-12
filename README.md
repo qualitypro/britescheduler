@@ -16,7 +16,14 @@
 
 ## 📸 Application screenshots
 
-[**Browse the interactive screenshot gallery**](https://qualitypro.github.io/britescheduler/) — desktop, tablet, and mobile previews with a full-screen lightbox, next/previous navigation, and role filters. Screenshots appear after approved captures are published. See [screenshot publication instructions](qa/screenshots/PUBLIC_GALLERY.md).
+**[Open the live interactive screenshot gallery](https://qualitypro.github.io/britescheduler/)** — 87 published screenshots across Owner, Contractor, and Client workspaces, with desktop, tablet, and mobile previews, role filters, and full-screen image inspection.
+
+| Owner workspace | Contractor workspace | Client workspace |
+| --- | --- | --- |
+| [![Owner dashboard](docs/gallery/images/owner/desktop/dashboard.png)](https://qualitypro.github.io/britescheduler/) | [![Contractor dashboard](docs/gallery/images/contractor/desktop/contractor-dashboard.png)](https://qualitypro.github.io/britescheduler/) | [![Client dashboard](docs/gallery/images/client/desktop/client-dashboard.png)](https://qualitypro.github.io/britescheduler/) |
+| [View all Owner screenshots](https://qualitypro.github.io/britescheduler/) | [View all Contractor screenshots](https://qualitypro.github.io/britescheduler/) | [View all Client screenshots](https://qualitypro.github.io/britescheduler/) |
+
+The published gallery also includes scheduling, Marketplace, CRM, locations, billing, messaging, and other available role-specific screens. For capture and publication instructions, see [Screenshot Gallery documentation](qa/screenshots/PUBLIC_GALLERY.md).
 
 ---
 
