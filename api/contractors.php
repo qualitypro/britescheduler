@@ -61,6 +61,43 @@ if ($_SERVER['REQUEST_METHOD']==='GET') {
         'scheduler'
     );
 
+    // Opt-in pagination; preserve unpaginated responses for existing selects.
+    if (isset($_GET['page']) || isset($_GET['per_page'])) {
+        require_once dirname(__DIR__).'/app/ServerPagination.php';
+        try {
+            $paging=ServerPagination::fromQuery($_GET);
+        } catch (InvalidArgumentException $e) {
+            json_response(['error'=>$e->getMessage()],422);
+        }
+        $count=$pdo->prepare('SELECT COUNT(*) FROM contractors WHERE tenant_id=?');
+        $count->execute([$tid]);
+        $total=(int)$count->fetchColumn();
+        $limit=$paging['per_page'];
+        $offset=$paging['offset'];
+        // Only allow known sortable columns; never interpolate user input.
+        $sort = $_GET['sort'] ?? 'name';
+        $direction = $_GET['direction'] ?? 'asc';
+        if (!is_string($sort) || !in_array($sort,['name','created_at','updated_at','status'],true) ||
+            !is_string($direction) || !in_array($direction,['asc','desc'],true)) {
+            json_response(['error'=>'Invalid sort parameters'],422);
+        }
+        $order = [
+            'name'=>'last_name,first_name',
+            'created_at'=>'created_at',
+            'updated_at'=>'updated_at',
+            'status'=>'status'
+        ][$sort];
+        $dir = strtoupper($direction);
+        if ($sort==='name') {
+            $order='last_name '.$dir.',first_name '.$dir;
+        } else {
+            $order.=' '.$dir;
+        }
+        $q=$pdo->prepare("SELECT * FROM contractors WHERE tenant_id=? ORDER BY {$order},id {$dir} LIMIT {$limit} OFFSET {$offset}");
+        $q->execute([$tid]);
+        json_response(['contractors'=>$q->fetchAll(), 'pagination'=>ServerPagination::metadata($paging,$total)]);
+    }
+
     $q=$pdo->prepare("
         SELECT *
         FROM contractors

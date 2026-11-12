@@ -179,5 +179,105 @@
         }
     }
 
+    // Remote pagination for APIs that return {records, pagination}.
+    // Keep BritePagination above unchanged for existing client-side tables.
+    class BriteServerPagination {
+        constructor(options) {
+            if (!options || !options.container ||
+                typeof options.load !== 'function' ||
+                typeof options.render !== 'function') {
+                throw new Error('Invalid server pagination configuration');
+            }
+            this.container = options.container;
+            this.load = options.load;
+            this.render = options.render;
+            this.onError = options.onError;
+            this.page = 1;
+            this.pageSize = 25;
+            this.sequence = 0;
+            this.meta = null;
+
+            this.nav = document.createElement('nav');
+            this.nav.className = 'brite-pagination brite-server-pagination';
+            this.nav.setAttribute('aria-label', 'Server-side pagination');
+            this.nav.style.cssText =
+                'display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px';
+
+            this.info = document.createElement('span');
+            this.info.setAttribute('aria-live', 'polite');
+            this.previous = document.createElement('button');
+            this.previous.type = 'button';
+            this.previous.textContent = 'Previous';
+            this.previous.addEventListener('click', () => this.goTo(this.page - 1));
+            this.next = document.createElement('button');
+            this.next.type = 'button';
+            this.next.textContent = 'Next';
+            this.next.addEventListener('click', () => this.goTo(this.page + 1));
+            this.size = document.createElement('select');
+            this.size.setAttribute('aria-label', 'Rows per page');
+            [15,25,50,100].forEach(value => {
+                const option = document.createElement('option');
+                option.value = String(value);
+                option.textContent = String(value);
+                this.size.appendChild(option);
+            });
+            this.size.value = String(this.pageSize);
+            this.size.addEventListener('change', () => {
+                this.pageSize = Number(this.size.value);
+                this.goTo(1);
+            });
+            this.retry = document.createElement('button');
+            this.retry.type = 'button';
+            this.retry.textContent = 'Retry';
+            this.retry.hidden = true;
+            this.retry.addEventListener('click', () => this.refresh());
+            this.nav.append(this.info, this.previous, this.next, this.size, this.retry);
+            this.container.appendChild(this.nav);
+            this.refresh();
+        }
+
+        async goTo(page) {
+            if (!Number.isInteger(page) || page < 1 ||
+                (this.meta && page > this.meta.total_pages)) return;
+            this.page = page;
+            await this.refresh();
+        }
+
+        async refresh() {
+            const request = ++this.sequence;
+            this.previous.disabled = true;
+            this.next.disabled = true;
+            this.info.textContent = 'Loading records…';
+            this.retry.hidden = true;
+            try {
+                const result = await this.load({
+                    page: this.page,
+                    per_page: this.pageSize
+                });
+                if (request !== this.sequence) return;
+                if (!result || !Array.isArray(result.records) ||
+                    !result.pagination) {
+                    throw new Error('Invalid paginated API response');
+                }
+                this.meta = result.pagination;
+                this.page = Number(this.meta.page);
+                this.render(result.records);
+                const total = Number(this.meta.total) || 0;
+                const first = total ? (this.page - 1) * this.pageSize + 1 : 0;
+                const last = Math.min(total, this.page * this.pageSize);
+                this.info.textContent =
+                    'Showing ' + first + '–' + last + ' of ' + total;
+                this.previous.disabled = !this.meta.has_previous;
+                this.next.disabled = !this.meta.has_next;
+            } catch (error) {
+                if (request !== this.sequence) return;
+                this.info.textContent = 'Unable to load records';
+                this.retry.hidden = false;
+                if (typeof this.onError === 'function') this.onError(error);
+            }
+        }
+    }
+
     global.BritePagination = BritePagination;
+    global.BriteServerPagination = BriteServerPagination;
 })(window);

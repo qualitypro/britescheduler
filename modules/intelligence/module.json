@@ -1,0 +1,14 @@
+{
+  "key": "intelligence",
+  "name": "Brite Intelligence",
+  "menu_label": "Intelligence",
+  "version": "0.4.0",
+  "description": "Tenant-scoped Intelligence with compact performance and financial tabs, configurable dollar-valued revenue, billing and opportunity series, saved views and chart exports.",
+  "page": "index.php",
+  "roles": [
+    "owner",
+    "admin",
+    "scheduler",
+    "accounting"
+  ]
+}

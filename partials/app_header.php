@@ -52,6 +52,7 @@ body{font-family:system-ui,sans-serif;margin:0;background:#f5f7fb;color:#1f2937}
 </style>
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-themes.css'), ENT_QUOTES, 'UTF-8')?>">
+<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-compact-headings.css?v=90as'),ENT_QUOTES,'UTF-8')?>">
 <script>
 window.BRITE_CSRF=<?=json_encode($csrf)?>;
 window.BRITE_BASE=<?=json_encode(app_url())?>;
@@ -107,16 +108,17 @@ document.addEventListener('DOMContentLoaded', function () {
         const samePath = target.pathname === currentUrl.pathname;
         const isModule = target.pathname.endsWith('/module.php');
         const selected = samePath && (isModule
-            ? target.searchParams.get('module') !== null &&
+            ? target.searchParams.has('module') &&
               target.searchParams.get('module') === currentUrl.searchParams.get('module')
-            : (!target.searchParams.has('book') ||
-               target.searchParams.get('book') === currentUrl.searchParams.get('book')));
+            : target.searchParams.get('book') === currentUrl.searchParams.get('book'));
         if (selected) link.setAttribute('aria-current', 'page');
         else link.removeAttribute('aria-current');
     });
 });
 </script>
 <script defer src="<?=htmlspecialchars(app_url('/assets/js/brite-photo-lightbox.js'),ENT_QUOTES,'UTF-8')?>"></script>
+<script defer src="<?=htmlspecialchars(app_url('/assets/js/brite-sidebar-accordion.js?v=90an'),ENT_QUOTES,'UTF-8')?>"></script>
+
 <style>
 .brite-msg-alert{position:relative;display:flex;align-items:center}.brite-msg-alert>button{display:flex;gap:7px;align-items:center;background:transparent;color:inherit;border:1px solid currentColor;border-radius:9px;padding:8px 10px}.brite-msg-alert #briteMsgCount{border-radius:20px;background:#dc2626;color:white;font-weight:700;padding:2px 7px;font-size:.75rem}.brite-msg-alert #briteMsgDropdown{position:absolute;right:0;top:calc(100% + 8px);z-index:1000;width:min(320px,85vw);max-height:350px;overflow:auto;background:white;color:#172033;border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 12px 25px #0003;padding:14px}.brite-msg-alert #briteMsgDropdown a{display:block;margin-top:10px}.brite-msg-alert .brite-msg-item{display:block;padding:9px 0;border-bottom:1px solid #e5e7eb;text-decoration:none;color:#172033}.brite-msg-alert .brite-msg-item small{display:block;color:#64748b}
 </style>
@@ -253,6 +255,21 @@ Trends
 </a>
 <?php endif; ?>
 
+<?php
+require_once dirname(__DIR__).'/app/ModuleRegistry.php';
+$briteActiveModules=ModuleRegistry::activeFor($tenant);
+if($briteActiveModules):
+?>
+<div class="brite-nav-group-label">Subscriptions</div>
+<?php foreach($briteActiveModules as $briteModule): ?>
+<a href="<?=htmlspecialchars(app_url('/module.php?module='.rawurlencode($briteModule['key'])),ENT_QUOTES,'UTF-8')?>">
+<span class="brite-nav-icon" aria-hidden="true"><?php if($briteModule['key']==='messaging'): ?><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z"/><path d="M8.5 11.5h7M8.5 14.5h4.5"/></svg><?php else: ?>▦<?php endif; ?></span>
+<?=htmlspecialchars($briteModule['menu_label'],ENT_QUOTES,'UTF-8')?>
+</a>
+<?php endforeach; ?>
+<?php endif; ?>
+
+
 <?php if(in_array($tenant['role'],['owner','admin','accounting'],true)): ?>
 <div class="brite-nav-group-label">Administration</div>
 <a href="<?=htmlspecialchars(app_url('/billing.php'))?>">
@@ -321,20 +338,6 @@ My Locations
 </a>
 <?php endif; ?>
 
-
-<?php
-require_once dirname(__DIR__).'/app/ModuleRegistry.php';
-$briteActiveModules=ModuleRegistry::activeFor($tenant);
-if($briteActiveModules):
-?>
-<div class="brite-nav-group-label">Modules</div>
-<?php foreach($briteActiveModules as $briteModule): ?>
-<a href="<?=htmlspecialchars(app_url('/module.php?module='.rawurlencode($briteModule['key'])),ENT_QUOTES,'UTF-8')?>">
-<span class="brite-nav-icon" aria-hidden="true"><?php if($briteModule['key']==='messaging'): ?><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z"/><path d="M8.5 11.5h7M8.5 14.5h4.5"/></svg><?php else: ?>▦<?php endif; ?></span>
-<?=htmlspecialchars($briteModule['menu_label'],ENT_QUOTES,'UTF-8')?>
-</a>
-<?php endforeach; ?>
-<?php endif; ?>
 
     <div class="brite-nav-group-label">Personal</div>
     <a href="<?=htmlspecialchars(
@@ -498,4 +501,5 @@ if($briteActiveModules):
     </aside>
 
 
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-page-heading-icons.js?v=90as'),ENT_QUOTES,'UTF-8')?>" defer></script>
 <main class="brite-content" id="briteMainContent" tabindex="-1">

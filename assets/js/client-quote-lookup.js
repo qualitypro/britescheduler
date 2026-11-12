@@ -9,6 +9,7 @@ const base=window.BRITE_BASE||'';
 const node=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=String(text);return e;};
 const labels={submitted:'Awaiting contractor response',more_info_requested:'Action needed',quoted:'Quote received',accepted:'Accepted',declined:'Declined',cancelled:'Cancelled'};
 let requests=[];
+let pager=null;
 const expanded=new Set();
 function matches(r){
  const q=search.value.trim().toLowerCase();
@@ -44,7 +45,7 @@ function detail(r){
 function render(){
  const focused=document.activeElement?.closest('article')?.dataset.requestId;
  root.replaceChildren();
- const visible=requests.filter(matches).sort((a,b)=>{
+ const visible=(pager?requests:requests.filter(matches)).sort((a,b)=>{
  const priority=r=>r.status==='more_info_requested'?0:r.status==='quoted'?1:r.status==='submitted'?2:3;
  return priority(a)-priority(b)||Number(b.id)-Number(a.id);
  });
@@ -86,8 +87,23 @@ function render(){
   root.append(card);
  });
 }
-search.addEventListener('input',render);
-filter.addEventListener('change',render);
+let debounce;
+search.addEventListener('input',()=>{if(!pager){render();return;}clearTimeout(debounce);debounce=setTimeout(()=>pager.goTo(1),300);});
+filter.addEventListener('change',()=>pager?pager.goTo(1):render());
+if(window.BriteServerPagination && document.getElementById('clientQuotePagination')){
+ pager=new BriteServerPagination({
+  container:document.getElementById('clientQuotePagination'),
+  load:async ({page,per_page})=>{
+   const qs=new URLSearchParams({page:String(page),per_page:String(per_page),search:search.value.trim(),status:filter.value});
+   const response=await fetch(base+'/api/client_quote_requests.php?'+qs,{credentials:'same-origin',headers:{Accept:'application/json'}});
+   const data=await response.json();
+   if(!response.ok)throw Error(data.error||'HTTP '+response.status);
+   return {records:data.requests,pagination:data.pagination};
+  },
+  render:records=>{requests=records;expanded.clear();render();},
+  onError:error=>{status.textContent='Unable to load quote requests: '+error.message;}
+ });
+}else{
 (async()=>{
  try{
   const response=await fetch(base+'/api/client_quote_requests.php',{credentials:'same-origin',headers:{Accept:'application/json'}});
@@ -97,4 +113,5 @@ filter.addEventListener('change',render);
   render();
  }catch(e){status.textContent='Unable to load quote requests: '+e.message;}
 })();
+}
 })();

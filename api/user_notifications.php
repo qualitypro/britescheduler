@@ -46,9 +46,31 @@ try {
 
     $count->execute([$tenantId, $userId]);
 
+    // Optional server-side paging for notification history.
+    // Existing all/offset consumers retain their original behavior.
+    $paging = null;
+    $totalNotifications = null;
+    if (isset($_GET['page']) || isset($_GET['per_page'])) {
+        require_once dirname(__DIR__).'/app/ServerPagination.php';
+        try {
+            $paging = ServerPagination::fromQuery($_GET);
+        } catch (InvalidArgumentException $e) {
+            json_response(['error'=>$e->getMessage()],422);
+        }
+        $totalQuery=$pdo->prepare(
+            'SELECT COUNT(*) FROM notifications WHERE tenant_id=? AND user_id=?'
+        );
+        $totalQuery->execute([$tenantId,$userId]);
+        $totalNotifications=(int)$totalQuery->fetchColumn();
+    }
+
     $all = isset($_GET['all']) && $_GET['all'] === '1';
     $limit = $all ? 500 : 50;
     $offset = $all ? max(0, min(1000000, (int)($_GET['offset'] ?? 0))) : 0;
+    if ($paging !== null) {
+        $limit=$paging['per_page'];
+        $offset=$paging['offset'];
+    }
 
     $query = $pdo->prepare("
         SELECT
@@ -122,7 +144,10 @@ try {
         'unread_count' => (int)$count->fetchColumn(),
         'notifications' => $notifications,
         'limit' => $limit,
-        'offset' => $offset
+        'offset' => $offset,
+        'pagination' => $paging !== null
+            ? ServerPagination::metadata($paging,$totalNotifications)
+            : null
     ]);
 
 } catch (Throwable $e) {

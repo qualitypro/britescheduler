@@ -1,0 +1,526 @@
+{
+  "screenshots": [
+    {
+      "title": "Owner \u2014 Activity",
+      "role": "owner",
+      "viewport": "desktop",
+      "src": "images/owner/desktop/activity.png"
+    },
+    {
+      "title": "Owner \u2014 Billing",
+      "role": "owner",
+      "viewport": "desktop",
+      "src": "images/owner/desktop/billing.png"
+    },
+    {
+      "title": "Owner \u2014 Clients",
+      "role": "owner",
+      "viewport": "desktop",
+      "src": "images/owner/desktop/clients.png"
+    },
+    {
+      "title": "Owner \u2014 Contractors",
+      "role": "owner",
+      "viewport": "desktop",
+      "src": "images/owner/desktop/contractors.png"
+    },
+    {
+      "title": "Owner \u2014 Crm",
+      "role": "owner",
+      "viewport": "desktop",
+      "src": "images/owner/desktop/crm.png"
+    },
+    {
+      "title": "Owner \u2014 Dashboard",
+      "role": "owner",
+      "viewport": "desktop",
+      "src": "images/owner/desktop/dashboard.png"
+    },
+    {
+      "title": "Owner \u2014 Intelligence",
+      "role": "owner",
+      "viewport": "desktop",
+      "src": "images/owner/desktop/intelligence.png"
+    },
+    {
+      "title": "Owner \u2014 Locations",
+      "role": "owner",
+      "viewport": "desktop",
+      "src": "images/owner/desktop/locations.png"
+    },
+    {
+      "title": "Owner \u2014 Marketplace",
+      "role": "owner",
+      "viewport": "desktop",
+      "src": "images/owner/desktop/marketplace.png"
+    },
+    {
+      "title": "Owner \u2014 Messaging",
+      "role": "owner",
+      "viewport": "desktop",
+      "src": "images/owner/desktop/messaging.png"
+    },
+    {
+      "title": "Owner \u2014 My Settings",
+      "role": "owner",
+      "viewport": "desktop",
+      "src": "images/owner/desktop/my-settings.png"
+    },
+    {
+      "title": "Owner \u2014 Schedule",
+      "role": "owner",
+      "viewport": "desktop",
+      "src": "images/owner/desktop/schedule.png"
+    },
+    {
+      "title": "Owner \u2014 Services",
+      "role": "owner",
+      "viewport": "desktop",
+      "src": "images/owner/desktop/services.png"
+    },
+    {
+      "title": "Owner \u2014 Settings",
+      "role": "owner",
+      "viewport": "desktop",
+      "src": "images/owner/desktop/settings.png"
+    },
+    {
+      "title": "Owner \u2014 Staff",
+      "role": "owner",
+      "viewport": "desktop",
+      "src": "images/owner/desktop/staff.png"
+    },
+    {
+      "title": "Owner \u2014 Activity",
+      "role": "owner",
+      "viewport": "tablet",
+      "src": "images/owner/tablet/activity.png"
+    },
+    {
+      "title": "Owner \u2014 Billing",
+      "role": "owner",
+      "viewport": "tablet",
+      "src": "images/owner/tablet/billing.png"
+    },
+    {
+      "title": "Owner \u2014 Clients",
+      "role": "owner",
+      "viewport": "tablet",
+      "src": "images/owner/tablet/clients.png"
+    },
+    {
+      "title": "Owner \u2014 Contractors",
+      "role": "owner",
+      "viewport": "tablet",
+      "src": "images/owner/tablet/contractors.png"
+    },
+    {
+      "title": "Owner \u2014 Crm",
+      "role": "owner",
+      "viewport": "tablet",
+      "src": "images/owner/tablet/crm.png"
+    },
+    {
+      "title": "Owner \u2014 Dashboard",
+      "role": "owner",
+      "viewport": "tablet",
+      "src": "images/owner/tablet/dashboard.png"
+    },
+    {
+      "title": "Owner \u2014 Intelligence",
+      "role": "owner",
+      "viewport": "tablet",
+      "src": "images/owner/tablet/intelligence.png"
+    },
+    {
+      "title": "Owner \u2014 Locations",
+      "role": "owner",
+      "viewport": "tablet",
+      "src": "images/owner/tablet/locations.png"
+    },
+    {
+      "title": "Owner \u2014 Marketplace",
+      "role": "owner",
+      "viewport": "tablet",
+      "src": "images/owner/tablet/marketplace.png"
+    },
+    {
+      "title": "Owner \u2014 Messaging",
+      "role": "owner",
+      "viewport": "tablet",
+      "src": "images/owner/tablet/messaging.png"
+    },
+    {
+      "title": "Owner \u2014 My Settings",
+      "role": "owner",
+      "viewport": "tablet",
+      "src": "images/owner/tablet/my-settings.png"
+    },
+    {
+      "title": "Owner \u2014 Schedule",
+      "role": "owner",
+      "viewport": "tablet",
+      "src": "images/owner/tablet/schedule.png"
+    },
+    {
+      "title": "Owner \u2014 Services",
+      "role": "owner",
+      "viewport": "tablet",
+      "src": "images/owner/tablet/services.png"
+    },
+    {
+      "title": "Owner \u2014 Settings",
+      "role": "owner",
+      "viewport": "tablet",
+      "src": "images/owner/tablet/settings.png"
+    },
+    {
+      "title": "Owner \u2014 Staff",
+      "role": "owner",
+      "viewport": "tablet",
+      "src": "images/owner/tablet/staff.png"
+    },
+    {
+      "title": "Owner \u2014 Activity",
+      "role": "owner",
+      "viewport": "mobile",
+      "src": "images/owner/mobile/activity.png"
+    },
+    {
+      "title": "Owner \u2014 Billing",
+      "role": "owner",
+      "viewport": "mobile",
+      "src": "images/owner/mobile/billing.png"
+    },
+    {
+      "title": "Owner \u2014 Clients",
+      "role": "owner",
+      "viewport": "mobile",
+      "src": "images/owner/mobile/clients.png"
+    },
+    {
+      "title": "Owner \u2014 Contractors",
+      "role": "owner",
+      "viewport": "mobile",
+      "src": "images/owner/mobile/contractors.png"
+    },
+    {
+      "title": "Owner \u2014 Crm",
+      "role": "owner",
+      "viewport": "mobile",
+      "src": "images/owner/mobile/crm.png"
+    },
+    {
+      "title": "Owner \u2014 Dashboard",
+      "role": "owner",
+      "viewport": "mobile",
+      "src": "images/owner/mobile/dashboard.png"
+    },
+    {
+      "title": "Owner \u2014 Intelligence",
+      "role": "owner",
+      "viewport": "mobile",
+      "src": "images/owner/mobile/intelligence.png"
+    },
+    {
+      "title": "Owner \u2014 Locations",
+      "role": "owner",
+      "viewport": "mobile",
+      "src": "images/owner/mobile/locations.png"
+    },
+    {
+      "title": "Owner \u2014 Marketplace",
+      "role": "owner",
+      "viewport": "mobile",
+      "src": "images/owner/mobile/marketplace.png"
+    },
+    {
+      "title": "Owner \u2014 Messaging",
+      "role": "owner",
+      "viewport": "mobile",
+      "src": "images/owner/mobile/messaging.png"
+    },
+    {
+      "title": "Owner \u2014 My Settings",
+      "role": "owner",
+      "viewport": "mobile",
+      "src": "images/owner/mobile/my-settings.png"
+    },
+    {
+      "title": "Owner \u2014 Schedule",
+      "role": "owner",
+      "viewport": "mobile",
+      "src": "images/owner/mobile/schedule.png"
+    },
+    {
+      "title": "Owner \u2014 Services",
+      "role": "owner",
+      "viewport": "mobile",
+      "src": "images/owner/mobile/services.png"
+    },
+    {
+      "title": "Owner \u2014 Settings",
+      "role": "owner",
+      "viewport": "mobile",
+      "src": "images/owner/mobile/settings.png"
+    },
+    {
+      "title": "Owner \u2014 Staff",
+      "role": "owner",
+      "viewport": "mobile",
+      "src": "images/owner/mobile/staff.png"
+    },
+    {
+      "title": "Contractor \u2014 Activity",
+      "role": "contractor",
+      "viewport": "desktop",
+      "src": "images/contractor/desktop/activity.png"
+    },
+    {
+      "title": "Contractor \u2014 Contractor Dashboard",
+      "role": "contractor",
+      "viewport": "desktop",
+      "src": "images/contractor/desktop/contractor-dashboard.png"
+    },
+    {
+      "title": "Contractor \u2014 Contractor Profile",
+      "role": "contractor",
+      "viewport": "desktop",
+      "src": "images/contractor/desktop/contractor-profile.png"
+    },
+    {
+      "title": "Contractor \u2014 Marketplace",
+      "role": "contractor",
+      "viewport": "desktop",
+      "src": "images/contractor/desktop/marketplace.png"
+    },
+    {
+      "title": "Contractor \u2014 Messaging",
+      "role": "contractor",
+      "viewport": "desktop",
+      "src": "images/contractor/desktop/messaging.png"
+    },
+    {
+      "title": "Contractor \u2014 My Settings",
+      "role": "contractor",
+      "viewport": "desktop",
+      "src": "images/contractor/desktop/my-settings.png"
+    },
+    {
+      "title": "Contractor \u2014 Schedule",
+      "role": "contractor",
+      "viewport": "desktop",
+      "src": "images/contractor/desktop/schedule.png"
+    },
+    {
+      "title": "Contractor \u2014 Activity",
+      "role": "contractor",
+      "viewport": "tablet",
+      "src": "images/contractor/tablet/activity.png"
+    },
+    {
+      "title": "Contractor \u2014 Contractor Dashboard",
+      "role": "contractor",
+      "viewport": "tablet",
+      "src": "images/contractor/tablet/contractor-dashboard.png"
+    },
+    {
+      "title": "Contractor \u2014 Contractor Profile",
+      "role": "contractor",
+      "viewport": "tablet",
+      "src": "images/contractor/tablet/contractor-profile.png"
+    },
+    {
+      "title": "Contractor \u2014 Marketplace",
+      "role": "contractor",
+      "viewport": "tablet",
+      "src": "images/contractor/tablet/marketplace.png"
+    },
+    {
+      "title": "Contractor \u2014 Messaging",
+      "role": "contractor",
+      "viewport": "tablet",
+      "src": "images/contractor/tablet/messaging.png"
+    },
+    {
+      "title": "Contractor \u2014 My Settings",
+      "role": "contractor",
+      "viewport": "tablet",
+      "src": "images/contractor/tablet/my-settings.png"
+    },
+    {
+      "title": "Contractor \u2014 Schedule",
+      "role": "contractor",
+      "viewport": "tablet",
+      "src": "images/contractor/tablet/schedule.png"
+    },
+    {
+      "title": "Contractor \u2014 Activity",
+      "role": "contractor",
+      "viewport": "mobile",
+      "src": "images/contractor/mobile/activity.png"
+    },
+    {
+      "title": "Contractor \u2014 Contractor Dashboard",
+      "role": "contractor",
+      "viewport": "mobile",
+      "src": "images/contractor/mobile/contractor-dashboard.png"
+    },
+    {
+      "title": "Contractor \u2014 Contractor Profile",
+      "role": "contractor",
+      "viewport": "mobile",
+      "src": "images/contractor/mobile/contractor-profile.png"
+    },
+    {
+      "title": "Contractor \u2014 Marketplace",
+      "role": "contractor",
+      "viewport": "mobile",
+      "src": "images/contractor/mobile/marketplace.png"
+    },
+    {
+      "title": "Contractor \u2014 Messaging",
+      "role": "contractor",
+      "viewport": "mobile",
+      "src": "images/contractor/mobile/messaging.png"
+    },
+    {
+      "title": "Contractor \u2014 My Settings",
+      "role": "contractor",
+      "viewport": "mobile",
+      "src": "images/contractor/mobile/my-settings.png"
+    },
+    {
+      "title": "Contractor \u2014 Schedule",
+      "role": "contractor",
+      "viewport": "mobile",
+      "src": "images/contractor/mobile/schedule.png"
+    },
+    {
+      "title": "Client \u2014 Activity",
+      "role": "client",
+      "viewport": "desktop",
+      "src": "images/client/desktop/activity.png"
+    },
+    {
+      "title": "Client \u2014 Client Dashboard",
+      "role": "client",
+      "viewport": "desktop",
+      "src": "images/client/desktop/client-dashboard.png"
+    },
+    {
+      "title": "Client \u2014 Locations",
+      "role": "client",
+      "viewport": "desktop",
+      "src": "images/client/desktop/locations.png"
+    },
+    {
+      "title": "Client \u2014 Marketplace",
+      "role": "client",
+      "viewport": "desktop",
+      "src": "images/client/desktop/marketplace.png"
+    },
+    {
+      "title": "Client \u2014 Messaging",
+      "role": "client",
+      "viewport": "desktop",
+      "src": "images/client/desktop/messaging.png"
+    },
+    {
+      "title": "Client \u2014 My Settings",
+      "role": "client",
+      "viewport": "desktop",
+      "src": "images/client/desktop/my-settings.png"
+    },
+    {
+      "title": "Client \u2014 Schedule",
+      "role": "client",
+      "viewport": "desktop",
+      "src": "images/client/desktop/schedule.png"
+    },
+    {
+      "title": "Client \u2014 Activity",
+      "role": "client",
+      "viewport": "tablet",
+      "src": "images/client/tablet/activity.png"
+    },
+    {
+      "title": "Client \u2014 Client Dashboard",
+      "role": "client",
+      "viewport": "tablet",
+      "src": "images/client/tablet/client-dashboard.png"
+    },
+    {
+      "title": "Client \u2014 Locations",
+      "role": "client",
+      "viewport": "tablet",
+      "src": "images/client/tablet/locations.png"
+    },
+    {
+      "title": "Client \u2014 Marketplace",
+      "role": "client",
+      "viewport": "tablet",
+      "src": "images/client/tablet/marketplace.png"
+    },
+    {
+      "title": "Client \u2014 Messaging",
+      "role": "client",
+      "viewport": "tablet",
+      "src": "images/client/tablet/messaging.png"
+    },
+    {
+      "title": "Client \u2014 My Settings",
+      "role": "client",
+      "viewport": "tablet",
+      "src": "images/client/tablet/my-settings.png"
+    },
+    {
+      "title": "Client \u2014 Schedule",
+      "role": "client",
+      "viewport": "tablet",
+      "src": "images/client/tablet/schedule.png"
+    },
+    {
+      "title": "Client \u2014 Activity",
+      "role": "client",
+      "viewport": "mobile",
+      "src": "images/client/mobile/activity.png"
+    },
+    {
+      "title": "Client \u2014 Client Dashboard",
+      "role": "client",
+      "viewport": "mobile",
+      "src": "images/client/mobile/client-dashboard.png"
+    },
+    {
+      "title": "Client \u2014 Locations",
+      "role": "client",
+      "viewport": "mobile",
+      "src": "images/client/mobile/locations.png"
+    },
+    {
+      "title": "Client \u2014 Marketplace",
+      "role": "client",
+      "viewport": "mobile",
+      "src": "images/client/mobile/marketplace.png"
+    },
+    {
+      "title": "Client \u2014 Messaging",
+      "role": "client",
+      "viewport": "mobile",
+      "src": "images/client/mobile/messaging.png"
+    },
+    {
+      "title": "Client \u2014 My Settings",
+      "role": "client",
+      "viewport": "mobile",
+      "src": "images/client/mobile/my-settings.png"
+    },
+    {
+      "title": "Client \u2014 Schedule",
+      "role": "client",
+      "viewport": "mobile",
+      "src": "images/client/mobile/schedule.png"
+    }
+  ]
+}

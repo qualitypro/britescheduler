@@ -17,8 +17,10 @@ require __DIR__.'/partials/app_header.php';
  </div>
  <p id="clientQuoteLookupStatus" role="status" aria-live="polite">Loading your requests...</p>
  <div id="clientQuoteLookup" style="display:grid;gap:12px"></div>
+ <div id="clientQuotePagination"></div>
 </section>
 <script src="<?=htmlspecialchars(app_url('/assets/js/quote-conversation.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-formal-quote.js'),ENT_QUOTES,'UTF-8')?>"></script>
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-pagination.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <script src="<?=htmlspecialchars(app_url('/assets/js/client-quote-lookup.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <?php require __DIR__.'/partials/app_footer.php'; ?>

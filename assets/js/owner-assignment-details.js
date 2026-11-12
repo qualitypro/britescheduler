@@ -305,6 +305,7 @@
         heading.textContent = 'Contractor Assignment Status';
 
         const body = document.createElement('div');
+        body.className = 'brite-assignment-pill-list';
         body.textContent = 'Loading assignments...';
 
         container.append(heading, body);

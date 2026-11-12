@@ -10,11 +10,44 @@ $q->execute([$tid,(int)$user['id']]);$clientId=(int)($q->fetchColumn()?:0);
 if (!$clientId) json_response(['error'=>'Active client account required'],403);
 $method=$_SERVER['REQUEST_METHOD']??'GET';
 if ($method==='GET') {
- $q=$pdo->prepare("SELECT r.id,r.contractor_id,r.client_location_id,r.service_id,r.description,r.preferred_date,r.status,r.created_at,COALESCE(NULLIF(c.business_name,''),CONCAT(c.first_name,' ',c.last_name)) AS contractor_name FROM contractor_quote_requests r JOIN contractors c ON c.id=r.contractor_id AND c.tenant_id=r.tenant_id WHERE r.tenant_id=? AND r.client_id=? ORDER BY r.id DESC LIMIT 100");
- $q->execute([$tid,$clientId]);$requests=$q->fetchAll(PDO::FETCH_ASSOC);
+ $paging = null;
+ if (isset($_GET['page']) || isset($_GET['per_page'])) {
+     require_once dirname(__DIR__).'/app/ServerPagination.php';
+     try { $paging=ServerPagination::fromQuery($_GET); }
+     catch (InvalidArgumentException $e) {
+         json_response(['error'=>$e->getMessage()],422);
+     }
+ }
+ 
+ $where='r.tenant_id=? AND r.client_id=?';
+ $params=[$tid,$clientId];
+ if($paging!==null){
+  $filter=$_GET['status']??'all';
+$rawSearch=$_GET['search']??'';
+  if(!is_string($rawSearch)){json_response(['error'=>'Invalid quote filters'],422);}
+  $search=trim($rawSearch);
+  if(!is_string($filter)||!in_array($filter,['all','submitted','more_info_requested','quoted','closed'],true)||mb_strlen($search)>150){
+   json_response(['error'=>'Invalid quote filters'],422);
+  }
+  if($filter==='closed'){$where.=" AND r.status IN ('accepted','declined','cancelled')";}
+  elseif($filter!=='all'){$where.=' AND r.status=?';$params[]=$filter;}
+  if($search!==''){
+   $where.=" AND (CAST(r.id AS CHAR) LIKE ? OR c.business_name LIKE ? OR c.first_name LIKE ? OR c.last_name LIKE ? OR r.description LIKE ? OR CAST(r.preferred_date AS CHAR) LIKE ?)";
+   for($i=0;$i<6;$i++)$params[]='%'.$search.'%';
+  }
+ }
+ $join="JOIN contractors c ON c.id=r.contractor_id AND c.tenant_id=r.tenant_id";
+ $total=null;
+ if($paging!==null){
+  $count=$pdo->prepare("SELECT COUNT(*) FROM contractor_quote_requests r {$join} WHERE {$where}");
+  $count->execute($params);$total=(int)$count->fetchColumn();
+ }
+ $limitSql=$paging===null?'LIMIT 100':'LIMIT '.$paging['per_page'].' OFFSET '.$paging['offset'];
+ $q=$pdo->prepare("SELECT r.id,r.contractor_id,r.client_location_id,r.service_id,r.description,r.preferred_date,r.status,r.created_at,COALESCE(NULLIF(c.business_name,''),CONCAT(c.first_name,' ',c.last_name)) AS contractor_name FROM contractor_quote_requests r {$join} WHERE {$where} ORDER BY r.id DESC {$limitSql}");
+ $q->execute($params);$requests=$q->fetchAll(PDO::FETCH_ASSOC);
  $photos=$pdo->prepare('SELECT id FROM contractor_quote_request_photos WHERE tenant_id=? AND request_id=? ORDER BY id LIMIT 10');
  foreach($requests as &$request){$photos->execute([$tid,(int)$request['id']]);$request['photos']=array_map(static fn($p)=>['id'=>(int)$p['id'],'url'=>app_url('/api/quote_request_photo.php?id='.(int)$p['id'])],$photos->fetchAll(PDO::FETCH_ASSOC));}unset($request);
- json_response(['ok'=>true,'requests'=>$requests]);
+ json_response(['ok'=>true,'requests'=>$requests,'pagination'=>$paging===null?null:ServerPagination::metadata($paging,$total)]);
 }
 if ($method!=='POST') {header('Allow: GET, POST');json_response(['error'=>'Method not allowed'],405);}
 verify_csrf();

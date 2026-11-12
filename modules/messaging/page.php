@@ -76,6 +76,16 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
 @media(max-width:760px){.msg-workspace{grid-template-columns:1fr;min-height:0}.msg-history{max-height:310px}.msg-pane{padding:10px}}
 
 .msg-tabs{display:flex;gap:4px;border-bottom:1px solid #cbd5e1}.msg-tab{border:0!important;border-bottom:3px solid transparent!important;border-radius:6px 6px 0 0!important;background:transparent!important;color:inherit!important;padding:9px 14px!important;font-weight:600}.msg-tab[aria-selected="true"]{border-bottom-color:#2563eb!important;background:rgba(37,99,235,.08)!important}.msg-tab:focus-visible{outline:2px solid #2563eb}.msg-tabpanel[hidden]{display:none!important}#msgOwnerReview{border:0;padding:4px 0}
+
+/* Cycle 90AL: compact messaging module without horizontal page scrolling. */
+.msg-workspace{grid-template-columns:minmax(190px,280px) minmax(0,1fr);gap:10px;max-width:100%;min-width:0}
+.msg-pane{padding:10px;min-width:0;max-width:100%;overflow-wrap:anywhere}
+.msg-thread{padding:8px;margin-bottom:5px;font-size:.8rem}
+.msg-thread-name{font-size:.85rem}
+.msg-thread-preview,.msg-thread-meta{font-size:.75rem}
+.msg-form{gap:8px}
+.msg-workspace input,.msg-workspace select,.msg-workspace textarea{max-width:100%;min-width:0}
+@media(max-width:700px){.msg-workspace{grid-template-columns:minmax(0,1fr)}}
 </style>
 <section class="card" data-brite-pills="off" style="display:grid;gap:10px">
  <div><h1 style="margin:0 0 4px">Messages</h1><p class="muted" style="margin:0;font-size:.85rem">Private conversations within your organization. Clients and contractors can contact the tenant owner by default; direct client–contractor messaging becomes available after a quote request or scheduled assignment.</p></div>

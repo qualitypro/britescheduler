@@ -117,6 +117,7 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
     </p>
 
     <div id="biddingProjects" class="bidding-projects"></div>
+    <div id="biddingProjectsPagination"></div>
 </section>
 
 <section style="margin-top:32px" aria-labelledby="my-bids-heading">
@@ -127,6 +128,7 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
     <div id="biddingMyBids" class="bidding-projects"></div>
 </section>
 
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-pagination.js'), ENT_QUOTES, 'UTF-8')?>"></script>
 <script>
 (() => {
     'use strict';
@@ -145,6 +147,8 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
         document.getElementById('biddingService');
 
     let projects = [];
+    let projectPager = null;
+    let projectSearchTimer = null;
 
     const base = window.BRITE_BASE || '/dashboard';
 
@@ -399,7 +403,7 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
         const term = searchInput.value.trim().toLowerCase();
         const service = serviceFilter.value;
 
-        const visible = projects.filter(project => {
+        const visible = (projectPager ? projects : projects.filter(project => {
             const haystack = [
                 project.title,
                 project.description,
@@ -409,7 +413,7 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
 
             return (!term || haystack.includes(term)) &&
                 (!service || String(project.service_id) === service);
-        });
+        }));
 
         projectsContainer.replaceChildren();
 
@@ -432,46 +436,61 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
     }
 
     async function loadProjects() {
-        projectStatus.textContent = 'Loading available projects...';
-
-        try {
-            const data = await getJSON(
-                '/api/contractor_marketplace.php'
-            );
-
-            projects = Array.isArray(data.appointments)
-                ? data.appointments
-                : [];
-
-            const services = new Map();
-
-            projects.forEach(project => {
-                if (project.service_id !== null &&
-                    project.service_id !== undefined) {
-                    services.set(
-                        String(project.service_id),
-                        project.service_name ||
-                            'Service ' + project.service_id
-                    );
-                }
-            });
-
-            const previous = serviceFilter.value;
-            serviceFilter.replaceChildren(
-                new Option('All services', '')
-            );
-
-            services.forEach((name, id) => {
-                serviceFilter.add(new Option(name, id));
-            });
-
-            serviceFilter.value = previous;
-            renderProjects();
-
-        } catch (error) {
-            projectStatus.textContent =
-                'Unable to load projects: ' + error.message;
+        if (projectPager) {
+            await projectPager.refresh();
+            return;
         }
+        projectStatus.textContent = 'Loading available projects...';
+        try {
+            const data = await getJSON('/api/contractor_marketplace.php');
+            projects = Array.isArray(data.appointments) ? data.appointments : [];
+            renderProjects();
+        } catch (error) {
+            projectStatus.textContent = 'Unable to load projects: ' + error.message;
+        }
+    }
+
+    async function loadProjectServiceFacets() {
+        try {
+            const data = await getJSON('/api/contractor_marketplace.php?facets=services');
+            const selected = serviceFilter.value;
+            serviceFilter.replaceChildren(new Option('All services',''));
+            for (const service of (Array.isArray(data.services) ? data.services : [])) {
+                serviceFilter.add(new Option(service.service_name, String(service.service_id)));
+            }
+            serviceFilter.value = selected;
+        } catch (error) {
+            projectStatus.textContent = 'Unable to load service filters: ' + error.message;
+        }
+    }
+
+    function refreshProjectFilter() {
+        if (!projectPager) { renderProjects(); return; }
+        projectPager.goTo(1);
+    }
+    if (window.BriteServerPagination) {
+        projectPager = new BriteServerPagination({
+            container: document.getElementById('biddingProjectsPagination'),
+            load: async ({page, per_page}) => {
+                const query = new URLSearchParams({
+                    page: String(page),
+                    per_page: String(per_page),
+                    search: searchInput.value.trim(),
+                    service_id: serviceFilter.value
+                });
+                const data = await getJSON('/api/contractor_marketplace.php?' + query);
+                return {records: data.appointments, pagination: data.pagination};
+            },
+            render: records => {
+                projects = records;
+                // Service options come from the current page. Retain a selected
+                // service across page transitions, even when no row on this page matches.
+                renderProjects();
+            },
+            onError: error => {
+                projectStatus.textContent = 'Unable to load projects: ' + error.message;
+            }
+        });
     }
 
     async function loadBids() {
@@ -532,16 +551,25 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
         }
     }
 
-    searchInput.addEventListener('input', renderProjects);
-    serviceFilter.addEventListener('change', renderProjects);
+    searchInput.addEventListener('input', () => {
+        clearTimeout(projectSearchTimer);
+        projectSearchTimer = setTimeout(refreshProjectFilter, 300);
+    });
+    serviceFilter.addEventListener('change', refreshProjectFilter);
 
     document.getElementById('biddingRefresh')
         .addEventListener('click', () => {
-            loadProjects();
+            if (projectPager) {
+                projectPager.refresh();
+                loadProjectServiceFacets();
+            } else {
+                loadProjects();
+            }
             loadBids();
         });
 
-    loadProjects();
+    if (projectPager) loadProjectServiceFacets();
+    else loadProjects();
     loadBids();
 })();
 </script>
@@ -1789,7 +1817,9 @@ $marketplaceRole = (string)($tenant['role'] ?? '');
 <?php endif; ?>
 
 </div>
+<?php if ($marketplaceRole !== 'contractor'): ?>
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-pagination.js'), ENT_QUOTES, 'UTF-8')?>" defer></script>
+<?php endif; ?>
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-marketplace-records.js'), ENT_QUOTES, 'UTF-8')?>" defer></script>
 <link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-single-active-records.css'),ENT_QUOTES,'UTF-8')?>">
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-single-active-records.js'),ENT_QUOTES,'UTF-8')?>" defer></script>

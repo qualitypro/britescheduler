@@ -49,6 +49,64 @@ if (!$contractorId) {
  * This endpoint exposes no client contact details.
  */
 
+$paging = null;
+if (isset($_GET['page']) || isset($_GET['per_page'])) {
+    require_once dirname(__DIR__).'/app/ServerPagination.php';
+    try { $paging=ServerPagination::fromQuery($_GET); }
+    catch (InvalidArgumentException $e) {
+        json_response(['error'=>$e->getMessage()],422);
+    }
+}
+$today=TenantClock::today($pdo,$tid);
+$marketWhere="a.tenant_id = ?
+      AND a.starts_at >= ?
+      AND a.status IN ('tentative','scheduled','confirmed')
+      AND NOT EXISTS (
+          SELECT 1 FROM appointment_contractors ac
+          WHERE ac.appointment_id = a.id
+      )";
+$marketJoin="INNER JOIN appointment_bid_listings l
+      ON l.tenant_id = a.tenant_id
+     AND l.appointment_id = a.id
+     AND l.status = 'open'";
+// Return all service facets for eligible tenant listings, not just the current page.
+if (($_GET['facets'] ?? '') === 'services') {
+    $facet=$pdo->prepare("
+        SELECT DISTINCT a.service_id, COALESCE(s.name,CONCAT('Service ',a.service_id)) AS service_name
+        FROM appointments a {$marketJoin}
+        LEFT JOIN services s ON s.id=a.service_id AND s.tenant_id=a.tenant_id
+        WHERE {$marketWhere} AND a.service_id IS NOT NULL
+        ORDER BY service_name ASC, a.service_id ASC
+    ");
+    $facet->execute([$tid,$today]);
+    json_response(['services'=>$facet->fetchAll(PDO::FETCH_ASSOC)]);
+}
+$marketParams=[$tid,$today];
+if ($paging !== null) {
+    $term=$_GET['search']??'';
+    $service=$_GET['service_id']??'';
+    if (!is_string($term) || mb_strlen($term)>150 || !is_string($service) ||
+        ($service!=='' && (!preg_match('/^[1-9][0-9]{0,9}$/D', $service) || (int)$service>2147483647))) {
+        json_response(['error'=>'Invalid marketplace filters'],422);
+    }
+    $term=trim($term);
+    if($term!==''){
+        $marketWhere.=" AND (a.title LIKE ? OR a.description LIKE ? OR a.location LIKE ? OR s.name LIKE ?)";
+        for($i=0;$i<4;$i++)$marketParams[]='%'.$term.'%';
+    }
+    if($service!==''){
+        $marketWhere.=' AND a.service_id=?';
+        $marketParams[]=(int)$service;
+    }
+}
+$serviceJoin="LEFT JOIN services s ON s.id=a.service_id AND s.tenant_id=a.tenant_id";
+$total=null;
+if ($paging !== null) {
+    $count=$pdo->prepare("SELECT COUNT(*) FROM appointments a {$marketJoin} {$serviceJoin} WHERE {$marketWhere}");
+    $count->execute($marketParams);
+    $total=(int)$count->fetchColumn();
+}
+$marketLimit=$paging===null?'LIMIT 200':'LIMIT '.$paging['per_page'].' OFFSET '.$paging['offset'];
 $q = $pdo->prepare("
     SELECT
         a.id AS appointment_id,
@@ -63,35 +121,16 @@ $q = $pdo->prepare("
         s.name AS service_name,
         a.created_at
     FROM appointments a
-    INNER JOIN appointment_bid_listings l
-      ON l.tenant_id = a.tenant_id
-     AND l.appointment_id = a.id
-     AND l.status = 'open'
-    LEFT JOIN services s
-      ON s.id = a.service_id
-     AND s.tenant_id = a.tenant_id
-    WHERE a.tenant_id = ?
-      AND a.starts_at >= ?
-      AND a.status IN (
-          'tentative',
-          'scheduled',
-          'confirmed'
-      )
-      AND NOT EXISTS (
-          SELECT 1
-          FROM appointment_contractors ac
-          WHERE ac.appointment_id = a.id
-      )
+    {$marketJoin}
+    {$serviceJoin}
+    WHERE {$marketWhere}
     ORDER BY
         a.starts_at ASC,
         a.id ASC
-    LIMIT 200
+    {$marketLimit}
 ");
 
-$q->execute([
-    $tid,
-    TenantClock::today($pdo, $tid)
-]);
+$q->execute($marketParams);
 
 $appointments = $q->fetchAll(PDO::FETCH_ASSOC);
 
@@ -113,5 +152,6 @@ json_response([
     'contractor_id' => $contractorId,
     'appointments' => $appointments,
     'count' => count($appointments),
-    'limit' => 200
+    'limit' => $paging===null?200:$paging['per_page'],
+    'pagination' => $paging===null?null:ServerPagination::metadata($paging,$total)
 ]);

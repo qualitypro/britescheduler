@@ -9,7 +9,7 @@ const base=window.BRITE_BASE||'';
 const node=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=String(text);return e;};
 const statuses={submitted:'New request',more_info_requested:'Waiting on client',quoted:'Quote sent',accepted:'Accepted',declined:'Declined',cancelled:'Cancelled'};
 const closed=new Set(['quoted','accepted','declined','cancelled']);
-let requests=[],activeFilter='all';
+let requests=[],activeFilter='all',pager=null;
 const expanded=new Set();
 const matches=r=>{
  const q=(search?.value||'').trim().toLowerCase();
@@ -63,7 +63,7 @@ function render(){
    if(label)button.textContent=label+' ('+counts[button.dataset.quoteFilter]+')';
   });
  }
- const visible=requests.filter(matches).sort((a,b)=>{
+ const visible=(pager?requests:requests.filter(matches)).sort((a,b)=>{
  const priority=r=>r.status==='submitted'?0:r.status==='more_info_requested'?1:2;
  return priority(a)-priority(b)||Number(b.id)-Number(a.id);
  });
@@ -95,14 +95,15 @@ function render(){
   target.append(card);
  });
 }
-if(search)search.addEventListener('input',render);
+let debounce;
+if(search)search.addEventListener('input',()=>{if(!pager){render();return;}clearTimeout(debounce);debounce=setTimeout(()=>pager.goTo(1),300);});
 if(filters){
  filters.addEventListener('click',event=>{
   const button=event.target.closest('button[data-quote-filter]');
   if(!button||!filters.contains(button))return;
   activeFilter=button.dataset.quoteFilter;
   filters.querySelectorAll('button[data-quote-filter]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
-  render();
+  if(pager)pager.goTo(1);else render();
  });
 }
 async function load(){
@@ -114,5 +115,18 @@ async function load(){
   render();
  }catch(error){status.textContent='Unable to load quote requests: '+error.message;}
 }
-load();
+if(window.BriteServerPagination && document.getElementById('contractorQuotePagination')){
+ pager=new BriteServerPagination({
+  container:document.getElementById('contractorQuotePagination'),
+  load:async ({page,per_page})=>{
+   const qs=new URLSearchParams({page:String(page),per_page:String(per_page),search:search?.value.trim()||'',status:activeFilter});
+   const response=await fetch(base+'/api/contractor_quote_inbox.php?'+qs,{credentials:'same-origin',headers:{Accept:'application/json'}});
+   const data=await response.json();
+   if(!response.ok)throw Error(data.error||'HTTP '+response.status);
+   return {records:data.requests,pagination:data.pagination};
+  },
+  render:records=>{requests=records;expanded.clear();render();},
+  onError:error=>{status.textContent='Unable to load quote requests: '+error.message;}
+ });
+}else load();
 })();

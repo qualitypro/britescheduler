@@ -61,6 +61,50 @@ require __DIR__.'/partials/app_header.php';
     min-height:700px;
 }
 
+/* Expanded appointment preview is rendered outside clipped calendar cells. */
+.brite-calendar-hover-preview {
+    position: fixed;
+    /* Above FullCalendar's +more popover and application modal layers. */
+    z-index: 2147483000;
+    pointer-events: none;
+    max-height: min(360px, calc(100dvh - 24px));
+    overflow: auto;
+    padding: 10px 12px;
+    border: 1px solid #a5b4fc;
+    border-radius: 10px;
+    background: #172554;
+    color: #fff;
+    box-shadow: 0 14px 38px rgba(15, 23, 42, .32);
+    font-size: 13px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+.brite-calendar-hover-preview[hidden] { display: none !important; }
+.brite-calendar-hover-preview .brite-event-heading {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 8px;
+    font-weight: 750;
+}
+.brite-calendar-hover-preview .brite-event-title,
+.brite-calendar-hover-preview .brite-event-client,
+.brite-calendar-hover-preview .brite-event-contractors {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    margin-top: 4px;
+}
+.brite-calendar-hover-preview .brite-event-status {
+    display: inline-block;
+    padding: 2px 7px;
+    margin-top: 6px;
+    border-radius: 5px;
+    background: rgba(255,255,255,.18);
+}
+@media (hover: none), (pointer: coarse) {
+    .brite-calendar-hover-preview { display: none !important; }
+}
+
 /* Compact, status-colored calendar appointments. */
 #calendar .fc-event {
     cursor: pointer;
@@ -777,12 +821,612 @@ require __DIR__.'/partials/app_header.php';
     display: none !important;
 }
 
+
+/* Cycle 90AB: scheduling control density only. No behavior or DOM changes. */
+#schedulingWorkspace .brite-tab-toolbar {
+    gap: 6px 10px;
+    padding-block: 4px;
+    margin-bottom: 6px;
+}
+#schedulingWorkspace .brite-tab-list {
+    gap: 3px;
+}
+#schedulingWorkspace .brite-tab-button {
+    min-height: 30px;
+    padding: 5px 10px;
+    font-size: 12px;
+    line-height: 1.2;
+}
+#schedulingWorkspace .brite-tab-toolbar > button,
+#schedulingWorkspace #scheduleActionsPanel button {
+    min-height: 32px;
+    padding: 5px 10px;
+    font-size: 12px;
+    line-height: 1.25;
+}
+#schedulingWorkspace #scheduleActionsPanel > .card {
+    padding: 12px;
+}
+#schedulingWorkspace #scheduleActionsPanel h2 {
+    margin: 0 0 6px;
+    font-size: 16px;
+}
+#schedulingWorkspace #scheduleActionsPanel p {
+    margin: 0 0 10px;
+    font-size: 12px;
+    line-height: 1.45;
+}
+#schedulingWorkspace #calendar .fc-header-toolbar {
+    gap: 6px 10px;
+    margin-bottom: 6px;
+}
+#schedulingWorkspace #calendar .fc-toolbar-chunk {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+#schedulingWorkspace #calendar .fc-toolbar-title {
+    font-size: clamp(14px, 1.25vw, 18px);
+    line-height: 1.2;
+}
+#schedulingWorkspace #calendar .fc-button {
+    min-height: 29px;
+    padding: 4px 8px;
+    font-size: 11px;
+    line-height: 1.2;
+    border-radius: 4px;
+}
+#schedulingWorkspace #calendar .fc-button .fc-icon {
+    font-size: 13px;
+    vertical-align: middle;
+}
+#schedulingWorkspace #calendar .fc-col-header-cell-cushion {
+    padding: 3px 4px;
+    font-size: 11px;
+    line-height: 1.2;
+}
+/* Compact the appointment wizard while preserving form structure,
+   input types, button actions, and keyboard focus behavior. */
+#appointmentDialog {
+    width: min(720px, calc(100vw - 24px));
+    padding: 14px 16px;
+    font-size: 12px;
+}
+#appointmentDialog .appointment-dialog-header {
+    gap: 8px;
+    margin-bottom: 8px;
+}
+#appointmentDialog .appointment-dialog-header h2 {
+    font-size: 17px;
+}
+#appointmentDialog #formTitle {
+    margin: 0 0 6px;
+    font-size: 15px;
+}
+#appointmentDialog .scheduler-form label {
+    margin-top: 7px;
+    font-size: 12px;
+}
+#appointmentDialog .scheduler-form input:not([type="checkbox"]):not([type="radio"]),
+#appointmentDialog .scheduler-form select,
+#appointmentDialog .scheduler-form textarea {
+    min-height: 32px;
+    padding: 5px 8px;
+    font-size: 12px;
+}
+#appointmentDialog .scheduler-form textarea {
+    min-height: 58px;
+}
+#appointmentDialog button {
+    min-height: 30px;
+    padding: 5px 9px;
+    font-size: 12px;
+    line-height: 1.25;
+}
+#appointmentDialog .appointment-wizard-progress {
+    margin-bottom: 7px;
+}
+#appointmentDialog .appointment-wizard-progress-heading {
+    margin-bottom: 5px;
+}
+#appointmentDialog .appointment-wizard-steps {
+    gap: 4px;
+}
+#appointmentDialog .appointment-wizard-footer {
+    gap: 6px;
+    padding-block: 8px;
+}
+@media (max-width: 700px) {
+    #schedulingWorkspace #calendar .fc-header-toolbar {
+        flex-wrap: wrap;
+    }
+    #schedulingWorkspace #calendar .fc-toolbar-title {
+        font-size: 14px;
+    }
+    #appointmentDialog {
+        padding: 10px;
+    }
+}
+
+
+/* Cycle 90AC: compact the selected-appointment details dialog only.
+   Keep all fields and action handlers intact; never clip long data. */
+#appointmentDetailsDialog {
+    box-sizing: border-box;
+    width: min(760px, calc(100vw - 24px));
+    max-height: calc(100dvh - 24px);
+    padding: 12px 16px;
+    overflow-x: hidden;
+    overflow-y: auto; /* Safety fallback for tiny viewports/long values. */
+    font-size: 12px;
+    line-height: 1.3;
+}
+#appointmentDetailsDialog .appointment-dialog-header {
+    gap: 8px;
+    margin-bottom: 8px;
+}
+#appointmentDetailsDialog .appointment-dialog-header h2 {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.2;
+}
+#appointmentDetailsDialog .appointment-dialog-header button,
+#appointmentDetailsDialog .appointment-details-actions button {
+    min-height: 30px;
+    padding: 5px 9px;
+    font-size: 12px;
+    line-height: 1.2;
+}
+#appointmentDetailsDialog .appointment-details-grid {
+    grid-template-columns: minmax(65px, .6fr) minmax(0, 1.4fr) minmax(65px, .6fr) minmax(0, 1.4fr);
+    gap: 8px 16px;
+    margin: 0;
+}
+#appointmentDetailsDialog .appointment-details-grid > dt {
+    margin: 0 0 2px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.15;
+}
+#appointmentDetailsDialog .appointment-details-grid > dd {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+#appointmentDetailsDialog .appointment-details-grid > dt,
+#appointmentDetailsDialog .appointment-details-grid > dd {
+    min-width: 0;
+}
+#appointmentDetailsDialog .appointment-details-grid > dt:nth-of-type(n) {
+    color: #64748b;
+}
+/* Group each label/value pair in a single grid cell without changing
+   the existing semantic definition list or its JavaScript population. */
+#appointmentDetailsDialog .appointment-details-grid {
+    grid-auto-flow: row;
+}
+#appointmentDetailsDialog .appointment-details-grid > dt {
+    grid-row: auto;
+}
+#appointmentDetailsDialog .appointment-details-grid > dd {
+    margin-top: 0;
+}
+#appointmentDetailsDialog #appointmentDetailsEditStatus:empty {
+    display: none;
+}
+#appointmentDetailsDialog #appointmentDetailsEditStatus:not(:empty) {
+    margin: 6px 0;
+    font-size: 11px;
+}
+#appointmentDetailsDialog .appointment-details-actions {
+    gap: 6px;
+    margin-top: 10px;
+}
+@media (max-width: 520px) {
+    #appointmentDetailsDialog {
+        padding: 10px 12px;
+    }
+    #appointmentDetailsDialog .appointment-details-grid {
+        grid-template-columns: minmax(85px, .7fr) minmax(0, 1.3fr);
+        gap: 5px;
+    }
+    #appointmentDetailsDialog .appointment-details-grid > dd {
+        margin-top: 0;
+        margin-bottom: 0;
+    }
+}
+
+
+/* Cycle 90AD: dense appointment summary and stacked assignment pills.
+   Scoped to details only; keep all actions and statuses functional. */
+#appointmentDetailsDialog {
+    width: min(850px, calc(100vw - 24px));
+    padding: 10px 14px;
+    max-height: calc(100dvh - 16px);
+    overflow-y: auto; /* Only when content truly cannot fit. */
+    line-height: 1.2;
+}
+#appointmentDetailsDialog .appointment-dialog-header {
+    margin-bottom: 6px;
+}
+#appointmentDetailsDialog .appointment-details-grid {
+    grid-template-columns: minmax(65px, .55fr) minmax(0, 1.45fr)
+                           minmax(65px, .55fr) minmax(0, 1.45fr);
+    gap: 5px 9px;
+}
+#appointmentDetailsDialog .appointment-details-grid dt,
+#appointmentDetailsDialog .appointment-details-grid dd {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.25;
+}
+#appointmentDetailsDialog .brite-owner-assignment-details {
+    margin-top: 8px;
+    padding: 0;
+}
+#appointmentDetailsDialog .brite-owner-assignment-details h3 {
+    margin: 0 0 5px;
+    font-size: 12px;
+    line-height: 1.2;
+}
+#appointmentDetailsDialog .brite-assignment-pill-list {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    align-content: flex-start;
+    gap: 5px 6px;
+}
+#appointmentDetailsDialog .brite-assignment-status-row {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    width: fit-content;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 4px 9px;
+    border: 1px solid #bfdbfe;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #1e3a8a;
+    font-size: 11px;
+    line-height: 1.25;
+}
+#appointmentDetailsDialog .brite-assignment-status-row > span {
+    font-weight: 650;
+    overflow-wrap: anywhere;
+}
+#appointmentDetailsDialog .brite-assignment-status-row > strong {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 2px 6px;
+    background: #dbeafe;
+    color: #1e40af;
+    font-size: 10px;
+    line-height: 1.1;
+    text-transform: capitalize;
+}
+/* Color-code the whole pill, not only the status label. */
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-accepted),
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-confirmed) {
+    background: #f0fdf4;
+    border-color: #86efac;
+    color: #166534;
+}
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-declined),
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-rejected) {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: #991b1b;
+}
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-pending) {
+    background: #fffbeb;
+    border-color: #fcd34d;
+    color: #92400e;
+}
+#appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-declined,
+#appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-rejected {
+    background: #fee2e2;
+    color: #991b1b;
+}
+#appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-accepted,
+#appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-confirmed {
+    background: #dcfce7;
+    color: #166534;
+}
+#appointmentDetailsDialog .brite-assignment-status-row > small {
+    font-size: 10px;
+}
+#appointmentDetailsDialog .appointment-details-actions {
+    margin-top: 8px;
+    gap: 5px;
+}
+#appointmentDetailsDialog .brite-reassignment-controls {
+    max-width: 100%;
+    padding: 5px 8px;
+    margin: 2px 0 5px;
+}
+#appointmentDetailsDialog .brite-reassignment-controls label,
+#appointmentDetailsDialog .brite-reassignment-controls select,
+#appointmentDetailsDialog .brite-reassignment-controls button {
+    font-size: 11px;
+}
+#appointmentDetailsDialog .brite-reassignment-controls p:empty {
+    display: none;
+}
+@media (max-width: 650px) {
+    #appointmentDetailsDialog .appointment-details-grid {
+        grid-template-columns: minmax(72px, .65fr) minmax(0, 1.35fr);
+    }
+}
+
+
+/* Cycle 90AF: richer contractor assignment pill colors. */
+#appointmentDetailsDialog .brite-assignment-status-row {
+    background: #1d4ed8;
+    border-color: #1e40af;
+    color: #ffffff;
+}
+#appointmentDetailsDialog .brite-assignment-status-row > strong {
+    background: #1e3a8a;
+    color: #ffffff;
+}
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-accepted),
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-confirmed) {
+    background: #15803d;
+    border-color: #166534;
+    color: #ffffff;
+}
+#appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-accepted,
+#appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-confirmed {
+    background: #14532d;
+    color: #ffffff;
+}
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-pending) {
+    background: #b45309;
+    border-color: #92400e;
+    color: #ffffff;
+}
+#appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-pending {
+    background: #78350f;
+    color: #ffffff;
+}
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-declined),
+#appointmentDetailsDialog .brite-assignment-status-row:has(> strong.brite-assignment-status-rejected) {
+    background: #b91c1c;
+    border-color: #991b1b;
+    color: #ffffff;
+}
+#appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-declined,
+#appointmentDetailsDialog .brite-assignment-status-row > strong.brite-assignment-status-rejected {
+    background: #7f1d1d;
+    color: #ffffff;
+}
+
 </style>
 
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-scheduling.css'))?>">
 <link rel="stylesheet"
       href="<?=htmlspecialchars(app_url('/assets/css/brite-workspace-tabs.css'), ENT_QUOTES, 'UTF-8')?>">
+
+<style>
+/* Calendar-only viewport layout: one scroll owner per view. */
+@media (min-width: 900px) and (min-height: 500px) {
+    html:has(#schedulingWorkspace), body:has(#schedulingWorkspace) {
+        height: 100%;
+        overflow: hidden;
+    }
+    .brite-app:has(#schedulingWorkspace) .brite-content {
+        max-width: none;
+        height: calc(100dvh - var(--brite-topbar-height, 64px));
+        padding: 8px 12px;
+        overflow: hidden;
+    }
+    #schedulingWorkspace[data-viewport="true"] {
+        height: calc(100dvh - var(--brite-workspace-top, 80px) - 8px);
+        min-height: 0;
+        overflow: hidden;
+    }
+    #schedulingWorkspace > .brite-tab-panels {
+        overflow: hidden;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel:not([hidden]) {
+        display: block;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior-y: contain;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel .scheduler-layout,
+    #schedulingWorkspace #scheduleCalendarPanel .scheduler-layout > .card {
+        display: block;
+        min-height: 0;
+        min-width: 0;
+        overflow: visible;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel .scheduler-layout > .card {
+        padding: 8px;
+    }
+    #schedulingWorkspace #calendar {
+        flex: 1 1 auto;
+        min-height: 0;
+        height: auto;
+        overflow: visible;
+    }
+    #schedulingWorkspace #calendar .fc {
+        height: auto;
+        min-height: 0;
+    }
+    /* Month fills the viewport; only genuinely crowded dates use +more. */
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit {
+        overflow-y: hidden;
+        scrollbar-width: thin;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit.brite-month-overflow {
+        overflow-y: auto; /* Last resort for extremely small browser heights. */
+    }
+    /* FullCalendar's internal scroller should not introduce a second
+       scrollbar inside a viewport-fitted month grid. */
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-body,
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-scroller {
+        overflow-x: hidden !important;
+        overflow-y: hidden !important;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .scheduler-layout,
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .scheduler-layout > .card {
+        box-sizing: border-box;
+        height: 100%;
+        min-height: 0;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .scheduler-layout > .card {
+        display: flex;
+        flex-direction: column;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit #calendar {
+        box-sizing: border-box;
+        flex: 1 1 0;
+        height: auto; /* JS sets the exact pixel height on FullCalendar. */
+        min-height: 0 !important; /* Override legacy 700px minimum. */
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc,
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-view-harness,
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid,
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-scrollgrid {
+        min-height: 0;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-day-number {
+        padding: 2px 4px;
+        font-size: 12px;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-col-header-cell-cushion {
+        padding: 3px 4px;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-toolbar {
+        margin-bottom: 5px;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit #calendar .fc {
+        min-height: 0;
+        /* The shared stylesheet sets .fc to height:auto. Override that
+           month-only rule so expandRows can fill the measured viewport. */
+        height: 100% !important;
+        display: flex;
+        flex-direction: column;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit #calendar .fc-view-harness {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-calendar-event {
+        padding: 1px 3px;
+        line-height: 1.1;
+        font-size: var(--brite-month-event-font, 11px);
+    }
+    /* Make the week table consume the grid height rather than keeping
+       intrinsic content-sized rows in short (4/5-week) months. */
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-body,
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-body > table {
+        height: 100% !important;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-body > table > tbody > tr {
+        height: var(--brite-month-week-height, auto);
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-day-frame {
+        min-height: 0;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-day-top {
+        min-height: 0;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-day-number {
+        padding: var(--brite-month-date-padding, 2px) 3px;
+        line-height: 1.1;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-event {
+        margin-top: 0;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-event-client,
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-event-contractors,
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-event-status {
+        display: none; /* Full details remain in the expanded hover card. */
+    }
+    /* Month appointment cards must display their complete time and title. */
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-event-heading {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1px;
+        min-width: 0;
+        white-space: normal;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-event-time {
+        display: block;
+        flex: none;
+        font-size: inherit;
+        font-weight: 700;
+        white-space: normal;
+        overflow: visible;
+        overflow-wrap: anywhere;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-event-title {
+        display: block;
+        flex: none;
+        width: 100%;
+        min-width: 0;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        overflow-wrap: anywhere;
+        word-break: normal;
+        line-height: 1.15;
+    }
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .brite-calendar-event,
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-event-main {
+        overflow: visible;
+        white-space: normal;
+    }
+    /* Treat overflow appointments as an obvious interactive card. */
+    #schedulingWorkspace #scheduleCalendarPanel.brite-month-fit .fc-daygrid-more-link,
+    #calendar .fc-daygrid-more-link {
+        display: block;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        padding: 3px 6px;
+        margin: 2px 0 0;
+        border: 1px solid #1d4ed8;
+        border-radius: 5px;
+        background: #1d4ed8;
+        color: #fff !important;
+        font-size: 11px;
+        font-weight: 750;
+        line-height: 1.2;
+        text-align: left;
+        text-decoration: none !important;
+        cursor: pointer;
+        white-space: normal;
+    }
+    #calendar .fc-daygrid-more-link:hover,
+    #calendar .fc-daygrid-more-link:focus-visible {
+        background: #1e3a8a;
+        border-color: #93c5fd;
+        color: #fff !important;
+        outline: 2px solid #93c5fd;
+        outline-offset: 1px;
+    }
+    #calendar .fc-daygrid-more-link:active {
+        background: #172554;
+    }
+    /* Week/Day time slots scroll inside FullCalendar only. */
+    #schedulingWorkspace #calendar .fc-timegrid-body {
+        min-width: 0;
+    }
+}
+</style>
 
 <div class="brite-tab-workspace"
      id="schedulingWorkspace"
@@ -3028,6 +3672,47 @@ function appointmentContractorNames(appointment) {
     });
 }
 
+// A viewport-level preview avoids FullCalendar's clipped day-cell overflow.
+let calendarHoverPreview = null;
+let calendarHoverOwner = null;
+function hideCalendarHoverPreview() {
+    if (calendarHoverPreview) calendarHoverPreview.hidden = true;
+    calendarHoverOwner = null;
+}
+function showCalendarHoverPreview(element) {
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    const content = element.querySelector('.brite-calendar-event');
+    if (!content) return;
+    if (!calendarHoverPreview) {
+        calendarHoverPreview = document.createElement('div');
+        calendarHoverPreview.className = 'brite-calendar-hover-preview';
+        calendarHoverPreview.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(calendarHoverPreview);
+        window.addEventListener('scroll', hideCalendarHoverPreview, true);
+        window.addEventListener('resize', hideCalendarHoverPreview);
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') hideCalendarHoverPreview();
+        });
+    }
+    calendarHoverOwner = element;
+    calendarHoverPreview.replaceChildren(content.cloneNode(true));
+    calendarHoverPreview.hidden = false;
+    const rect = element.getBoundingClientRect();
+    const width = Math.min(340, Math.max(220, window.innerWidth - 24));
+    const left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
+    calendarHoverPreview.style.width = width + 'px';
+    calendarHoverPreview.style.left = left + 'px';
+    // Prefer below the card, but stay inside the viewport.
+    calendarHoverPreview.style.top = '0px';
+    const height = calendarHoverPreview.getBoundingClientRect().height;
+    const below = rect.bottom + 6;
+    const above = rect.top - height - 6;
+    const top = below + height <= window.innerHeight - 12
+        ? below
+        : above >= 12 ? above : Math.max(12, window.innerHeight - height - 12);
+    calendarHoverPreview.style.top = top + 'px';
+}
+
 function calendarEventContent(info) {
     const event = info.event;
     const appointment = event.extendedProps || {};
@@ -3085,16 +3770,44 @@ function calendarEventContent(info) {
     return { domNodes: [root] };
 }
 
+// Use the server's tenant-local day/week/month windows when they match
+// FullCalendar's visible event-fetch interval. Preserve the legacy feed for
+// custom/alternate month grids so no appointments disappear at the edges.
 async function loadEvents(info,success,failure){
 
     try {
-
-        const d=await api(
-            '/api/appointments.php?start='+
-            encodeURIComponent(info.startStr)+
-            '&end='+
-            encodeURIComponent(info.endStr)
-        );
+        const legacyUrl = '/api/appointments.php?start=' +
+            encodeURIComponent(info.startStr) + '&end=' +
+            encodeURIComponent(info.endStr);
+        const viewTypes = {
+            dayGridMonth: 'month',
+            timeGridWeek: 'week',
+            timeGridDay: 'day'
+        };
+        const activeView = calendar && calendar.view
+            ? viewTypes[calendar.view.type] : null;
+        let d;
+        if (activeView) {
+            const focused = calendar.getDate();
+            // FullCalendar is configured for UTC-as-tenant-wall-clock.
+            const focusDate = focused.toISOString().slice(0, 10);
+            const firstDay = calendar.getOption('firstDay') === 1 ? 1 : 0;
+            const query = new URLSearchParams({
+                view: activeView,
+                date: focusDate,
+                week_start: String(firstDay)
+            });
+            const serverResult = await api('/api/appointments.php?' + query);
+            const expectedStart = info.startStr.slice(0, 10);
+            const expectedEnd = info.endStr.slice(0, 10);
+            const range = serverResult.range;
+            const matches = range &&
+                range.start.slice(0, 10) === expectedStart &&
+                range.end.slice(0, 10) === expectedEnd;
+            d = matches ? serverResult : await api(legacyUrl);
+        } else {
+            d = await api(legacyUrl);
+        }
 
         success(d.appointments.map(a=>({
 
@@ -3509,6 +4222,19 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             document.getElementById('calendar'),
             {
                 initialView: preferredViews[calendarPreferences.calendar_view],
+                // Month: show appointment cards, with a +more popover only
+                // when a dense day exceeds the available row height.
+                // Week/Day retain their normal time-grid behavior.
+                contentHeight: 'auto',
+                // Month view uses only the necessary week rows; dates from
+                // adjacent months remain blank instead of displaying events.
+                fixedWeekCount: false,
+                showNonCurrentDates: false,
+                // Distribute available height across the actual 4/5/6
+                // week rows instead of leaving unused space below them.
+                expandRows: true,
+                dayMaxEvents: false,
+                dayMaxEventRows: false,
                 firstDay: calendarPreferences.week_starts_on === 'monday' ? 1 : 0,
                 eventTimeFormat: {
                     hour: '2-digit',
@@ -3522,6 +4248,13 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                 },
                 // UTC represents tenant-local wall-clock values here.
                 timeZone:'UTC',
+
+                datesSet: () => {
+                    // View changes are dispatched after the calendar is ready.
+                    if (typeof scheduleCalendarFit === 'function') {
+                        requestAnimationFrame(scheduleCalendarFit);
+                    }
+                },
 
                 headerToolbar:{
                     left:'prev,next today',
@@ -3568,7 +4301,16 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                         const names = appointmentContractorNames(a);
                         if (names.length) lines.push('Contractors: ' + names.join(', '));
                     }
-                    info.el.title = lines.join('\n');
+                    // The expanded card replaces the browser's truncated title hint.
+                    info.el.removeAttribute('title');
+                    info.el.addEventListener('mouseenter', () => showCalendarHoverPreview(info.el));
+                    info.el.addEventListener('mouseleave', () => {
+                        if (calendarHoverOwner === info.el) hideCalendarHoverPreview();
+                    });
+                    info.el.addEventListener('focusin', () => showCalendarHoverPreview(info.el));
+                    info.el.addEventListener('focusout', () => {
+                        if (calendarHoverOwner === info.el) hideCalendarHoverPreview();
+                    });
                     info.el.setAttribute('aria-label', lines.join('. '));
                 },
 
@@ -3618,6 +4360,121 @@ document.addEventListener('DOMContentLoaded',async ()=>{
         );
 
         calendar.render();
+
+        // Fit month rows to the visible calendar panel, not the whole document.
+        // A minimum of two event rows remains visible in crowded day cells.
+        const calendarPanel = document.getElementById('scheduleCalendarPanel');
+        const calendarElement = document.getElementById('calendar');
+        let calendarFitFrame = 0;
+        let fittedMonthHeight = null;
+        function fitCalendarMonth() {
+            if (!calendar || !calendarPanel || calendarPanel.hidden) return;
+            const desktop = window.matchMedia(
+                '(min-width: 900px) and (min-height: 500px)'
+            ).matches;
+            const month = desktop && calendar.view.type === 'dayGridMonth';
+            calendarPanel.classList.toggle('brite-month-fit', month);
+            calendarPanel.classList.remove('brite-month-overflow');
+
+            if (!month) {
+                if (fittedMonthHeight !== null) {
+                    fittedMonthHeight = null;
+                    calendarElement.style.height = '';
+                    calendarPanel.style.removeProperty('--brite-month-week-height');
+                    calendar.setOption('height', 'auto');
+                    calendar.setOption('dayMaxEventRows', false);
+                }
+                calendar.updateSize();
+                return;
+            }
+
+            // Measure the *actual* panel space after tabs, toolbar and card
+            // padding. Avoid fixed 700px minimums and guessed top offsets.
+            const panelRect = calendarPanel.getBoundingClientRect();
+            const calendarRect = calendarElement.getBoundingClientRect();
+            const card = calendarElement.closest('.card');
+            const cardStyle = card ? getComputedStyle(card) : null;
+            const bottomPadding = cardStyle
+                ? parseFloat(cardStyle.paddingBottom) || 0 : 0;
+            const available = Math.floor(
+                Math.min(panelRect.bottom, window.innerHeight) -
+                calendarRect.top - bottomPadding - 2
+            );
+            if (available < 100) return;
+
+            // FullCalendar month can contain 4, 5 or 6 rows. Calculate
+            // row density from the current rendered month, not a constant.
+            const weekRows = calendarElement.querySelectorAll(
+                '.fc-daygrid-body > table > tbody > tr'
+            ).length || calendarElement.querySelectorAll(
+                '.fc-daygrid-body tbody tr'
+            ).length || 6;
+            // The grid's own visible height is authoritative. A fixed
+            // FullCalendar height alone can leave its daygrid rows at
+            // content height, producing blank space below short months.
+            // Reserve the toolbar and weekday header, then explicitly
+            // distribute the remaining space across the rendered weeks.
+            const fcToolbar = calendarElement.querySelector('.fc-header-toolbar');
+            const weekdayHeader = calendarElement.querySelector('.fc-col-header');
+            const toolbarHeight = fcToolbar
+                ? fcToolbar.getBoundingClientRect().height +
+                    (parseFloat(getComputedStyle(fcToolbar).marginBottom) || 0)
+                : 0;
+            const weekdayHeight = weekdayHeader
+                ? weekdayHeader.getBoundingClientRect().height : 0;
+            const gridHeight = Math.max(0, available - toolbarHeight - weekdayHeight - 6);
+            const weekHeight = Math.max(28, Math.floor(gridHeight / weekRows));
+            calendarPanel.style.setProperty(
+                '--brite-month-week-height', weekHeight + 'px'
+            );
+            const perWeek = gridHeight / weekRows;
+            const compact = perWeek < 85;
+            calendarPanel.style.setProperty(
+                '--brite-month-event-font', compact ? '10px' : '11px'
+            );
+            calendarPanel.style.setProperty(
+                '--brite-month-date-padding', compact ? '1px' : '2px'
+            );
+
+            // Keep at least one visible appointment in each cell when
+            // possible; overflow appointments remain accessible via +more.
+            // Complete titles need variable card height; limit how many
+            // cards appear per day instead of truncating card text.
+            const eventRows = perWeek >= 145 ? 2 : 1;
+            // The panel is viewport-fitted. Avoid triggering a scrollbar
+            // solely because the per-week height is compact; the +more
+            // popover handles excess appointments instead.
+            // Extremely short viewports can still use the responsive
+            // non-desktop layout below 500px.
+
+            // Give both the FullCalendar host and its root an explicit
+            // height. The outer flex card otherwise permits an auto-height
+            // calendar to leave a large blank region beneath the last week.
+            calendarElement.style.height = available + 'px';
+            if (fittedMonthHeight !== available) {
+                fittedMonthHeight = available;
+                calendar.setOption('height', available);
+            }
+            if (calendar.getOption('dayMaxEventRows') !== eventRows) {
+                calendar.setOption('dayMaxEventRows', eventRows);
+            }
+            calendar.updateSize();
+        }
+        function scheduleCalendarFit() {
+            cancelAnimationFrame(calendarFitFrame);
+            calendarFitFrame = requestAnimationFrame(fitCalendarMonth);
+        }
+        window.addEventListener('resize', scheduleCalendarFit, {passive: true});
+        scheduleCalendarFit();
+
+        // FullCalendar must recalculate dimensions after a hidden tab opens.
+        document.getElementById('schedulingWorkspace')
+            ?.addEventListener('brite:tabchange', event => {
+                if (event.detail?.panel?.id === 'scheduleCalendarPanel') {
+                    scheduleCalendarFit();
+                }
+            });
+
 
         // Position the month view at the earliest upcoming appointment
         // visible to this authenticated user. The endpoint derives

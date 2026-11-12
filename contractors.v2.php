@@ -39,8 +39,19 @@ window.BRITE_QUALIFICATION_CAN_EDIT =
     <?=json_encode($qualificationCanEdit)?>;
 function esc(s){return String(s??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[x]))}
 
-const contractorPager = new BritePagination({
+let contractorSortField='name',contractorSortDirection=1;
+const contractorPager = new BriteServerPagination({
     container: document.getElementById('contractorPagination'),
+    load: async ({page,per_page}) => {
+        const query=new URLSearchParams({
+            page:String(page),
+            per_page:String(per_page),
+            sort:contractorSortField,
+            direction:contractorSortDirection===1?'asc':'desc'
+        });
+        const data=await api('/api/contractors.php?'+query.toString());
+        return {records:data.contractors,pagination:data.pagination};
+    },
     render(contractors) {
         const list=document.getElementById('rows');
         list.replaceChildren();
@@ -170,15 +181,7 @@ const contractorPager = new BritePagination({
     }
 });
 
-let contractorRecords=[],contractorSortField='name',contractorSortDirection=1;
-function sortContractors(){
- const collator=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
- const sorted=contractorRecords.slice().sort((a,b)=>{
-  const field=contractorSortField;
-  const value=c=>field==='name'?[c.first_name,c.last_name].join(' '):c[field];
-  return contractorSortDirection*collator.compare(String(value(a)??''),String(value(b)??''));
- });
- contractorPager.setRecords(sorted,true);
+function updateContractorSortButtons(){
  document.querySelectorAll('#contractorSort [data-sort]').forEach(button=>{
   const active=button.dataset.sort===contractorSortField;
   button.setAttribute('aria-pressed',String(active));
@@ -188,12 +191,13 @@ function sortContractors(){
 document.querySelectorAll('#contractorSort [data-sort]').forEach(button=>button.addEventListener('click',()=>{
  const field=button.dataset.sort;
  contractorSortDirection=contractorSortField===field?-contractorSortDirection:1;
- contractorSortField=field;sortContractors();
+ contractorSortField=field;
+ updateContractorSortButtons();
+ contractorPager.goTo(1);
 }));
+updateContractorSortButtons();
 async function load(){
- const d=await api('/api/contractors.php');
- contractorRecords=Array.isArray(d.contractors)?d.contractors:[];
- sortContractors();
+ await contractorPager.refresh();
 }
 
 async function loadOfferings(contractorId,mount){
