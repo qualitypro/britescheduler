@@ -1,0 +1,47 @@
+name: Publish approved screenshot gallery
+on:
+  push:
+    branches:
+      - main
+      - feature/cycle90-server-calendar-pagination
+    paths:
+      - 'docs/gallery/**'
+      - '.github/workflows/screenshot-gallery-pages.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: screenshot-pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate approved image manifest
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, re, sys
+          root=pathlib.Path('docs/gallery')
+          data=json.loads((root/'manifest.json').read_text())
+          for entry in data.get('screenshots',[]):
+              p=entry.get('src','')
+              if not re.fullmatch(r'images/[A-Za-z0-9/_-]+\.png',p):
+                  sys.exit('Invalid gallery image path')
+              if not (root/p).is_file():
+                  sys.exit('Missing gallery image: '+p)
+              if entry.get('role') not in ('owner','contractor','client') or entry.get('viewport') not in ('desktop','tablet','mobile'):
+                  sys.exit('Invalid role or viewport')
+          print('Approved screenshots:',len(data.get('screenshots',[])))
+          PY
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/gallery
+      - id: deployment
+        uses: actions/deploy-pages@v4

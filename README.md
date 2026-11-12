@@ -14,6 +14,12 @@
 
 ---
 
+## 📸 Application screenshots
+
+[**Browse the interactive screenshot gallery**](https://qualitypro.github.io/britescheduler/) — desktop, tablet, and mobile previews with a full-screen lightbox, next/previous navigation, and role filters. Screenshots appear after approved captures are published. See [screenshot publication instructions](qa/screenshots/PUBLIC_GALLERY.md).
+
+---
+
 ## 📚 Contents
 
 - [📖 Overview](#-overview)
