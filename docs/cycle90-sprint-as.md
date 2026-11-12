@@ -1,0 +1,3 @@
+# Cycle 90AS — Page title icons and compact control refinement
+
+Adds decorative unique route-based SVG icons to the first semantic page h1 on authenticated application pages; Intelligence, CRM and Messaging receive separate module icons. Uses DOMContentLoaded and leaves existing event handlers, page content, menu icons, and accordion state untouched. Pages without a semantic h1 cannot receive an icon until their markup is updated. Extends shared compact styles for page headers, directory actions, sort controls, filter toolbars, Activity Hub and Settings, without touching FullCalendar, sidebar, modals, or edit forms. Remote browser validation pending.
