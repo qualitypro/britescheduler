@@ -4,7 +4,7 @@ This branch is isolated from main until local review. No migration is run by Git
 
 ## Cycle 91 — Native PHP installation
 - 91A: read-only environment diagnostics and ordered SQL migration inventory (implemented)
-- 91B: protected browser installation wizard (not implemented)
+- 91B: read-only browser requirements page implemented; protected write-capable installation wizard not implemented
 - 91C: transactional/resumable schema migration execution and first-owner bootstrap (not implemented)
 - 91D: installer parity audit, tests, then retire the legacy Python installer (not implemented)
 
@@ -15,7 +15,7 @@ This branch is isolated from main until local review. No migration is run by Git
 ```
 Neither command modifies configuration, database, or accounts. The doctor reports checks only, never secret values. An Apache .htaccess check is not proof of web-server protection; production installation must verify web server configuration independently.
 
-## Cycle 92 — Contractor onboarding and identity
+## Cycle 93 foundation delivered\n- Migration 038 adds application, verification, review, token, requirements, and private document metadata tables. Not applied to a database.\n- Registration Policy is a pure eligibility helper; no signup, approval, or identity upload endpoint is exposed.\n- Run `/opt/lampp/bin/php tests/registration_policy_test.php` after pulling for policy smoke tests.\n\n## Cycle 92 — Contractor onboarding and identity
 - Private ID document ingestion with encryption, retention/deletion and restricted access
 - Identity verification and moderation before contractor activation
 - Business profile, licenses, insurance, qualifications and expiration reminders
