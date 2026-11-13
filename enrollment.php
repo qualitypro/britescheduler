@@ -43,7 +43,7 @@ try {
     if ($applicationIds) {
         $placeholders = implode(',', array_fill(0, count($applicationIds), '?'));
         $documentsQuery = $pdo->prepare(
-            "SELECT id, application_id, document_type, status, uploaded_at
+            "SELECT id, application_id, document_type, status, uploaded_at, retention_hold
              FROM registration_documents WHERE application_id IN ($placeholders)
              AND deleted_at IS NULL ORDER BY uploaded_at DESC, id DESC"
         );
@@ -102,6 +102,12 @@ require __DIR__ . '/partials/app_header.php';
                       <input type="hidden" name="document_id" value="<?= (int)$document['id'] ?>">
                       <button type="submit">Download for inspection</button>
                     </form>
+                    <form class="document-hold" method="post" action="<?= $escape(app_url('/api/enrollment_document_hold.php')) ?>">
+                      <input type="hidden" name="_csrf" value="<?= $escape(csrf_token()) ?>">
+                      <input type="hidden" name="document_id" value="<?= (int)$document['id'] ?>">
+                      <label>Retention hold reason <input name="reason" minlength="5" maxlength="500" required></label>
+                      <button type="submit" name="action" value="<?= $document['retention_hold'] ? 'release' : 'hold' ?>"><?= $document['retention_hold'] ? 'Release hold' : 'Place retention hold' ?></button>
+                    </form>
                     <?php if ($document['status'] === 'pending'): ?>
                       <form class="document-decision" method="post" action="<?= $escape(app_url('/api/enrollment_document_review.php')) ?>">
                         <input type="hidden" name="_csrf" value="<?= $escape(csrf_token()) ?>">
@@ -133,6 +139,22 @@ require __DIR__ . '/partials/app_header.php';
     <?php endif; ?>
   </div>
 <script>
+document.querySelectorAll('.document-hold').forEach(form => {
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const action = event.submitter?.value;
+    if (!['hold', 'release'].includes(action) || !form.reportValidity()) return;
+    if (!confirm(action === 'hold' ? 'Preserve this document beyond its deletion deadline?' : 'Release preservation hold? Expired documents may become eligible for purge.')) return;
+    const payload = new FormData(form);
+    payload.set('action', action);
+    try {
+      const response = await fetch(form.action, {method:'POST', credentials:'same-origin', body:payload, headers:{Accept:'application/json'}});
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Unable to change hold');
+      location.reload();
+    } catch (error) { alert(error.message || 'Unable to change hold'); }
+  });
+});
 document.querySelectorAll('.document-decision').forEach(form => {
   form.addEventListener('submit', async event => {
     event.preventDefault();
