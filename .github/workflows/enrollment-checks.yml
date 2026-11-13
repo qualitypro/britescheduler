@@ -8,6 +8,8 @@ on:
       - 'migrations/039_enrollment_rate_limits.sql'
       - 'migrations/040_registration_consents.sql'
       - 'migrations/041_registration_email_outbox.sql'
+      - 'migrations/042_registration_document_audit.sql'
+      - 'api/enrollment_document_review.php'
       - 'api/auth/register.php'
       - 'sign-up.v2.php'
       - 'api/enrollment_decision.php'
@@ -28,7 +30,7 @@ jobs:
       - name: Lint enrollment and installer PHP
         run: |
           set -eu
-          for file in app/Registration/*.php app/Installation/*.php api/enrollment_decision.php api/auth/register.php enrollment.php sign-up.v2.php verify-enrollment.php install/index.php bin/brite tests/registration_*_test.php tests/installation_inventory_test.php tests/installation_migration_plan_test.php tests/installation_preflight_test.php; do
+          for file in app/Registration/*.php app/Installation/*.php api/enrollment_decision.php api/enrollment_document_review.php api/auth/register.php enrollment.php sign-up.v2.php verify-enrollment.php install/index.php bin/brite tests/registration_*_test.php tests/installation_inventory_test.php tests/installation_migration_plan_test.php tests/installation_preflight_test.php; do
             php -l "$file"
           done
       - name: Pure policy and security tests
