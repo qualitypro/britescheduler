@@ -15,7 +15,7 @@ $first = trim((string)($d['first_name'] ?? ''));
 $last = trim((string)($d['last_name'] ?? ''));
 $email = strtolower(trim((string)($d['email'] ?? '')));
 $phone = trim((string)($d['phone'] ?? ''));
-$company = trim((string)($d['company_name'] ?? $d['business_name'] ?? ''));
+$company = trim((string)($type === 'contractor' ? ($d['business_name'] ?? '') : ($d['company_name'] ?? '')));
 $password = (string)($d['password'] ?? '');
 $confirmation = (string)($d['password_confirm'] ?? '');
 $consent = $d['terms_accepted'] ?? false;
