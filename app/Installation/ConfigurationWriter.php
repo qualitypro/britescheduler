@@ -36,6 +36,11 @@ final class ConfigurationWriter
             (int)$values['DB_PORT'] > 65535) {
             throw new DomainException('Invalid application URL or database port');
         }
+        if (!preg_match('/^[A-Za-z0-9.-]+$/D', $values['DB_HOST']) ||
+            !preg_match('/^[A-Za-z0-9_]+$/D', $values['DB_NAME']) ||
+            !preg_match('/^[A-Za-z0-9_.-]+$/D', $values['DB_USER'])) {
+            throw new DomainException('Invalid database connection identifiers');
+        }
         $template = file_get_contents($root . '/.env.example');
         if (!is_string($template)) throw new RuntimeException('Configuration template unreadable');
         foreach ($values as $key => $value) {
