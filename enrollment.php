@@ -82,7 +82,7 @@ require __DIR__ . '/partials/app_header.php';
                   <form class="enrollment-decision" method="post" action="<?= $escape(app_url('/api/enrollment_decision.php')) ?>">
                     <input type="hidden" name="_csrf" value="<?= $escape(csrf_token()) ?>">
                     <input type="hidden" name="application_id" value="<?= (int)$application['id'] ?>">
-                    <label>Reason <input name="reason" minlength="5" maxlength="500" required placeholder="Reason for decision" aria-label="Review reason for application <?= (int)$application['id'] ?>"></label>
+                    <label>Reason <input name="reason" minlength="5" maxlength="500" placeholder="Reason for request or rejection" aria-label="Review reason for application <?= (int)$application['id'] ?>"></label>
                     <button type="submit" name="action" value="approve">Approve</button>
                     <button type="submit" name="action" value="request_info">Request info</button>
                     <button type="submit" name="action" value="reject">Reject</button>
@@ -103,6 +103,8 @@ document.querySelectorAll('.enrollment-decision').forEach(form => {
     event.preventDefault();
     const action = event.submitter?.value;
     if (!['approve', 'request_info', 'reject'].includes(action)) return;
+    const reason = form.querySelector('[name="reason"]');
+    reason.required = action !== 'approve';
     if (!form.reportValidity()) return;
     if (!confirm(action === 'approve' ? 'Approve and activate this applicant? Verification requirements must be satisfied.' : (action === 'reject' ? 'Reject this enrollment application?' : 'Request additional information? No email will be sent automatically.'))) return;
     const payload = new FormData(form);
