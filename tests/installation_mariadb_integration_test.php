@@ -24,6 +24,15 @@ if ($tables !== 0) throw new RuntimeException('Integration test requires an empt
 file_put_contents($env, "APP_ENV=test\nDB_HOST=$host\nDB_PORT=$port\nDB_NAME=$db\nDB_USER=$user\nDB_PASS=$pass\n");
 chmod($env, 0600);
 try {
+    file_put_contents($root . '/.brite-migration-recovery-required', "test-marker\n");
+    try {
+        FirstRunInstaller::install($root, $pdo, [
+            'email'=>'initial-owner@example.test', 'first_name'=>'Initial','last_name'=>'Owner',
+            'password'=>'long-test-only-password','tenant_name'=>'Test Tenant','tenant_slug'=>'test-tenant',
+        ], true);
+        throw new RuntimeException('Recovery marker was ignored');
+    } catch (RuntimeException $expected) {}
+    unlink($root . '/.brite-migration-recovery-required');
     $result = FirstRunInstaller::install($root, $pdo, [
         'email'=>'initial-owner@example.test',
         'first_name'=>'Initial',
@@ -34,6 +43,10 @@ try {
     ], true);
     if (!$result['installed'] || !is_file($root . '/.brite-installed.lock')) {
         throw new RuntimeException('Installer did not complete');
+    }
+    $storedHash = $pdo->query("SELECT password_hash FROM users WHERE email='initial-owner@example.test'")->fetchColumn();
+    if (!is_string($storedHash) || !password_verify('long-test-only-password', $storedHash)) {
+        throw new RuntimeException('Initial owner password was not hashed correctly');
     }
     if ((int)$pdo->query("SELECT COUNT(*) FROM tenant_memberships WHERE role='owner'")->fetchColumn() !== 1) {
         throw new RuntimeException('Initial owner membership missing');
