@@ -498,5 +498,5 @@ My Locations
     </aside>
 
 
-<script src="<?=htmlspecialchars(app_url('/assets/js/brite-page-heading-icons.js?v=90at'),ENT_QUOTES,'UTF-8')?>" defer></script>
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-page-heading-icons.js?v=90au'),ENT_QUOTES,'UTF-8')?>" defer></script>
 <main class="brite-content" id="briteMainContent" tabindex="-1">
