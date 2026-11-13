@@ -32,7 +32,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $message = 'Unable to verify this request.';
     } else {
         try {
-            EmailVerificationService::consume(Database::connection(), $token);
+            $verifiedApplicationId = EmailVerificationService::consume(Database::connection(), $token);
+            session_regenerate_id(true);
+            $_SESSION['enrollment_document_application_id'] = $verifiedApplicationId;
+            $_SESSION['enrollment_document_expires_at'] = time() + 1800;
             $message = 'Email verified. Your enrollment is now awaiting review.';
             $success = true;
         } catch (\Throwable $exception) {
@@ -50,4 +53,5 @@ $escape = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_
 <form method="post"><input type="hidden" name="csrf" value="<?= $escape($_SESSION['enrollment_verify_csrf']) ?>">
 <label for="token">Verification token</label><input id="token" name="token" type="text" minlength="64" maxlength="64" pattern="[a-f0-9]{64}" autocomplete="off" required>
 <button type="submit">Verify email</button></form>
-<?php endif; ?></main></body></html>
+<?php endif; ?>
+<?php if ($success): ?><p><a href="<?= $escape(app_url('/enrollment-documents.php')) ?>">Continue to secure contractor document upload</a></p><?php endif; ?></main></body></html>
