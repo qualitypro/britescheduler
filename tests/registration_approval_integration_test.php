@@ -6,7 +6,14 @@ require_once dirname(__DIR__) . '/app/Registration/ApprovalService.php';
 
 use BriteScheduler\Registration\ApprovalService;
 
-$pdo = new PDO('sqlite::memory:');
+// SQLite lacks SELECT ... FOR UPDATE. This test-only adapter removes that clause;
+// production ApprovalService remains unchanged and requires MariaDB row locks.
+class SqliteApprovalTestConnection extends PDO {
+    public function prepare(string $query, array $options = []): PDOStatement|false {
+        return parent::prepare(preg_replace('/\\s+FOR UPDATE\\s*$/i', '', $query), $options);
+    }
+}
+$pdo = new SqliteApprovalTestConnection('sqlite::memory:');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 $pdo->sqliteCreateFunction('UTC_TIMESTAMP', static fn(): string => gmdate('Y-m-d H:i:s'), 0);
