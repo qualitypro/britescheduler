@@ -22,6 +22,10 @@ final class OutboxWorker
                 $q = $pdo->query("SELECT id, recipient_email, subject, body_ciphertext, attempts
                     FROM registration_email_outbox WHERE status IN ('pending','failed')
                     AND available_at <= UTC_TIMESTAMP() AND attempts < 5
+                    AND EXISTS (SELECT 1 FROM registration_tokens t
+                        WHERE t.application_id = registration_email_outbox.application_id
+                        AND t.purpose = 'email_verify' AND t.consumed_at IS NULL
+                        AND t.expires_at > UTC_TIMESTAMP())
                     ORDER BY id ASC LIMIT 1 FOR UPDATE SKIP LOCKED");
                 $row = $q->fetch(PDO::FETCH_ASSOC);
                 if (!$row) {
