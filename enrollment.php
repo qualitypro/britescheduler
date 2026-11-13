@@ -68,7 +68,7 @@ require __DIR__ . '/partials/app_header.php';
       </form>
       <div class="card" style="overflow-x:auto">
         <table>
-          <thead><tr><th>Applicant</th><th>Type</th><th>Email</th><th>Verification</th><th>Status</th><th>Submitted</th></tr></thead>
+          <thead><tr><th>Applicant</th><th>Type</th><th>Email</th><th>Verification</th><th>Status</th><th>Submitted</th><th>Review</th></tr></thead>
           <tbody>
             <?php foreach ($rows as $application): ?>
               <tr>
@@ -78,13 +78,46 @@ require __DIR__ . '/partials/app_header.php';
                 <td><?= $application['email_verified_at'] ? 'Email verified' : 'Email pending' ?></td>
                 <td><?= $escape(ucwords(str_replace('_', ' ', $application['status']))) ?></td>
                 <td><?= $escape($application['submitted_at']) ?></td>
+                <td><?php if (in_array($application['status'], ['pending_review', 'action_required'], true)): ?>
+                  <form class="enrollment-decision" method="post" action="<?= $escape(app_url('/api/enrollment_decision.php')) ?>">
+                    <input type="hidden" name="_csrf" value="<?= $escape(csrf_token()) ?>">
+                    <input type="hidden" name="application_id" value="<?= (int)$application['id'] ?>">
+                    <label>Reason <input name="reason" minlength="5" maxlength="500" required placeholder="Reason for decision" aria-label="Review reason for application <?= (int)$application['id'] ?>"></label>
+                    <button type="submit" name="action" value="request_info">Request info</button>
+                    <button type="submit" name="action" value="reject">Reject</button>
+                  </form>
+                <?php else: ?>—<?php endif; ?></td>
               </tr>
             <?php endforeach; ?>
-            <?php if (!$rows): ?><tr><td colspan="6">No enrollment applications match this filter.</td></tr><?php endif; ?>
+            <?php if (!$rows): ?><tr><td colspan="7">No enrollment applications match this filter.</td></tr><?php endif; ?>
           </tbody>
         </table>
       </div>
-      <p class="muted">Read-only queue preview. Approval, rejection, verification email delivery, and provisioning are not enabled yet.</p>
+      <p class="muted">Request-info and rejection decisions are recorded in the audit trail. Notifications, approval, verification email delivery, and provisioning are not enabled yet.</p>
     <?php endif; ?>
   </div>
+<script>
+document.querySelectorAll('.enrollment-decision').forEach(form => {
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const action = event.submitter?.value;
+    if (!['request_info', 'reject'].includes(action)) return;
+    if (!form.reportValidity()) return;
+    if (!confirm(action === 'reject' ? 'Reject this enrollment application?' : 'Request additional information? No email will be sent automatically.')) return;
+    const payload = new FormData(form);
+    payload.set('action', action);
+    const buttons = form.querySelectorAll('button');
+    buttons.forEach(button => button.disabled = true);
+    try {
+      const response = await fetch(form.action, {method:'POST', credentials:'same-origin', body:payload, headers:{Accept:'application/json'}});
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Decision failed');
+      location.reload();
+    } catch (error) {
+      alert(error.message || 'Unable to process decision');
+      buttons.forEach(button => button.disabled = false);
+    }
+  });
+});
+</script>
 <?php require __DIR__ . '/partials/app_footer.php'; ?>
