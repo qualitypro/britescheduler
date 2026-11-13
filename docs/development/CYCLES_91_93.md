@@ -123,3 +123,9 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - Added `DocumentReviewService::decide` and `api/enrollment_document_review.php`: CSRF-protected authenticated owner/admin review scoped to the current tenant, limited to contractor documents in pending status and eligible application states. Decisions and audit entries commit atomically.
 - **Trust boundary:** document status `verified` indicates a reviewer marked the submitted document as reviewed; this does not create a `registration_verifications.government_id` record, grant account approval, or prove identity. A separate identity verification workflow is required.
 - **Not ready for operational use:** applicant-authenticated uploads, safe document inspection, malware scanning, access audit, retention deletion and identity-verification provider integration remain unimplemented. Do not mark documents verified without actually inspecting them through a secure authorized workflow.
+
+## Cycle 92 authenticated moderator document inspection
+- Added `DocumentInspectionService` and POST `api/enrollment_document_inspect.php`. Existing authenticated tenant owner/admin roles and CSRF checks are required. The service joins the document to a contractor application belonging to the current tenant, decrypts the private vault object, validates its MIME, and writes a `viewed` audit entry before responding.
+- Documents are returned as attachments, not inline browser content, with no-store caching, no-sniff, sandbox CSP, and frame denial. No public storage URLs or original filenames are disclosed.
+- Requires migration 042 and the private vault configuration. No public inspection route should be added.
+- **Outstanding:** applicant upload authorization, malware scanning, retention/deletion, identity verification, reviewer UI, and DB-backed integration/security testing. Do not use this endpoint in production until those controls and a security review are complete.
