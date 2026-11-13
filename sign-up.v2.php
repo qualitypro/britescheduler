@@ -8,6 +8,10 @@ if (Auth::user()) {
 }
 
 $csrf = csrf_token();
+$termsUrl = getenv('ENROLLMENT_TERMS_URL') ?: '';
+$privacyUrl = getenv('ENROLLMENT_PRIVACY_URL') ?: '';
+$legalConfigured = filter_var($termsUrl, FILTER_VALIDATE_URL) && filter_var($privacyUrl, FILTER_VALIDATE_URL)
+    && str_starts_with($termsUrl, 'https://') && str_starts_with($privacyUrl, 'https://');
 $tenants = Database::connection()->query("SELECT id, name FROM tenants WHERE status = 'active' ORDER BY name LIMIT 100")->fetchAll(PDO::FETCH_ASSOC);
 
 $type = strtolower(trim($_GET['type'] ?? 'client'));
@@ -237,8 +241,9 @@ Contractor
        required>
 </div>
 
-<div class="field"><label style="font-weight:400"><input type="checkbox" id="termsAccepted" required style="width:auto"> I agree to the applicable Terms and Privacy Policy.</label></div>
-<button type="submit">
+<div class="field"><label style="font-weight:400"><input type="checkbox" id="termsAccepted" required style="width:auto"> I agree to the <?php if ($legalConfigured): ?><a href="<?= htmlspecialchars($termsUrl, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener noreferrer">Terms</a> and <a href="<?= htmlspecialchars($privacyUrl, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener noreferrer">Privacy Policy</a><?php else: ?>Terms and Privacy Policy (not configured)<?php endif; ?>.</label></div>
+<?php if (!$legalConfigured): ?><p role="alert" style="color:#991b1b">Enrollment is unavailable until the business publishes its Terms and Privacy Policy.</p><?php endif; ?>
+<button type="submit" <?= $legalConfigured ? '' : 'disabled' ?>>
 Create <?= $isContractor ? 'Contractor' : 'Client' ?> Account
 </button>
 
