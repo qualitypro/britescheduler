@@ -36,7 +36,11 @@ if ($type === 'contractor' && $phone === '') {
 }
 $termsVersion = getenv('ENROLLMENT_TERMS_VERSION') ?: '';
 $privacyVersion = getenv('ENROLLMENT_PRIVACY_VERSION') ?: '';
-if ($termsVersion === '' || $privacyVersion === '' ||
+$termsUrl = getenv('ENROLLMENT_TERMS_URL') ?: '';
+$privacyUrl = getenv('ENROLLMENT_PRIVACY_URL') ?: '';
+if (!str_starts_with($termsUrl, 'https://') || !str_starts_with($privacyUrl, 'https://') ||
+    !filter_var($termsUrl, FILTER_VALIDATE_URL) || !filter_var($privacyUrl, FILTER_VALIDATE_URL) ||
+    $termsVersion === '' || $privacyVersion === '' ||
     strlen($termsVersion) > 80 || strlen($privacyVersion) > 80) {
     json_response(['error' => 'Enrollment legal documents are not configured'], 503);
 }
