@@ -47,3 +47,9 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - Request-info does **not** send email. Manual follow-up is required until notification delivery is implemented.
 - Approval and account provisioning remain disabled. Migration 038 must be applied before the page or endpoint can function.
 - No PHP runtime, database, browser, or cross-tenant integration test has been run in this environment.
+
+## Cycle 93 email verification foundation
+- `EmailVerificationService::consume` locks and consumes a hashed email token atomically, advances pending-email to pending-review, and records verification and audit entries.
+- `verify-enrollment.php` provides a CSRF-protected token submission page; this is not a signup or email-delivery workflow. It does not activate an account.
+- Token generation and outbound email delivery are **not connected**. Do not publish verification links until issuance and delivery are integrated.
+- `.github/workflows/enrollment-checks.yml` adds PHP lint and pure unit tests on pull requests. CI success does not replace database, browser, and tenant-isolation testing.
