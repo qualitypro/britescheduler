@@ -146,3 +146,9 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - The process is invoked without a shell, discards scanner output, and fails closed on malware detection, missing configuration, scanner errors, and a 30-second timeout.
 - Added a negative regression test for non-upload files. Full positive-path scanning requires an HTTP upload integration environment with ClamAV and malware signature fixtures.
 - **Security limitations:** scanners do not guarantee harmless documents; PDF/image sanitization, scan engine signature maintenance, resource controls, retention and identity verification still require operational controls. Uploads must not be enabled until the scanner is installed and integration-tested.
+
+## Cycle 92 document retention foundation
+- Newly uploaded documents receive a 90-day `delete_after` deadline. This is an initial application policy, not a jurisdiction-specific legal retention determination.
+- CLI `php bin/brite documents:due` lists up to 100 expired document IDs without exposing storage keys. `php bin/brite documents:purge ID --confirm-retention` removes only expired encrypted objects and marks the record deleted while retaining the audit trail.
+- Filesystem removal and SQL commits cannot be atomic; a crash after unlink but before commit requires a retry, and `DocumentVault::discard` tolerates missing objects. Operator intervention is required if the vault or database is unavailable.
+- **Before production:** validate legal retention/hold requirements, add automated scheduled cleanup and monitoring, account for backups and disaster recovery copies, and test the full lifecycle against MariaDB and a configured private vault. A 90-day deadline must not override a lawful preservation hold.
