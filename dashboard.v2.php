@@ -255,6 +255,8 @@ require __DIR__.'/partials/app_header.php';
     function createMetric(metric, data) {
         const card = document.createElement('article');
         card.className = 'brite-dashboard-metric';
+        card.dataset.widgetId = metric.key;
+        card.dataset.widgetLabel = metric.label;
 
         const top = document.createElement('div');
         top.className = 'brite-dashboard-metric-top';
@@ -294,6 +296,14 @@ require __DIR__.'/partials/app_header.php';
             });
 
             container.replaceChildren(...cards);
+            if (window.BriteWidgetLayout) {
+                window.BriteWidgetLayout.mount(container, {
+                    scope: <?=json_encode((string)(Auth::tenant()['id'] ?? '0').'.'.(string)(Auth::requireUser()['id'] ?? '0').'.operations',JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>,
+                    defaultOrder: metrics.map(metric => metric.key),
+                    endpoint: <?=json_encode(app_url('/api/dashboard_widget_layout.php?dashboard=operations'),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>,
+                    csrf: <?=json_encode(csrf_token(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>
+                });
+            }
             container.hidden = false;
             status.hidden = true;
         })
@@ -309,4 +319,6 @@ require __DIR__.'/partials/app_header.php';
 
 
 
+<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-widget-layout.css'),ENT_QUOTES,'UTF-8')?>">
+<script src="<?=htmlspecialchars(app_url('/assets/js/brite-widget-layout.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <?php require __DIR__.'/partials/app_footer.php'; ?>

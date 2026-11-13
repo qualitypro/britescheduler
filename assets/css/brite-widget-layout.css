@@ -1,0 +1,290 @@
+/* Shared widget customization controls for all role dashboards. */
+.brite-widget-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+.brite-widget-toolbar button,.brite-widget-controls button{border:1px solid var(--brite-border,#cbd5e1);border-radius:6px;background:var(--brite-surface,#fff);color:var(--brite-text,#172033);padding:6px 10px;cursor:pointer;font:inherit;font-size:.8rem}
+.brite-widget-toolbar button:focus-visible,.brite-widget-controls button:focus-visible{outline:2px solid var(--brite-accent,#2563eb);outline-offset:2px}
+.brite-widget-controls{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.brite-widget-controls[hidden]{display:none!important}
+.brite-widget-handle{cursor:grab!important;touch-action:none}
+.brite-widget-status{font-size:.76rem;color:var(--brite-text-secondary,#64748b)}
+.brite-dashboard-metrics .brite-widget-wide,.brite-widget-grid .brite-widget-wide{grid-column:span 2}
+.brite-dashboard-metrics [hidden],.brite-widget-grid [hidden]{display:none!important}
+@media(max-width:650px){.brite-dashboard-metrics .brite-widget-wide,.brite-widget-grid .brite-widget-wide{grid-column:span 1}}
+
+/* Touch and keyboard polish: controls are the only drag surface. */
+.brite-widget-controls{position:relative;z-index:2;align-items:center}
+.brite-widget-controls .brite-widget-handle{touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab!important;min-height:36px}
+.brite-widget-controls .brite-widget-handle.brite-widget-dragging{cursor:grabbing!important;opacity:.65}
+.brite-widget-restore{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.brite-widget-restore[hidden]{display:none!important}
+.brite-widget-toolbar button{min-height:36px}
+.brite-widget-editing{outline:1px dashed var(--brite-border,#94a3b8);outline-offset:-3px}
+@media(pointer:coarse){
+ .brite-widget-controls button,.brite-widget-toolbar button{min-height:44px;min-width:44px}
+}
+@media(prefers-reduced-motion:reduce){
+ .brite-widget-editing,.brite-widget-controls *{transition:none!important;animation:none!important}
+}
+
+/* Window-style widget chrome: controls live at the upper right of each card. */
+.brite-widget-grid>[data-widget-id],
+.brite-dashboard-metrics>[data-widget-id],
+.bi-widget-grid>[data-widget-id]{position:relative;min-width:0}
+.brite-widget-controls{
+ position:absolute;top:7px;right:8px;z-index:5;
+ display:flex;align-items:center;gap:3px;margin:0!important;
+ border:1px solid var(--brite-border,#cbd5e1);
+ border-radius:6px;padding:2px;background:var(--brite-surface,#fff);
+ box-shadow:0 1px 4px rgba(0,0,0,.08);
+}
+.brite-widget-controls button{
+ width:24px!important;height:24px!important;min-width:24px!important;min-height:24px!important;
+ padding:0!important;display:grid;place-items:center;
+ border:0!important;border-radius:4px!important;
+ background:transparent!important;color:var(--brite-text-secondary,#64748b)!important;
+ font-size:16px!important;line-height:1!important;
+}
+.brite-widget-controls button:hover,.brite-widget-controls button:focus-visible{
+ background:var(--brite-border,#e2e8f0)!important;color:var(--brite-text,#172033)!important;
+}
+.brite-widget-controls .brite-widget-handle{cursor:grab!important}
+.brite-widget-editing{outline:none!important}
+.brite-widget-toolbar.brite-widget-utility{
+ position:relative;display:flex;justify-content:flex-end;
+ min-height:0;margin:0 0 4px;padding:0;
+}
+.brite-widget-utility-toggle{
+ width:28px;height:28px;min-width:28px!important;min-height:28px!important;
+ padding:0!important;font-size:16px!important;
+}
+.brite-widget-utility-menu{
+ position:absolute;right:0;top:32px;z-index:30;
+ min-width:170px;padding:8px;display:grid;gap:6px;
+ background:var(--brite-surface,#fff);border:1px solid var(--brite-border,#cbd5e1);
+ border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.14);
+}
+.brite-widget-utility-menu[hidden]{display:none!important}
+.brite-widget-utility-menu button{width:100%;text-align:left}
+.brite-widget-utility .brite-widget-status{
+ position:absolute;right:34px;top:6px;max-width:min(320px,65vw);
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+@media(pointer:coarse){
+ .brite-widget-controls button{
+  width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;
+ }
+}
+
+/* Header-reveal widget actions. The dedicated rail prevents content overlap. */
+.brite-widget-grid>[data-widget-id],
+.brite-dashboard-metrics>[data-widget-id],
+.bi-widget-grid>[data-widget-id]{
+ box-sizing:border-box!important;
+ padding-top:34px!important;
+}
+.brite-widget-grid>[data-widget-id]>.brite-widget-chrome,
+.brite-dashboard-metrics>[data-widget-id]>.brite-widget-chrome,
+.bi-widget-grid>[data-widget-id]>.brite-widget-chrome{
+ position:absolute!important;
+ inset:0 0 auto 0!important;
+ box-sizing:border-box!important;
+ width:100%!important;
+ max-width:100%!important;
+ height:30px!important;
+ margin:0!important;
+ padding:2px 12px!important;
+ z-index:20!important;
+ display:flex!important;
+ align-items:center!important;
+ justify-content:flex-end!important;
+ flex:none!important;
+ overflow:hidden!important;
+ border-radius:inherit!important;
+ background:transparent!important;
+ cursor:default;
+}
+/* Preserve the card's rounded corners: only the action buttons gain a hover surface. */
+.brite-widget-chrome:hover,
+.brite-widget-chrome:focus-within,
+.brite-widget-chrome.brite-widget-chrome-open{
+ background:transparent!important;
+}
+.brite-widget-chrome:focus-visible{
+ outline:2px solid var(--brite-accent,#2563eb);
+ outline-offset:-2px;
+}
+.brite-widget-chrome>.brite-widget-controls{
+ position:static!important;
+ display:flex!important;
+ flex-direction:row!important;
+ flex-wrap:nowrap!important;
+ align-items:center!important;
+ justify-content:flex-end!important;
+ flex:none!important;
+ box-sizing:border-box!important;
+ gap:3px!important;
+ width:auto!important;
+ max-width:100%!important;
+ height:26px!important;
+ max-height:26px!important;
+ margin:0!important;
+ padding:1px 2px!important;
+ border:1px solid var(--brite-border,#cbd5e1)!important;
+ border-radius:5px!important;
+ background:var(--brite-surface,#fff)!important;
+ box-shadow:none!important;
+ overflow:hidden!important;
+ visibility:hidden!important;
+ opacity:0!important;
+ pointer-events:none!important;
+ transform:none!important;
+ transition:opacity .12s ease!important;
+}
+.brite-widget-chrome:hover>.brite-widget-controls,
+.brite-widget-chrome:focus-within>.brite-widget-controls,
+.brite-widget-chrome.brite-widget-chrome-open>.brite-widget-controls{
+ visibility:visible!important;
+ opacity:1!important;
+ pointer-events:auto!important;
+}
+.brite-widget-chrome>.brite-widget-controls>button{
+ box-sizing:border-box!important;
+ display:grid!important;
+ place-items:center!important;
+ flex:0 0 22px!important;
+ width:22px!important;
+ min-width:22px!important;
+ max-width:22px!important;
+ height:22px!important;
+ min-height:22px!important;
+ max-height:22px!important;
+ margin:0!important;
+ padding:0!important;
+ border:0!important;
+ border-radius:3px!important;
+ font-size:15px!important;
+}
+@media(pointer:coarse){
+ .brite-widget-grid>[data-widget-id],
+ .brite-dashboard-metrics>[data-widget-id],
+ .bi-widget-grid>[data-widget-id]{padding-top:44px!important}
+ .brite-widget-grid>[data-widget-id]>.brite-widget-chrome,
+ .brite-dashboard-metrics>[data-widget-id]>.brite-widget-chrome,
+ .bi-widget-grid>[data-widget-id]>.brite-widget-chrome{
+  height:40px!important;
+  padding:2px 6px!important;
+ }
+ .brite-widget-chrome>.brite-widget-controls{
+  height:36px!important;
+  max-height:36px!important;
+ }
+ .brite-widget-chrome>.brite-widget-controls>button{
+  flex-basis:32px!important;
+  width:32px!important;
+  min-width:32px!important;
+  max-width:32px!important;
+  height:32px!important;
+  min-height:32px!important;
+  max-height:32px!important;
+ }
+}
+/* Subtle, native-feeling controls with comfortable edge clearance. */
+.brite-widget-chrome>.brite-widget-controls{
+ border-color:transparent!important;
+ background:transparent!important;
+ border-radius:6px!important;
+}
+.brite-widget-chrome:hover>.brite-widget-controls,
+.brite-widget-chrome:focus-within>.brite-widget-controls,
+.brite-widget-chrome.brite-widget-chrome-open>.brite-widget-controls{
+ background:var(--brite-surface,#fff)!important;
+ border-color:var(--brite-border,#cbd5e1)!important;
+}
+.brite-widget-chrome>.brite-widget-controls>button{
+ transition:background-color .12s ease,color .12s ease!important;
+}
+.brite-widget-chrome>.brite-widget-controls>button:focus-visible{
+ outline:2px solid var(--brite-accent,#2563eb)!important;
+ outline-offset:1px!important;
+}
+.brite-widget-chrome>.brite-widget-controls>button:last-child:hover{
+ background:rgba(220,38,38,.10)!important;
+ color:#b91c1c!important;
+}
+@media(prefers-reduced-motion:reduce){
+ .brite-widget-chrome>.brite-widget-controls>button{transition:none!important}
+}
+
+@media(prefers-reduced-motion:reduce){
+ .brite-widget-chrome>.brite-widget-controls{transition:none!important}
+}
+
+/* Drag feedback: lift the moving card and indicate a valid destination. */
+.brite-widget-grid>[data-widget-id].brite-widget-drag-active,
+.brite-dashboard-metrics>[data-widget-id].brite-widget-drag-active,
+.bi-widget-grid>[data-widget-id].brite-widget-drag-active{
+ position:relative!important;
+ z-index:50!important;
+ opacity:.9;
+ filter:drop-shadow(0 12px 18px rgba(15,23,42,.18));
+ cursor:grabbing!important;
+ will-change:transform;
+}
+.brite-widget-grid>[data-widget-id].brite-widget-drop-target,
+.brite-dashboard-metrics>[data-widget-id].brite-widget-drop-target,
+.bi-widget-grid>[data-widget-id].brite-widget-drop-target{
+ outline:2px solid var(--brite-accent,#2563eb)!important;
+ outline-offset:-3px!important;
+ background-image:linear-gradient(rgba(59,130,246,.055),rgba(59,130,246,.055));
+}
+.brite-widget-handle.brite-widget-dragging{cursor:grabbing!important;opacity:1!important}
+@media(prefers-reduced-motion:reduce){
+ .brite-widget-drag-active{filter:none!important}
+ .brite-widget-drop-target{background-image:none!important}
+}
+
+/* Indicate the insertion edge, rather than implying two cards will swap. */
+.brite-widget-grid>[data-widget-id][data-widget-drop-side="before"],
+.brite-dashboard-metrics>[data-widget-id][data-widget-drop-side="before"],
+.bi-widget-grid>[data-widget-id][data-widget-drop-side="before"]{
+ box-shadow:inset 0 4px 0 var(--brite-accent,#2563eb)!important;
+}
+.brite-widget-grid>[data-widget-id][data-widget-drop-side="after"],
+.brite-dashboard-metrics>[data-widget-id][data-widget-drop-side="after"],
+.bi-widget-grid>[data-widget-id][data-widget-drop-side="after"]{
+ box-shadow:inset 0 -4px 0 var(--brite-accent,#2563eb)!important;
+}
+
+/* Widget chrome containment: module cards may use different box models,
+   inherited positioning, and nested panel overflow rules. */
+:is(.brite-widget-grid,.brite-dashboard-metrics,.bi-widget-grid)>[data-widget-id]{
+ position:relative!important;
+ min-width:0!important;
+ box-sizing:border-box!important;
+ isolation:isolate;
+}
+:is(.brite-widget-grid,.brite-dashboard-metrics,.bi-widget-grid)>[data-widget-id]>.brite-widget-chrome{
+ position:absolute!important;
+ top:0!important;
+ right:0!important;
+ bottom:auto!important;
+ left:0!important;
+ inset:0 0 auto 0!important;
+ width:100%!important;
+ min-width:0!important;
+ max-width:100%!important;
+ box-sizing:border-box!important;
+ padding-inline:clamp(4px,2%,12px)!important;
+ overflow:hidden!important;
+}
+:is(.brite-widget-grid,.brite-dashboard-metrics,.bi-widget-grid)>[data-widget-id]>.brite-widget-chrome>.brite-widget-controls{
+ position:relative!important;
+ inset:auto!important;
+ min-width:0!important;
+ max-width:100%!important;
+ margin-left:auto!important;
+ flex-shrink:1!important;
+ box-sizing:border-box!important;
+}
+:is(.brite-widget-grid,.brite-dashboard-metrics,.bi-widget-grid)>[data-widget-id]>.brite-widget-chrome>.brite-widget-controls>button{
+ flex-shrink:1!important;
+}
