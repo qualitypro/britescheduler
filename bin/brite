@@ -7,11 +7,13 @@ require_once $root . '/app/Installation/RequirementsChecker.php';
 require_once $root . '/app/Installation/MigrationInventory.php';
 require_once $root . '/app/Installation/InstallationStatus.php';
 require_once $root . '/app/Installation/MigrationPlan.php';
+require_once $root . '/app/Installation/MigrationPreflight.php';
 
 use BriteScheduler\Installation\RequirementsChecker;
 use BriteScheduler\Installation\MigrationInventory;
 use BriteScheduler\Installation\InstallationStatus;
 use BriteScheduler\Installation\MigrationPlan;
+use BriteScheduler\Installation\MigrationPreflight;
 
 $command = $argv[1] ?? 'help';
 if ($command === 'help' || $command === '--help') {
@@ -20,6 +22,7 @@ if ($command === 'help' || $command === '--help') {
     echo "  php bin/brite migrations  Read-only ordered SQL migration inventory\n";
     echo "  php bin/brite status       Read-only database migration status (no secrets)\n";
     echo "  php bin/brite migrate:plan Strict read-only ordered migration plan\n";
+    echo "  php bin/brite migrate:check Check pending migration file integrity\n";
     echo "  php bin/brite mail:send   Deliver pending enrollment email (CLI only)\n";
     echo "  php bin/brite mail:status Read-only delivery counts and stale claims\n";
     echo "  php bin/brite mail:retry-stale ID --confirm-duplicate-risk  Explicit recovery\n";
@@ -86,6 +89,21 @@ if ($command === 'mail:send') {
         exit($result['failed'] ? 1 : 0);
     } catch (Throwable $error) {
         fwrite(STDERR, "Mail worker unavailable. Check configuration, database migrations, and transport.\n");
+        exit(1);
+    }
+}
+if ($command === 'migrate:check') {
+    require_once $root . '/app/bootstrap.php';
+    try {
+        $plan = MigrationPlan::build($root, Database::connection());
+        $checked = MigrationPreflight::inspect($root, $plan['pending']);
+        foreach ($checked as $item) {
+            echo '[CHECKED] ' . $item['version'] . ' sha256:' . $item['sha256'] . PHP_EOL;
+        }
+        echo 'Checked ' . count($checked) . ' pending migration files without executing SQL.' . PHP_EOL;
+        exit(0);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Migration preflight failed; no SQL executed.\n");
         exit(1);
     }
 }
