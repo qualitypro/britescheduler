@@ -51,7 +51,7 @@ if ($command === 'install:complete') {
             'tenant_name' => getenv('BRITE_INITIAL_TENANT_NAME') ?: '',
             'tenant_slug' => getenv('BRITE_INITIAL_TENANT_SLUG') ?: '',
         ];
-        $result = \\BriteScheduler\\Installation\\FirstRunInstaller::install(
+        $result = \BriteScheduler\Installation\FirstRunInstaller::install(
             $root, Database::connection(), $owner, true
         );
         echo 'Initial installation completed. Applied migrations: ' . $result['migrations_applied'] . PHP_EOL;
