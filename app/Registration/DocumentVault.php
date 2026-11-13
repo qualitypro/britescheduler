@@ -94,6 +94,19 @@ final class DocumentVault
         return $id;
     }
 
+    /** Only for cleanup of an upload that failed before its database transaction committed. */
+    public static function discard(string $id): void
+    {
+        if (!preg_match('/^[a-f0-9]{48}$/D', $id)) {
+            throw new DomainException('Invalid document reference');
+        }
+        $path = self::root() . DIRECTORY_SEPARATOR . $id . '.vault';
+        if (is_link($path)) throw new DomainException('Invalid vault object');
+        if (is_file($path) && !unlink($path)) {
+            throw new RuntimeException('Unable to remove uncommitted document');
+        }
+    }
+
     /** Caller must enforce moderator authorization and record access in audit history. */
     public static function read(string $id): string
     {
