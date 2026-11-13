@@ -202,3 +202,8 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - A disposable MariaDB GitHub Actions job now exercises full migration execution, owner provisioning, install locking and reinstallation refusal. **Do not consider the feature validated until this job passes.**
 - MySQL DDL may auto-commit. On failure, inspect `.brite-migration-recovery-required` and reconcile database state before any retry. Do not delete this marker blindly.
 - The web installer remains diagnostics/authorization only. Browser-driven configuration, owner wizard and deployment security review remain outstanding.
+
+## Cycle 91 integration finding
+- The first disposable MariaDB run found that migration preflight incorrectly classified the legitimate `source` column in `030_crm_module.sql` as a forbidden `SOURCE` command. Preflight now parses SQL statements before checking forbidden command positions, retaining the refusal of `LOAD DATA`, `SOURCE`, `DELIMITER`, and file-output SQL.
+- Added a regression case for ordinary `source` columns. Full-schema MariaDB CI must pass before declaring this issue resolved.
+- The two CLI setup commands are implemented; browser-driven installation remains separate and is not complete.
