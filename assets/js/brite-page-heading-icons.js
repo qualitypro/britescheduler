@@ -37,7 +37,26 @@
     messaging:'<path d="M3 4h18v14H8l-5 4zM7 9h10M7 13h7"/>'
   };
   const fallback = '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>';
+  // Management links reuse the exact SVG drawing used by their destination H1.
+  // Keep role visibility, links, accordion behavior and all other nav sections intact.
+  const managementPages = new Set([
+    'clients.v2.php', 'client-locations.php', 'service-locations-map.php',
+    'contractors.v2.php', 'contractor-service-areas.php',
+    'contractor-availability.php', 'services.v2.php', 'trends.php'
+  ]);
+  function syncManagementIcons() {
+    document.querySelectorAll('.brite-sidebar-nav a[href]').forEach(link => {
+      const url = new URL(link.href, location.href);
+      const page = url.pathname.split('/').pop();
+      if (!managementPages.has(page) || !paths[page]) return;
+      const svg = link.querySelector('.brite-nav-icon svg');
+      if (!svg) return;
+      // Replace drawing only; retain existing SVG attributes and nav styling.
+      svg.innerHTML = paths[page];
+    });
+  }
   function run() {
+    syncManagementIcons();
     const main = document.getElementById('briteMainContent');
     if (!main) return;
     const page = location.pathname.split('/').pop() || 'dashboard.v2.php';
