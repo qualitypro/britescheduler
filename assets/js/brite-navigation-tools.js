@@ -23,8 +23,17 @@ searchIcon.setAttribute('aria-hidden','true');
 searchIcon.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>';
 trigger.prepend(searchIcon);
 trigger.setAttribute('aria-label','Search pages and sections');
-// Place Search Pages after all accordion sections, at the very bottom of the main menu.
-sidebarNav.append(trigger);
+// The accordion groups all siblings following its final heading. Insert only
+// after accordion initialization, so Search Pages stays a standalone main-nav
+// control rather than being captured inside the Personal accordion panel.
+function placeSearchInMainNav() {
+    sidebarNav.append(trigger);
+}
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', placeSearchInMainNav);
+} else {
+    placeSearchInMainNav();
+}
 const dialog=make('dialog','brite-command-dialog');dialog.setAttribute('aria-label','Find pages and sections');
 const frame=make('div','brite-command-frame');
 const header=make('div','brite-command-header');
