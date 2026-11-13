@@ -70,3 +70,10 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - Configure `ENROLLMENT_MAIL_FROM` and a working PHP mail transport. No real delivery, mail retries, provider verification, browser checks, or database integration tests have been completed.
 - Apply migrations 038, 039 and 040 in order only after reviewing backup and schema compatibility. No local changes or migrations have been performed by this development work.
 - Remaining release blockers: real identity/phone verification, business enrollment and platform review, legal document publication, mail queue and delivery assurance, cross-tenant/integration tests, concurrency/duplicate race hardening, installation wizard completion.
+
+## Cycle 91 migration status and Cycle 93 approval hardening
+- Added `app/Installation/InstallationStatus.php` and `php bin/brite status` to report applied, pending, and unknown migration names from the configured database, without executing migrations or revealing connection credentials.
+- Added an isolated inventory ordering/checksum regression test and expanded CI lint coverage to the signup endpoint, signup page, CLI, and installer.
+- Approval now requires a persisted `email` verification record; `email_verified_at` alone is insufficient.
+- No installer migration execution, schema migration, or initial tenant/owner bootstrap is enabled yet.
+- GitHub Actions and local PHP/MariaDB test results have not been confirmed in this session.
