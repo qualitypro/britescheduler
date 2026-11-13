@@ -6,10 +6,12 @@ $root = dirname(__DIR__);
 require_once $root . '/app/Installation/RequirementsChecker.php';
 require_once $root . '/app/Installation/MigrationInventory.php';
 require_once $root . '/app/Installation/InstallationStatus.php';
+require_once $root . '/app/Installation/MigrationPlan.php';
 
 use BriteScheduler\Installation\RequirementsChecker;
 use BriteScheduler\Installation\MigrationInventory;
 use BriteScheduler\Installation\InstallationStatus;
+use BriteScheduler\Installation\MigrationPlan;
 
 $command = $argv[1] ?? 'help';
 if ($command === 'help' || $command === '--help') {
@@ -17,6 +19,7 @@ if ($command === 'help' || $command === '--help') {
     echo "  php bin/brite doctor       Read-only PHP and filesystem diagnostics\n";
     echo "  php bin/brite migrations  Read-only ordered SQL migration inventory\n";
     echo "  php bin/brite status       Read-only database migration status (no secrets)\n";
+    echo "  php bin/brite migrate:plan Strict read-only ordered migration plan\n";
     echo "  php bin/brite mail:send   Deliver pending enrollment email (CLI only)\n";
     echo "  php bin/brite mail:status Read-only delivery counts and stale claims\n";
     echo "  php bin/brite mail:retry-stale ID --confirm-duplicate-risk  Explicit recovery\n";
@@ -83,6 +86,24 @@ if ($command === 'mail:send') {
         exit($result['failed'] ? 1 : 0);
     } catch (Throwable $error) {
         fwrite(STDERR, "Mail worker unavailable. Check configuration, database migrations, and transport.\n");
+        exit(1);
+    }
+}
+if ($command === 'migrate:plan') {
+    require_once $root . '/app/bootstrap.php';
+    try {
+        $plan = MigrationPlan::build($root, Database::connection());
+        echo 'Applied: ' . $plan['applied_count'] . PHP_EOL;
+        echo 'Pending: ' . count($plan['pending']) . PHP_EOL;
+        foreach ($plan['pending'] as $item) {
+            echo '[PLAN] ' . $item['version'] . ' sha256:' . $item['sha256'] . PHP_EOL;
+        }
+        if ($plan['requires_bootstrap']) {
+            echo 'Database has no recorded applied migrations; bootstrap requires separate authorization.' . PHP_EOL;
+        }
+        exit(0);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Migration planning stopped: inconsistent history or unavailable database.\n");
         exit(1);
     }
 }
