@@ -207,3 +207,8 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - The first disposable MariaDB run found that migration preflight incorrectly classified the legitimate `source` column in `030_crm_module.sql` as a forbidden `SOURCE` command. Preflight now parses SQL statements before checking forbidden command positions, retaining the refusal of `LOAD DATA`, `SOURCE`, `DELIMITER`, and file-output SQL.
 - Added a regression case for ordinary `source` columns. Full-schema MariaDB CI must pass before declaring this issue resolved.
 - The two CLI setup commands are implemented; browser-driven installation remains separate and is not complete.
+
+## Cycle 91 CLI configuration step
+- `php bin/brite install:configure --confirm-new-install` is available for a new deployment only. It requires `BRITE_INSTALL_SETUP_TOKEN` and matching `BRITE_INSTALL_PROVIDED_TOKEN` plus `APP_URL`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` and `DB_PASS` in the process environment. The command authenticates the setup token, takes the installer mutex and creates `.env` with restrictive permissions without overwriting existing files.
+- The subsequent `install:complete --confirm-empty-database` command requires initial tenant/owner environment values as documented above and a dedicated empty database. These commands are for trusted CLI deployment operators, not for untrusted browser users.
+- Keep all setup secrets out of shell history, logs and GitHub. The CLI installer does not create the MariaDB database or user itself, and it does not configure web-server HTTPS or private file access.
