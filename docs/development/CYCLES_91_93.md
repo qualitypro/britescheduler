@@ -220,3 +220,19 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - A disposable MariaDB job validates the full CLI installation path; browser-specific end-to-end HTTPS tests and deployment validation remain necessary before production use.
 - Provision the empty database and database user in advance. Configure HTTPS, access restrictions and web-server rules denying access to dotfiles, private installer state, backups and application secrets. Remove or disable the `/install` route after successful deployment.
 - Enrollment mail transport, vault encryption, and malware scanner settings are separate operational prerequisites; successful Cycle 91 installation does not automatically configure these services.
+
+## Cycle 91 acceptance and deployment checklist
+- [x] Read-only requirements, inventory, drift detection and SQL preflight
+- [x] Setup token, CSRF, HTTPS origin enforcement, dedicated short-lived session and origin-IP throttling
+- [x] Atomic create-only private configuration, exclusive installer mutex
+- [x] Full ordered migration execution with recovery marker and recorded history
+- [x] First tenant, password-hashed owner and active owner membership
+- [x] Installed lock, refusal to reinstall and guarded CLI recovery path
+- [x] Browser form and CLI installation entry points
+- [x] Disposable MariaDB integration test for full schema and first owner
+- [ ] HTTPS browser end-to-end test against a real web server
+- [ ] Deployment review: filesystem ownership, web-root isolation, TLS, trusted admin network, backups, least-privilege DB account and secrets provisioning
+- [ ] Validate installation on target PHP/MariaDB stack and confirm application sign-in after first run
+- [ ] Review installation failure/recovery procedure with operator; test restore from a verified backup
+
+The feature implementation is complete enough for controlled staging validation, **not an assertion of production readiness**. Do not merge or deploy without the unchecked acceptance items.
