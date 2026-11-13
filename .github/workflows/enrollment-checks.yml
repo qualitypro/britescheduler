@@ -36,7 +36,7 @@ jobs:
       - name: Lint enrollment and installer PHP
         run: |
           set -eu
-          for file in app/Registration/*.php app/Installation/*.php api/enrollment_decision.php api/enrollment_document_review.php api/enrollment_document_inspect.php api/enrollment_document_upload.php api/enrollment_document_hold.php api/auth/register.php enrollment.php enrollment-documents.php sign-up.v2.php verify-enrollment.php install/index.php bin/brite tests/registration_*_test.php tests/installation_inventory_test.php tests/installation_migration_plan_test.php tests/installation_preflight_test.php tests/installation_gate_test.php tests/installation_authorization_test.php tests/installation_mutex_test.php tests/installation_configuration_writer_test.php; do
+          for file in app/Registration/*.php app/Installation/*.php api/enrollment_decision.php api/enrollment_document_review.php api/enrollment_document_inspect.php api/enrollment_document_upload.php api/enrollment_document_hold.php api/auth/register.php enrollment.php enrollment-documents.php sign-up.v2.php verify-enrollment.php install/index.php bin/brite tests/registration_*_test.php tests/installation_inventory_test.php tests/installation_migration_plan_test.php tests/installation_preflight_test.php tests/installation_gate_test.php tests/installation_authorization_test.php tests/installation_mutex_test.php tests/installation_configuration_writer_test.php tests/installation_sql_statements_test.php; do
             php -l "$file"
           done
       - name: Pure policy and security tests
@@ -54,4 +54,5 @@ jobs:
           php tests/installation_authorization_test.php
           php tests/installation_mutex_test.php
           php tests/installation_configuration_writer_test.php
+          php tests/installation_sql_statements_test.php
           ENROLLMENT_OUTBOX_KEY=$(php -r 'echo base64_encode(str_repeat("x",32));') php tests/registration_email_envelope_test.php
