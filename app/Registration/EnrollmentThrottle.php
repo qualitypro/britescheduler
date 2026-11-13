@@ -20,13 +20,16 @@ final class EnrollmentThrottle
             ['email:' . strtolower($email), 5],
         ] as [$identity, $limit]) {
             $key = hash_hmac('sha256', $identity, $secret);
+            // Reset the expired bucket first; then increment atomically.
             $q = $pdo->prepare(
                 'INSERT INTO enrollment_rate_limits (bucket_key, window_started_at, attempts)
-                 VALUES (?, UTC_TIMESTAMP(), 1)
+                 VALUES (?, UTC_TIMESTAMP(), 0)
                  ON DUPLICATE KEY UPDATE
-                   attempts = IF(window_started_at < UTC_TIMESTAMP() - INTERVAL 1 HOUR, 1, attempts + 1),
+                   attempts = IF(window_started_at < UTC_TIMESTAMP() - INTERVAL 1 HOUR, 0, attempts),
                    window_started_at = IF(window_started_at < UTC_TIMESTAMP() - INTERVAL 1 HOUR, UTC_TIMESTAMP(), window_started_at)'
             );
+            $q->execute([$key]);
+            $q = $pdo->prepare('UPDATE enrollment_rate_limits SET attempts = attempts + 1 WHERE bucket_key = ?');
             $q->execute([$key]);
             $q = $pdo->prepare('SELECT attempts FROM enrollment_rate_limits WHERE bucket_key = ?');
             $q->execute([$key]);
