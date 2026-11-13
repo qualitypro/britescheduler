@@ -17,6 +17,7 @@ if ($command === 'help' || $command === '--help') {
     echo "  php bin/brite doctor       Read-only PHP and filesystem diagnostics\n";
     echo "  php bin/brite migrations  Read-only ordered SQL migration inventory\n";
     echo "  php bin/brite status       Read-only database migration status (no secrets)\n";
+    echo "  php bin/brite mail:send   Deliver pending enrollment email (CLI only)\n";
     echo "Installation and migration execution are not yet enabled.\n";
     exit(0);
 }
@@ -34,6 +35,20 @@ if ($command === 'migrations') {
         echo $migration['version'] . '  sha256:' . $migration['sha256'] . PHP_EOL;
     }
     exit(0);
+}
+if ($command === 'mail:send') {
+    require_once $root . '/app/bootstrap.php';
+    require_once $root . '/app/Registration/EmailEnvelope.php';
+    require_once $root . '/app/Registration/OutboxWorker.php';
+    try {
+        $result = \BriteScheduler\Registration\OutboxWorker::run(Database::connection());
+        echo 'Email accepted by transport: ' . $result['sent'] . PHP_EOL;
+        echo 'Email attempts failed: ' . $result['failed'] . PHP_EOL;
+        exit($result['failed'] ? 1 : 0);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Mail worker unavailable. Check configuration, database migrations, and transport.\n");
+        exit(1);
+    }
 }
 if ($command === 'status') {
     require_once $root . '/app/bootstrap.php';
