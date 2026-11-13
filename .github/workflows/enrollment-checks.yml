@@ -43,6 +43,8 @@ jobs:
         run: |
           php tests/registration_policy_test.php
           php tests/registration_security_test.php
+          php tests/registration_lifecycle_integration_test.php
+          php tests/registration_approval_integration_test.php
           php tests/registration_document_vault_test.php
           php tests/registration_upload_scanner_test.php
           php tests/installation_inventory_test.php
