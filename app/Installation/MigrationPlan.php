@@ -15,12 +15,18 @@ final class MigrationPlan
         if ($status['unknown']) {
             throw new DomainException('Unknown applied migration versions; manual review required');
         }
-        $inventory = MigrationInventory::list($root);
+        return self::fromInventory(MigrationInventory::list($root), $status['applied'], !$status['installed']);
+    }
+
+    /** Pure history validation, suitable for isolated regression tests. */
+    public static function fromInventory(array $inventory, array $appliedVersions, bool $requiresBootstrap = false): array
+    {
         $names = array_column($inventory, 'version');
-        if (count($names) !== count(array_unique($names))) {
-            throw new DomainException('Duplicate migration versions');
+        if (count($names) !== count(array_unique($names)) ||
+            array_diff($appliedVersions, $names)) {
+            throw new DomainException('Migration history contains duplicate or unknown versions');
         }
-        $applied = array_flip($status['applied']);
+        $applied = array_flip($appliedVersions);
         $pending = [];
         $seenPending = false;
         foreach ($inventory as $migration) {
@@ -33,9 +39,9 @@ final class MigrationPlan
             }
         }
         return [
-            'applied_count' => count($status['applied']),
+            'applied_count' => count($appliedVersions),
             'pending' => $pending,
-            'requires_bootstrap' => !$status['installed'],
+            'requires_bootstrap' => $requiresBootstrap,
         ];
     }
 }
