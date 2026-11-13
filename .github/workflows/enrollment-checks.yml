@@ -1,0 +1,88 @@
+name: Enrollment foundation checks
+on:
+  pull_request:
+    paths:
+      - 'app/Registration/**'
+      - 'app/Installation/**'
+      - 'migrations/038_registration_foundation.sql'
+      - 'migrations/039_enrollment_rate_limits.sql'
+      - 'migrations/040_registration_consents.sql'
+      - 'migrations/041_registration_email_outbox.sql'
+      - 'migrations/042_registration_document_audit.sql'
+      - 'migrations/043_registration_document_retention_hold.sql'
+      - 'api/enrollment_document_hold.php'
+      - 'api/enrollment_document_review.php'
+      - 'api/enrollment_document_inspect.php'
+      - 'api/enrollment_document_upload.php'
+      - 'app/Registration/UploadScanner.php'
+      - 'enrollment-documents.php'
+      - 'api/auth/register.php'
+      - 'sign-up.v2.php'
+      - 'api/enrollment_decision.php'
+      - 'enrollment.php'
+      - 'verify-enrollment.php'
+      - 'install/index.php'
+      - 'bin/brite'
+      - 'tests/registration_*'
+      - '.github/workflows/enrollment-checks.yml'
+  workflow_dispatch:
+jobs:
+  php:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PHP CLI and mbstring
+        run: sudo apt-get update && sudo apt-get install -y php-cli php-mbstring php-sqlite3
+      - name: Lint enrollment and installer PHP
+        run: |
+          set -eu
+          for file in app/Registration/*.php app/Installation/*.php api/enrollment_decision.php api/enrollment_document_review.php api/enrollment_document_inspect.php api/enrollment_document_upload.php api/enrollment_document_hold.php api/auth/register.php enrollment.php enrollment-documents.php sign-up.v2.php verify-enrollment.php install/index.php bin/brite tests/registration_*_test.php tests/installation_inventory_test.php tests/installation_migration_plan_test.php tests/installation_preflight_test.php tests/installation_gate_test.php tests/installation_authorization_test.php tests/installation_mutex_test.php tests/installation_configuration_writer_test.php tests/installation_sql_statements_test.php tests/installation_mariadb_integration_test.php tests/installation_rate_limiter_test.php tests/installation_browser_gate_test.php; do
+            php -l "$file"
+          done
+      - name: Pure policy and security tests
+        run: |
+          php tests/registration_policy_test.php
+          php tests/registration_security_test.php
+          php tests/registration_lifecycle_integration_test.php
+          php tests/registration_approval_integration_test.php
+          php tests/registration_document_vault_test.php
+          php tests/registration_upload_scanner_test.php
+          php tests/installation_inventory_test.php
+          php tests/installation_migration_plan_test.php
+          php tests/installation_preflight_test.php
+          php tests/installation_gate_test.php
+          php tests/installation_authorization_test.php
+          php tests/installation_mutex_test.php
+          php tests/installation_configuration_writer_test.php
+          php tests/installation_sql_statements_test.php
+          php tests/installation_rate_limiter_test.php
+          php tests/installation_browser_gate_test.php
+          ENROLLMENT_OUTBOX_KEY=$(php -r 'echo base64_encode(str_repeat("x",32));') php tests/registration_email_envelope_test.php
+
+  mariadb-installation:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: test-only-root-password
+          MARIADB_DATABASE: brite_install_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PHP MySQL driver
+        run: sudo apt-get update && sudo apt-get install -y php-cli php-mysql php-mbstring
+      - name: Test first-run installer on disposable MariaDB
+        env:
+          BRITE_TEST_DB_HOST: 127.0.0.1
+          BRITE_TEST_DB_PORT: '3306'
+          BRITE_TEST_DB_NAME: brite_install_test
+          BRITE_TEST_DB_USER: root
+          BRITE_TEST_DB_PASS: test-only-root-password
+        run: php tests/installation_mariadb_integration_test.php

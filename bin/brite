@@ -1,0 +1,251 @@
+#!/usr/bin/env php
+<?php
+declare(strict_types=1);
+
+$root = dirname(__DIR__);
+require_once $root . '/app/Installation/RequirementsChecker.php';
+require_once $root . '/app/Installation/MigrationInventory.php';
+require_once $root . '/app/Installation/InstallationStatus.php';
+require_once $root . '/app/Installation/MigrationPlan.php';
+require_once $root . '/app/Installation/MigrationPreflight.php';
+
+use BriteScheduler\Installation\RequirementsChecker;
+use BriteScheduler\Installation\MigrationInventory;
+use BriteScheduler\Installation\InstallationStatus;
+use BriteScheduler\Installation\MigrationPlan;
+use BriteScheduler\Installation\MigrationPreflight;
+
+$command = $argv[1] ?? 'help';
+if ($command === 'help' || $command === '--help') {
+    echo "Brite Scheduler setup tools\n";
+    echo "  php bin/brite doctor       Read-only PHP and filesystem diagnostics\n";
+    echo "  php bin/brite migrations  Read-only ordered SQL migration inventory\n";
+    echo "  php bin/brite status       Read-only database migration status (no secrets)\n";
+    echo "  php bin/brite migrate:plan Strict read-only ordered migration plan\n";
+    echo "  php bin/brite migrate:check Check pending migration file integrity\n";
+    echo "  php bin/brite documents:due  List expired document IDs (read-only)\n";
+    echo "  php bin/brite documents:purge ID --confirm-retention  Purge expired private document\n";
+    echo "  php bin/brite mail:send   Deliver pending enrollment email (CLI only)\n";
+    echo "  php bin/brite mail:status Read-only delivery counts and stale claims\n";
+    echo "  php bin/brite mail:retry-stale ID --confirm-duplicate-risk  Explicit recovery\n";
+    echo "  php bin/brite install:configure --confirm-new-install  Write private .env from process environment\n";
+    echo "  php bin/brite install:complete --confirm-empty-database  Install new database and first owner\n";
+    echo "Browser installation and general migration upgrades remain disabled.\n";
+    exit(0);
+}
+if ($command === 'install:configure') {
+    if (count($argv) !== 3 || $argv[2] !== '--confirm-new-install') {
+        fwrite(STDERR, "Usage: php bin/brite install:configure --confirm-new-install\n");
+        exit(2);
+    }
+    require_once $root . '/app/Installation/InstallerGate.php';
+    require_once $root . '/app/Installation/SetupAuthorization.php';
+    require_once $root . '/app/Installation/InstallationMutex.php';
+    require_once $root . '/app/Installation/ConfigurationWriter.php';
+    try {
+        $mutex = new \BriteScheduler\Installation\InstallationMutex();
+        $mutex->acquire($root);
+        try {
+            if (!\BriteScheduler\Installation\SetupAuthorization::authorize(
+                $root, getenv('BRITE_INSTALL_PROVIDED_TOKEN') ?: ''
+            )) {
+                throw new DomainException('Setup authorization denied');
+            }
+            $values = [];
+            foreach (['APP_URL','DB_HOST','DB_PORT','DB_NAME','DB_USER','DB_PASS'] as $key) {
+                $value = getenv($key);
+                if ($value === false) throw new DomainException('Required configuration missing');
+                $values[$key] = $value;
+            }
+            \BriteScheduler\Installation\ConfigurationWriter::write($root, $values);
+        } finally {
+            $mutex->release();
+        }
+        echo "Private configuration created. No database changes made.\n";
+        exit(0);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Configuration creation refused. No existing configuration was overwritten.\n");
+        exit(1);
+    }
+}
+if ($command === 'install:complete') {
+    if (count($argv) !== 3 || $argv[2] !== '--confirm-empty-database') {
+        fwrite(STDERR, "Usage: php bin/brite install:complete --confirm-empty-database\n");
+        exit(2);
+    }
+    require_once $root . '/app/Installation/InstallationMutex.php';
+    require_once $root . '/app/Installation/SqlStatements.php';
+    require_once $root . '/app/Installation/MigrationRunner.php';
+    require_once $root . '/app/Installation/FirstRunInstaller.php';
+    require_once $root . '/app/bootstrap.php';
+    try {
+        $owner = [
+            'email' => getenv('BRITE_INITIAL_OWNER_EMAIL') ?: '',
+            'first_name' => getenv('BRITE_INITIAL_OWNER_FIRST_NAME') ?: '',
+            'last_name' => getenv('BRITE_INITIAL_OWNER_LAST_NAME') ?: '',
+            'password' => getenv('BRITE_INITIAL_OWNER_PASSWORD') ?: '',
+            'tenant_name' => getenv('BRITE_INITIAL_TENANT_NAME') ?: '',
+            'tenant_slug' => getenv('BRITE_INITIAL_TENANT_SLUG') ?: '',
+        ];
+        $result = \BriteScheduler\Installation\FirstRunInstaller::install(
+            $root, Database::connection(), $owner, true
+        );
+        echo 'Initial installation completed. Applied migrations: ' . $result['migrations_applied'] . PHP_EOL;
+        exit(0);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Installation stopped. Check migration recovery marker and database state before retrying.\n");
+        exit(1);
+    }
+}
+if ($command === 'doctor') {
+    $checks = RequirementsChecker::inspect($root);
+    $failed = false;
+    foreach ($checks as $name => $check) {
+        echo ($check['ok'] ? '[PASS] ' : '[FAIL] ') . $name . ': ' . $check['detail'] . PHP_EOL;
+        $failed = $failed || !$check['ok'];
+    }
+    exit($failed ? 1 : 0);
+}
+if ($command === 'migrations') {
+    foreach (MigrationInventory::list($root) as $migration) {
+        echo $migration['version'] . '  sha256:' . $migration['sha256'] . PHP_EOL;
+    }
+    exit(0);
+}
+if ($command === 'documents:due') {
+    require_once $root . '/app/bootstrap.php';
+    try {
+        $query = Database::connection()->query("SELECT id FROM registration_documents
+            WHERE deleted_at IS NULL AND retention_hold = 0 AND delete_after IS NOT NULL
+            AND delete_after <= UTC_TIMESTAMP()
+            AND status IN ('pending','verified','rejected')
+            ORDER BY delete_after ASC, id ASC LIMIT 100");
+        $ids = $query->fetchAll(PDO::FETCH_COLUMN);
+        foreach ($ids as $id) echo '[DUE] ' . (int)$id . PHP_EOL;
+        echo 'Listed ' . count($ids) . ' expired document IDs (up to 100). No files changed.' . PHP_EOL;
+        exit(0);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Unable to inspect document retention deadlines.\n");
+        exit(1);
+    }
+}
+if ($command === 'documents:purge') {
+    if (count($argv) !== 4 || !ctype_digit($argv[2]) || (int)$argv[2] < 1 ||
+        $argv[3] !== '--confirm-retention') {
+        fwrite(STDERR, "Usage: php bin/brite documents:purge ID --confirm-retention\n");
+        exit(2);
+    }
+    require_once $root . '/app/bootstrap.php';
+    require_once $root . '/app/Registration/DocumentVault.php';
+    require_once $root . '/app/Registration/DocumentRetention.php';
+    try {
+        $deleted = \BriteScheduler\Registration\DocumentRetention::purge(Database::connection(), (int)$argv[2]);
+        echo $deleted ? "Expired document purged; audit record preserved.\n"
+            : "Document is not eligible for retention cleanup; no changes made.\n";
+        exit($deleted ? 0 : 1);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Retention cleanup failed; investigate vault/database consistency.\n");
+        exit(1);
+    }
+}
+if ($command === 'mail:retry-stale') {
+    if (!isset($argv[2], $argv[3]) || !ctype_digit($argv[2]) ||
+        (int)$argv[2] < 1 || $argv[3] !== '--confirm-duplicate-risk') {
+        fwrite(STDERR, "Usage: php bin/brite mail:retry-stale ID --confirm-duplicate-risk\n");
+        exit(2);
+    }
+    require_once $root . '/app/bootstrap.php';
+    require_once $root . '/app/Registration/OutboxRecovery.php';
+    try {
+        $requeued = \BriteScheduler\Registration\OutboxRecovery::retryStale(Database::connection(), (int)$argv[2]);
+        echo $requeued ? "Stale message requeued. Duplicate delivery remains possible.\n"
+            : "Message not eligible for recovery; no changes made.\n";
+        exit($requeued ? 0 : 1);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Unable to recover stale message.\n");
+        exit(1);
+    }
+}
+if ($command === 'mail:status') {
+    require_once $root . '/app/bootstrap.php';
+    require_once $root . '/app/Registration/OutboxStatus.php';
+    try {
+        $status = \BriteScheduler\Registration\OutboxStatus::inspect(Database::connection());
+        foreach ($status['counts'] as $name => $count) {
+            echo $name . ': ' . $count . PHP_EOL;
+        }
+        echo 'stale sending claims: ' . $status['stale_claims'] . PHP_EOL;
+        if ($status['stale_ids']) echo 'stale message IDs (up to 50): ' . implode(', ', $status['stale_ids']) . PHP_EOL;
+        exit($status['stale_claims'] > 0 ? 1 : 0);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Unable to inspect enrollment email delivery.\n");
+        exit(1);
+    }
+}
+if ($command === 'mail:send') {
+    require_once $root . '/app/bootstrap.php';
+    require_once $root . '/app/Registration/EmailEnvelope.php';
+    require_once $root . '/app/Registration/OutboxWorker.php';
+    try {
+        $result = \BriteScheduler\Registration\OutboxWorker::run(Database::connection());
+        echo 'Email accepted by transport: ' . $result['sent'] . PHP_EOL;
+        echo 'Email attempts failed: ' . $result['failed'] . PHP_EOL;
+        exit($result['failed'] ? 1 : 0);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Mail worker unavailable. Check configuration, database migrations, and transport.\n");
+        exit(1);
+    }
+}
+if ($command === 'migrate:check') {
+    require_once $root . '/app/bootstrap.php';
+    try {
+        $plan = MigrationPlan::build($root, Database::connection());
+        $checked = MigrationPreflight::inspect($root, $plan['pending']);
+        foreach ($checked as $item) {
+            echo '[CHECKED] ' . $item['version'] . ' sha256:' . $item['sha256'] . PHP_EOL;
+        }
+        echo 'Checked ' . count($checked) . ' pending migration files without executing SQL.' . PHP_EOL;
+        exit(0);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Migration preflight failed; no SQL executed.\n");
+        exit(1);
+    }
+}
+if ($command === 'migrate:plan') {
+    require_once $root . '/app/bootstrap.php';
+    try {
+        $plan = MigrationPlan::build($root, Database::connection());
+        echo 'Applied: ' . $plan['applied_count'] . PHP_EOL;
+        echo 'Pending: ' . count($plan['pending']) . PHP_EOL;
+        foreach ($plan['pending'] as $item) {
+            echo '[PLAN] ' . $item['version'] . ' sha256:' . $item['sha256'] . PHP_EOL;
+        }
+        if ($plan['requires_bootstrap']) {
+            echo 'Database has no recorded applied migrations; bootstrap requires separate authorization.' . PHP_EOL;
+        }
+        exit(0);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Migration planning stopped: inconsistent history or unavailable database.\n");
+        exit(1);
+    }
+}
+if ($command === 'status') {
+    require_once $root . '/app/bootstrap.php';
+    try {
+        $status = InstallationStatus::inspect($root, Database::connection());
+        echo 'Installed migrations: ' . count($status['applied']) . PHP_EOL;
+        echo 'Pending migrations: ' . count($status['pending']) . PHP_EOL;
+        foreach ($status['pending'] as $migration) {
+            echo '[PENDING] ' . $migration['version'] . PHP_EOL;
+        }
+        foreach ($status['unknown'] as $version) {
+            echo '[UNKNOWN] ' . $version . PHP_EOL;
+        }
+        exit(count($status['unknown']) ? 1 : 0);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Unable to inspect migration status. Verify database configuration.\n");
+        exit(1);
+    }
+}
+fwrite(STDERR, "Unknown or unavailable command. Run: php bin/brite help\n");
+exit(2);
