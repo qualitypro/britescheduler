@@ -28,8 +28,38 @@ if ($command === 'help' || $command === '--help') {
     echo "  php bin/brite mail:send   Deliver pending enrollment email (CLI only)\n";
     echo "  php bin/brite mail:status Read-only delivery counts and stale claims\n";
     echo "  php bin/brite mail:retry-stale ID --confirm-duplicate-risk  Explicit recovery\n";
-    echo "Installation and migration execution are not yet enabled.\n";
+    echo "  php bin/brite install:complete --confirm-empty-database  Install new database and first owner\n";
+    echo "Browser installation and general migration upgrades remain disabled.\n";
     exit(0);
+}
+if ($command === 'install:complete') {
+    if (count($argv) !== 3 || $argv[2] !== '--confirm-empty-database') {
+        fwrite(STDERR, "Usage: php bin/brite install:complete --confirm-empty-database\n");
+        exit(2);
+    }
+    require_once $root . '/app/Installation/InstallationMutex.php';
+    require_once $root . '/app/Installation/SqlStatements.php';
+    require_once $root . '/app/Installation/MigrationRunner.php';
+    require_once $root . '/app/Installation/FirstRunInstaller.php';
+    require_once $root . '/app/bootstrap.php';
+    try {
+        $owner = [
+            'email' => getenv('BRITE_INITIAL_OWNER_EMAIL') ?: '',
+            'first_name' => getenv('BRITE_INITIAL_OWNER_FIRST_NAME') ?: '',
+            'last_name' => getenv('BRITE_INITIAL_OWNER_LAST_NAME') ?: '',
+            'password' => getenv('BRITE_INITIAL_OWNER_PASSWORD') ?: '',
+            'tenant_name' => getenv('BRITE_INITIAL_TENANT_NAME') ?: '',
+            'tenant_slug' => getenv('BRITE_INITIAL_TENANT_SLUG') ?: '',
+        ];
+        $result = \\BriteScheduler\\Installation\\FirstRunInstaller::install(
+            $root, Database::connection(), $owner, true
+        );
+        echo 'Initial installation completed. Applied migrations: ' . $result['migrations_applied'] . PHP_EOL;
+        exit(0);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Installation stopped. Check migration recovery marker and database state before retrying.\n");
+        exit(1);
+    }
 }
 if ($command === 'doctor') {
     $checks = RequirementsChecker::inspect($root);
