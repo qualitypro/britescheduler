@@ -26,9 +26,14 @@ final class DocumentVault
         $configured = getenv('ENROLLMENT_DOCUMENT_ROOT') ?: '';
         $root = realpath($configured);
         $webroot = realpath(dirname(__DIR__, 2));
+        $serverDocroot = isset($_SERVER['DOCUMENT_ROOT']) ? realpath((string)$_SERVER['DOCUMENT_ROOT']) : false;
+        $configuredDocroot = getenv('ENROLLMENT_WEB_ROOT') ? realpath((string)getenv('ENROLLMENT_WEB_ROOT')) : false;
+        if (!$configuredDocroot) throw new RuntimeException('Explicit web document root is required for vault isolation');
         if (!$root || !is_dir($root) || is_link($configured) ||
             !str_starts_with($configured, '/') || !$webroot ||
-            ($root === $webroot || str_starts_with($root, $webroot . DIRECTORY_SEPARATOR))) {
+            ($root === $webroot || str_starts_with($root, $webroot . DIRECTORY_SEPARATOR)) ||
+            ($root === $configuredDocroot || str_starts_with($root, $configuredDocroot . DIRECTORY_SEPARATOR)) ||
+            ($serverDocroot && ($root === $serverDocroot || str_starts_with($root, $serverDocroot . DIRECTORY_SEPARATOR)))) {
             throw new RuntimeException('Document vault must be an existing directory outside the webroot');
         }
         if ((fileperms($root) & 0007) !== 0) {
