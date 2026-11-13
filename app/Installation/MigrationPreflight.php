@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace BriteScheduler\Installation;
 
+require_once __DIR__ . '/SqlStatements.php';
+
 use DomainException;
 
 /**
