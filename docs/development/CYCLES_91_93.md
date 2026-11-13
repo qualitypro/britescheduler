@@ -175,3 +175,9 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - The installer uses a dedicated HTTP-only SameSite=Strict session cookie scoped to `/install`, CSRF checks, constant-time token comparison, session ID rotation and a 15-minute authorization window.
 - Setup authorization is invalidated whenever an existing `.env` or `.brite-installed.lock` is detected. The installer remains read-only; no configuration/database writes are permitted yet.
 - **Before enabling writes:** enforce HTTPS (not just secure cookies when available), add rate limiting, trusted operator network restrictions, recheck setup state at every mutation, and establish an atomic installation lock. This authorization form alone is not sufficient for internet-exposed installation.
+
+## Cycle 91 setup transport and concurrency safeguards
+- Browser installer refuses requests unless the origin web server reports HTTPS before starting the setup session or accepting a setup token. Reverse-proxy deployments must terminate TLS and configure the origin accordingly; do not blindly trust client-supplied forwarded headers.
+- Failed setup authorization attempts are limited to five per session followed by a 15-minute cooldown. **This is not a distributed/IP-based rate limit** and can be bypassed by starting fresh sessions. Enforce additional edge-level rate limiting before internet exposure.
+- `InstallationMutex` supplies a nonblocking exclusive filesystem lock for future installation mutations. Its concurrency test validates basic serialization. No installer mutations currently use it because write operations are still disabled.
+- **Before enabling writes:** strengthen lock-file ownership/symlink-race protections, use server-side rate limiting, add atomic installed-state creation and ensure all installer writes acquire the mutex and revalidate authorization and existing installation state.
