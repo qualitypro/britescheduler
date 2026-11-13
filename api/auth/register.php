@@ -4,9 +4,11 @@ declare(strict_types=1);
 require_once dirname(__DIR__, 2) . '/app/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/app/Registration/VerificationTokens.php';
 require_once dirname(__DIR__, 2) . '/app/Registration/EnrollmentThrottle.php';
+require_once dirname(__DIR__, 2) . '/app/Registration/EmailEnvelope.php';
 
 use BriteScheduler\Registration\VerificationTokens;
 use BriteScheduler\Registration\EnrollmentThrottle;
+use BriteScheduler\Registration\EmailEnvelope;
 
 require_method('POST');
 verify_csrf();
@@ -95,12 +97,10 @@ try {
     $body = "Your Brite Scheduler enrollment verification token is:\n\n" . $token .
         "\n\nOpen " . $link . " and enter the token within 24 hours.\n" .
         "If you did not request enrollment, ignore this email.\n";
-    $headers = ['From' => $from, 'Content-Type' => 'text/plain; charset=UTF-8'];
-    if (!mail($email, $subject, $body, $headers)) {
-        throw new RuntimeException('Email transport refused enrollment verification');
-    }
+    $q = $db->prepare("INSERT INTO registration_email_outbox (application_id, recipient_email, subject, body_ciphertext) VALUES (?, ?, ?, ?)");
+    $q->execute([$id, $email, $subject, EmailEnvelope::encrypt($body)]);
     $db->commit();
-    json_response(['ok' => true, 'pending_verification' => true, 'message' => 'Check your email for a verification token. Your account is not active yet.'], 202);
+    json_response(['ok' => true, 'pending_verification' => true, 'message' => 'Enrollment received. Verification instructions will be sent by email. Your account is not active yet.'], 202);
 } catch (Throwable $exception) {
     if ($db->inTransaction()) $db->rollBack();
     error_log('Enrollment submission failed: ' . get_class($exception));
