@@ -13,6 +13,13 @@ use BriteScheduler\Installation\MigrationInventory;
 use BriteScheduler\Installation\InstallerGate;
 use BriteScheduler\Installation\SetupAuthorization;
 
+$https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+if (!$https) {
+    http_response_code(403);
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Cache-Control: no-store');
+    exit('Installer access requires a direct HTTPS connection.');
+}
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_name('BRITE_INSTALL');
     session_set_cookie_params(['lifetime'=>0,'path'=>'/install','secure'=>!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off','httponly'=>true,'samesite'=>'Strict']);
