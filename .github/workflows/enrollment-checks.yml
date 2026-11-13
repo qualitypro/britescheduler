@@ -1,0 +1,31 @@
+name: Enrollment foundation checks
+on:
+  pull_request:
+    paths:
+      - 'app/Registration/**'
+      - 'app/Installation/**'
+      - 'api/enrollment_decision.php'
+      - 'enrollment.php'
+      - 'verify-enrollment.php'
+      - 'install/index.php'
+      - 'bin/brite'
+      - 'tests/registration_*'
+      - '.github/workflows/enrollment-checks.yml'
+  workflow_dispatch:
+jobs:
+  php:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PHP CLI and mbstring
+        run: sudo apt-get update && sudo apt-get install -y php-cli php-mbstring
+      - name: Lint enrollment and installer PHP
+        run: |
+          set -eu
+          for file in app/Registration/*.php app/Installation/*.php api/enrollment_decision.php enrollment.php verify-enrollment.php install/index.php bin/brite tests/registration_*_test.php; do
+            php -l "$file"
+          done
+      - name: Pure policy and security tests
+        run: |
+          php tests/registration_policy_test.php
+          php tests/registration_security_test.php
