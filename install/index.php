@@ -6,8 +6,10 @@ declare(strict_types=1);
 $root = dirname(__DIR__);
 require_once $root . '/app/Installation/RequirementsChecker.php';
 require_once $root . '/app/Installation/MigrationInventory.php';
+require_once $root . '/app/Installation/InstallerGate.php';
 use BriteScheduler\Installation\RequirementsChecker;
 use BriteScheduler\Installation\MigrationInventory;
+use BriteScheduler\Installation\InstallerGate;
 
 header('Content-Type: text/html; charset=utf-8');
 header('Cache-Control: no-store');
@@ -16,6 +18,7 @@ header('X-Frame-Options: DENY');
 header('Referrer-Policy: no-referrer');
 header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
 $checks = RequirementsChecker::inspect($root);
+$gate = InstallerGate::inspect($root);
 $ready = !in_array(false, array_column($checks, 'ok'), true);
 $escape = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 ?>
@@ -25,6 +28,8 @@ $escape = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTE
 <style>body{font:16px system-ui,sans-serif;max-width:760px;margin:5vh auto;padding:0 20px;background:#f8fafc;color:#172554}main{background:white;padding:28px;border-radius:16px;box-shadow:0 8px 30px #0001}li{padding:10px;border-bottom:1px solid #e2e8f0}.pass{color:#166534}.fail{color:#991b1b}small{color:#475569}</style></head>
 <body><main><h1>Brite Scheduler installation</h1>
 <p>Pre-installation diagnostics only. This page cannot change your database, write configuration, or create accounts.</p>
+<h2>Installation access</h2>
+<p><?= $gate['installed_lock'] ? 'Installation is locked.' : ($gate['existing_configuration'] ? 'Existing configuration detected; setup writes are disabled.' : ($gate['setup_token_configured'] ? 'A setup token is configured. Installer execution is not yet available.' : 'A private setup authorization token must be configured before installation can begin.')) ?></p>
 <h2>System requirements</h2><ul>
 <?php foreach ($checks as $name => $check): ?>
 <li><strong class="<?= $check['ok'] ? 'pass' : 'fail' ?>"><?= $check['ok'] ? 'PASS' : 'CHECK' ?></strong>
