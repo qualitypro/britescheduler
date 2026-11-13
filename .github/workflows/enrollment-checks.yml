@@ -35,5 +35,6 @@ jobs:
         run: |
           php tests/registration_policy_test.php
           php tests/registration_security_test.php
+          php tests/registration_document_vault_test.php
           php tests/installation_inventory_test.php
           ENROLLMENT_OUTBOX_KEY=$(php -r 'echo base64_encode(str_repeat("x",32));') php tests/registration_email_envelope_test.php
