@@ -27,10 +27,13 @@ final class ApprovalService
             $q = $pdo->prepare("SELECT verification_type FROM registration_verifications WHERE application_id = ? AND status = 'verified' AND (expires_at IS NULL OR expires_at > UTC_TIMESTAMP())");
             $q->execute([$applicationId]);
             $verified = $q->fetchAll(PDO::FETCH_COLUMN);
-            $verified[] = 'email';
+            if (!in_array('email', $verified, true)) {
+                throw new DomainException('Email verification record is missing');
+            }
             if ($a['applicant_type'] === 'contractor' && empty($a['phone'])) {
                 throw new DomainException('Contractor phone is required');
             }
+            // Only verified records count. Never infer verification from a supplied phone or uploaded document.
             ApplicationLifecycle::assertApproval($a['applicant_type'], $verified, true, true);
             $q = $pdo->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
             $q->execute([$a['email']]);
