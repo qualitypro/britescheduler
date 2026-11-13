@@ -46,7 +46,9 @@ try {
     json_response(['ok' => true, 'message' => 'Document received for manual review'], 201);
 } catch (DomainException $error) {
     if ($pdo->inTransaction()) $pdo->rollBack();
-    if ($storageKey !== null) DocumentVault::discard($storageKey);
+    if ($storageKey !== null) {
+        try { DocumentVault::discard($storageKey); } catch (Throwable $ignored) {}
+    }
     json_response(['error' => $error->getMessage()], 422);
 } catch (Throwable $error) {
     if ($pdo->inTransaction()) $pdo->rollBack();
