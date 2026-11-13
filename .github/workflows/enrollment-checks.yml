@@ -7,6 +7,7 @@ on:
       - 'migrations/038_registration_foundation.sql'
       - 'migrations/039_enrollment_rate_limits.sql'
       - 'migrations/040_registration_consents.sql'
+      - 'migrations/041_registration_email_outbox.sql'
       - 'api/auth/register.php'
       - 'sign-up.v2.php'
       - 'api/enrollment_decision.php'
@@ -35,3 +36,4 @@ jobs:
           php tests/registration_policy_test.php
           php tests/registration_security_test.php
           php tests/installation_inventory_test.php
+          ENROLLMENT_OUTBOX_KEY=$(php -r 'echo base64_encode(str_repeat("x",32));') php tests/registration_email_envelope_test.php
