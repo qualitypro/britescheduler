@@ -4229,6 +4229,10 @@ document.addEventListener('DOMContentLoaded',async ()=>{
 
         const use24HourTime = calendarPreferences.time_format === '24h';
 
+        // Suppress FullCalendar's date selection when the day number is pressed.
+        // Selection may fire on pointer release before the click handler runs.
+        let monthNumberPointerDown = false;
+
         calendar=new FullCalendar.Calendar(
             document.getElementById('calendar'),
             {
@@ -4283,6 +4287,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                 // Client date clicks start self-service booking.
                 // Other read-only roles retain a non-editable calendar.
                 dateClick:info=>{
+                    if (monthNumberPointerDown) return;
                     if (
                         BRITE_CALENDAR_CLIENT &&
                         typeof window.briteOpenClientBookingForDate === 'function'
@@ -4346,7 +4351,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                 },
 
                 select:info=>{
-                    if (BRITE_CALENDAR_READ_ONLY) return;
+                    if (monthNumberPointerDown || BRITE_CALENDAR_READ_ONLY) return;
                     resetForm();
 
                     startsAt.value=calendarWallTime(info.start);
@@ -4387,7 +4392,29 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             event.stopImmediatePropagation();
             calendar.changeView('timeGridDay', date);
         }
-        calendarRoot.addEventListener('click', openMonthNumberDay, true);
+        // FullCalendar's selection starts on pointer/mouse down, before click.
+        // Capture those events on the number so they cannot start a selection
+        // (and consequently open the new-appointment wizard).
+        function interceptMonthNumberPress(event) {
+            if (!calendar || calendar.view.type !== 'dayGridMonth') return;
+            const target = event.target instanceof Element ? event.target : null;
+            const number = target && target.closest('.fc-daygrid-day-number');
+            if (!number || !calendarRoot.contains(number)) return;
+            monthNumberPointerDown = true;
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+        }
+        calendarRoot.addEventListener('pointerdown', interceptMonthNumberPress, true);
+        calendarRoot.addEventListener('mousedown', interceptMonthNumberPress, true);
+        calendarRoot.addEventListener('click', event => {
+            const target = event.target instanceof Element ? event.target : null;
+            const isNumber = target && target.closest('.fc-daygrid-day-number');
+            if (isNumber) {
+                openMonthNumberDay(event);
+            }
+            // Clear after FullCalendar has finished processing this gesture.
+            setTimeout(() => { monthNumberPointerDown = false; }, 0);
+        }, true);
 
         calendar.render();
 
