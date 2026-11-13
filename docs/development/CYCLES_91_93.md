@@ -163,3 +163,9 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - Added `registration_lifecycle_integration_test.php` to reject premature email approval, rejected-application reactivation, contractor approval without government ID/phone and contractor approval without moderator authorization.
 - Added `registration_approval_integration_test.php` using an isolated SQLite schema to exercise `ApprovalService::approve`: an email-verified contractor without identity verification must remain pending with no user created; an eligible client must provision a user, client and membership atomically.
 - These tests run in enrollment CI. **Scope:** they validate service logic and transaction behavior, not the MariaDB migration schema, real upload scanning, authenticated HTTP requests, moderator UI, or a complete deployed onboarding journey. Full MariaDB and browser integration testing is still required.
+
+## Cycle 91 installer state gate and CI repair
+- `InstallerGate::inspect` now reports installation-lock presence, existing configuration and whether a 32+ character private setup token is configured, without exposing the token.
+- The read-only installer diagnostics page explains why setup cannot begin. No installer write operations are enabled, and setup token authentication remains future work.
+- Added isolated state-gate tests for missing authorization, existing configuration and installed lock.
+- Repaired the SQLite transactional approval test harness by stripping MariaDB-only `FOR UPDATE` in the test adapter. Production SQL and row locking are unchanged. This does **not** constitute MariaDB integration coverage.
