@@ -48,7 +48,10 @@ final class MigrationRunner
                 fwrite($marker, $version . "\n");
                 fflush($marker);
                 fclose($marker);
-                foreach ($statements as $statement) $pdo->exec($statement);
+                foreach ($statements as $statement) {
+                    $cursor = $pdo->query($statement);
+                    if ($cursor !== false) $cursor->closeCursor();
+                }
                 // 001 creates the history table; later migrations rely on it.
                 $q = $pdo->prepare('INSERT INTO schema_migrations (version) VALUES (?)');
                 $q->execute([$version]);
