@@ -12,7 +12,7 @@ use PDO;
  */
 final class EmailVerificationService
 {
-    public static function consume(PDO $pdo, string $token): void
+    public static function consume(PDO $pdo, string $token): int
     {
         $hash = VerificationTokens::hash($token);
         $pdo->beginTransaction();
@@ -54,6 +54,7 @@ final class EmailVerificationService
             );
             $q->execute([(int)$record['application_id']]);
             $pdo->commit();
+            return (int)$record['application_id'];
         } catch (\Throwable $exception) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
