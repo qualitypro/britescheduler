@@ -152,3 +152,9 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - CLI `php bin/brite documents:due` lists up to 100 expired document IDs without exposing storage keys. `php bin/brite documents:purge ID --confirm-retention` removes only expired encrypted objects and marks the record deleted while retaining the audit trail.
 - Filesystem removal and SQL commits cannot be atomic; a crash after unlink but before commit requires a retry, and `DocumentVault::discard` tolerates missing objects. Operator intervention is required if the vault or database is unavailable.
 - **Before production:** validate legal retention/hold requirements, add automated scheduled cleanup and monitoring, account for backups and disaster recovery copies, and test the full lifecycle against MariaDB and a configured private vault. A 90-day deadline must not override a lawful preservation hold.
+
+## Cycle 92 preservation holds
+- Migration 043 adds `registration_documents.retention_hold`, hold metadata and actor FK, and audit actions `hold_placed` and `hold_released`.
+- Owners/admins can place or release a document hold from the enrollment queue, providing a reason. Both changes are tenant-scoped, CSRF-protected, transactional and audited.
+- `documents:due` and `documents:purge` exclude held documents even when their 90-day retention deadline has passed.
+- **Operational limitations:** this is an application-level preservation hold, not a substitute for legal hold procedures, off-site backup controls, access review or regulatory compliance. Migration 043 must be applied before enabling the new UI or retention commands.
