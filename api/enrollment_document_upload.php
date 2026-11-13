@@ -37,8 +37,8 @@ try {
     UploadScanner::scan($file['tmp_name']);
     $storageKey = DocumentVault::store($file['tmp_name'], $file['name']);
     $q = $pdo->prepare("INSERT INTO registration_documents
-        (application_id, document_type, storage_key, status)
-        VALUES (?, ?, ?, 'pending')");
+        (application_id, document_type, storage_key, status, delete_after)
+        VALUES (?, ?, ?, 'pending', DATE_ADD(UTC_TIMESTAMP(), INTERVAL 90 DAY))");
     $q->execute([$id, $type, $storageKey]);
     $documentId = (int)$pdo->lastInsertId();
     $q = $pdo->prepare("INSERT INTO registration_document_audit
