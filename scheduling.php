@@ -4381,7 +4381,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
             if (!number || !calendarRoot.contains(number)) return;
             const cell = number.closest('.fc-daygrid-day[data-date]');
             const date = cell && cell.getAttribute('data-date');
-            if (!date || !/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) return;
+            if (!date || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date)) return;
             event.preventDefault();
             event.stopPropagation();
             event.stopImmediatePropagation();
