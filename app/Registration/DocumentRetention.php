@@ -25,6 +25,7 @@ final class DocumentRetention
                 FROM registration_documents d
                 INNER JOIN registration_applications a ON a.id = d.application_id
                 WHERE d.id = ? AND d.deleted_at IS NULL
+                  AND d.retention_hold = 0
                   AND d.delete_after IS NOT NULL AND d.delete_after <= UTC_TIMESTAMP()
                   AND d.status IN ('pending','verified','rejected')
                 FOR UPDATE");
