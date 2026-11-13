@@ -17,7 +17,8 @@ verify_csrf();
 $data = request_data();
 $applicationId = filter_var($data['application_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 $action = $data['action'] ?? null;
-$reason = $data['reason'] ?? null;
+$reason = $data['reason'] ?? '';
+if ($action === 'approve') $reason = '';
 if (!$applicationId || !is_string($action) || !is_string($reason)) {
     json_response(['error' => 'Invalid enrollment request'], 422);
 }
