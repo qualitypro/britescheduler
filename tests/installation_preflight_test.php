@@ -16,6 +16,9 @@ try {
         MigrationPreflight::inspect($root, [$entry]);
         throw new RuntimeException('Checksum drift was accepted');
     } catch (DomainException $expected) {}
+    file_put_contents($path, "CREATE TABLE leads (source VARCHAR(80));");
+    $entry['sha256'] = hash_file('sha256', $path);
+    MigrationPreflight::inspect($root, [$entry]);
     file_put_contents($path, 'LOAD DATA LOCAL INFILE "test" INTO TABLE x;');
     $entry['sha256'] = hash_file('sha256', $path);
     try {
