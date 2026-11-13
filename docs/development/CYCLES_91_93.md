@@ -77,3 +77,11 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - Approval now requires a persisted `email` verification record; `email_verified_at` alone is insufficient.
 - No installer migration execution, schema migration, or initial tenant/owner bootstrap is enabled yet.
 - GitHub Actions and local PHP/MariaDB test results have not been confirmed in this session.
+
+## Cycle 93 email delivery reliability (partial)
+- Migration 041 creates `registration_email_outbox`. Signup now atomically stores an AES-256-GCM encrypted verification email with the application, token hash and consent record, avoiding sending email before database commit.
+- Set `ENROLLMENT_OUTBOX_KEY` to a base64-encoded 32-byte random key (never commit it). Losing or rotating the key before pending emails are delivered makes those emails undecryptable.
+- `php bin/brite mail:send` processes queued emails from CLI with bounded retry and exponential delay; schedule it through an operator-controlled cron job only after testing mail transport and applying migrations.
+- The worker clears the encrypted body after transport acceptance; transport acceptance is **not** proof of inbox delivery.
+- **Operational limitation:** A worker terminated while sending leaves the message in `sending` state. It must be reconciled by an operator; automatic recovery could resend a delivered message. Mail provider callbacks, stale claim reconciliation, delivery metrics, and end-to-end testing remain pending.
+- The CI test checks encryption round-trips and tamper rejection, but does not test a real mail transport or database.
