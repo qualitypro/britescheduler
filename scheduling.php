@@ -1869,7 +1869,7 @@ require __DIR__.'/partials/app_header.php';
     </div>
 </div>
 
-<script src="<?=htmlspecialchars(app_url('/assets/js/owner-assignment-details.js?v=90aw'), ENT_QUOTES, 'UTF-8')?>"></script>
+<script src="<?=htmlspecialchars(app_url('/assets/js/owner-assignment-details.js?v=90ax'), ENT_QUOTES, 'UTF-8')?>"></script>
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-workspace-tabs.js'), ENT_QUOTES, 'UTF-8')?>"></script>
 
 <script>
