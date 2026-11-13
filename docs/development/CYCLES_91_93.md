@@ -32,3 +32,10 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - Never store secrets, raw government IDs or payment credentials in Git.
 - Do not merge until browser, migration, security and cross-tenant regression tests pass.
 - Preserve existing tenants and schema migration history; do not re-run previously applied migrations.
+
+## Enrollment navigation (Cycle 93C partial)
+- Owner/admin main navigation now uses **Enrollment** under Administration.
+- `enrollment.php` is an authenticated, tenant-scoped, read-only application queue with status filters and counts.
+- It handles missing migration 038 without exposing database errors.
+- Do not enable review mutations until reviewer authorization, audit transactions, email verification, and provisioning are implemented and tested.
+- Browser, PHP lint, and MariaDB integration checks remain pending.
