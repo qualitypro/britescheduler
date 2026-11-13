@@ -13,9 +13,9 @@ use RuntimeException;
  */
 final class MigrationRunner
 {
-    public static function run(string $root, PDO $pdo, bool $confirmed, bool $alreadyLocked = false): array
+    public static function run(string $root, PDO $pdo, bool $confirmed, bool $alreadyLocked = false, bool $trustedBrowser = false): array
     {
-        if (PHP_SAPI !== 'cli' || !$confirmed) throw new DomainException('Explicit CLI confirmation required');
+        if ((PHP_SAPI !== 'cli' && !$trustedBrowser) || !$confirmed) throw new DomainException('Explicit CLI confirmation required');
         if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'mysql') {
             throw new DomainException('Migration runner requires MySQL/MariaDB');
         }
