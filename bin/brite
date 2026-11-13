@@ -23,6 +23,7 @@ if ($command === 'help' || $command === '--help') {
     echo "  php bin/brite status       Read-only database migration status (no secrets)\n";
     echo "  php bin/brite migrate:plan Strict read-only ordered migration plan\n";
     echo "  php bin/brite migrate:check Check pending migration file integrity\n";
+    echo "  php bin/brite documents:due  List expired document IDs (read-only)\n";
     echo "  php bin/brite documents:purge ID --confirm-retention  Purge expired private document\n";
     echo "  php bin/brite mail:send   Deliver pending enrollment email (CLI only)\n";
     echo "  php bin/brite mail:status Read-only delivery counts and stale claims\n";
@@ -44,6 +45,23 @@ if ($command === 'migrations') {
         echo $migration['version'] . '  sha256:' . $migration['sha256'] . PHP_EOL;
     }
     exit(0);
+}
+if ($command === 'documents:due') {
+    require_once $root . '/app/bootstrap.php';
+    try {
+        $query = Database::connection()->query("SELECT id FROM registration_documents
+            WHERE deleted_at IS NULL AND delete_after IS NOT NULL
+            AND delete_after <= UTC_TIMESTAMP()
+            AND status IN ('pending','verified','rejected')
+            ORDER BY delete_after ASC, id ASC LIMIT 100");
+        $ids = $query->fetchAll(PDO::FETCH_COLUMN);
+        foreach ($ids as $id) echo '[DUE] ' . (int)$id . PHP_EOL;
+        echo 'Listed ' . count($ids) . ' expired document IDs (up to 100). No files changed.' . PHP_EOL;
+        exit(0);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Unable to inspect document retention deadlines.\n");
+        exit(1);
+    }
 }
 if ($command === 'documents:purge') {
     if (count($argv) !== 4 || !ctype_digit($argv[2]) || (int)$argv[2] < 1 ||
