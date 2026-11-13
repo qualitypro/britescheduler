@@ -8,6 +8,7 @@ if (Auth::user()) {
 }
 
 $csrf = csrf_token();
+$tenants = Database::connection()->query("SELECT id, name FROM tenants WHERE status = 'active' ORDER BY name LIMIT 100")->fetchAll(PDO::FETCH_ASSOC);
 
 $type = strtolower(trim($_GET['type'] ?? 'client'));
 
@@ -157,6 +158,11 @@ Contractor
 <div id="error" class="error"></div>
 
 <form id="signupForm">
+<div class="field"><label for="tenantId">Business</label><select id="tenantId" required style="width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:7px">
+<option value="">Choose a business</option>
+<?php foreach ($tenants as $businessTenant): ?>
+<option value="<?= (int)$businessTenant['id'] ?>"><?= htmlspecialchars($businessTenant['name'], ENT_QUOTES, 'UTF-8') ?></option>
+<?php endforeach; ?></select></div>
 
 <input type="hidden"
        id="type"
@@ -218,7 +224,7 @@ Contractor
 <input type="password"
        id="password"
        autocomplete="new-password"
-       minlength="8"
+       minlength="12"
        required>
 </div>
 
@@ -227,10 +233,11 @@ Contractor
 <input type="password"
        id="passwordConfirm"
        autocomplete="new-password"
-       minlength="8"
+       minlength="12"
        required>
 </div>
 
+<div class="field"><label style="font-weight:400"><input type="checkbox" id="termsAccepted" required style="width:auto"> I agree to the applicable Terms and Privacy Policy.</label></div>
 <button type="submit">
 Create <?= $isContractor ? 'Contractor' : 'Client' ?> Account
 </button>
@@ -269,6 +276,8 @@ form.addEventListener('submit', async e=>{
 
     const payload={
         type:document.getElementById('type').value,
+        tenant_id:Number(document.getElementById('tenantId').value),
+        terms_accepted:document.getElementById('termsAccepted').checked,
         first_name:document.getElementById('firstName').value.trim(),
         last_name:document.getElementById('lastName').value.trim(),
         email:document.getElementById('email').value.trim(),
@@ -301,7 +310,11 @@ form.addEventListener('submit', async e=>{
             throw new Error(j.error || 'Registration failed');
         }
 
-        location.href=j.redirect;
+        form.style.display='none';
+        const notice=document.createElement('p');
+        notice.setAttribute('role','status');
+        notice.textContent=j.message || 'Enrollment submitted. Check your email for verification instructions.';
+        form.parentNode.insertBefore(notice,form);
 
     }catch(err){
 
