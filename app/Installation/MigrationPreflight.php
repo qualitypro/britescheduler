@@ -39,4 +39,14 @@ final class MigrationPreflight
         }
         return $results;
     }
+}            foreach (SqlStatements::split($sql) as $statement) {
+                if (preg_match('/^(?:DELIMITER|SOURCE|LOAD\s+DATA)\b/i', $statement) ||
+                    preg_match('/\bINTO\s+(?:OUTFILE|DUMPFILE)\b/i', $statement)) {
+                    throw new DomainException('Migration requires manual SQL review: ' . $version);
+                }
+            }
+            $results[] = ['version' => $version, 'sha256' => $checksum, 'bytes' => strlen($sql)];
+        }
+        return $results;
+    }
 }
