@@ -50,7 +50,7 @@ if ($command === 'documents:due') {
     require_once $root . '/app/bootstrap.php';
     try {
         $query = Database::connection()->query("SELECT id FROM registration_documents
-            WHERE deleted_at IS NULL AND delete_after IS NOT NULL
+            WHERE deleted_at IS NULL AND retention_hold = 0 AND delete_after IS NOT NULL
             AND delete_after <= UTC_TIMESTAMP()
             AND status IN ('pending','verified','rejected')
             ORDER BY delete_after ASC, id ASC LIMIT 100");
