@@ -169,3 +169,9 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - The read-only installer diagnostics page explains why setup cannot begin. No installer write operations are enabled, and setup token authentication remains future work.
 - Added isolated state-gate tests for missing authorization, existing configuration and installed lock.
 - Repaired the SQLite transactional approval test harness by stripping MariaDB-only `FOR UPDATE` in the test adapter. Production SQL and row locking are unchanged. This does **not** constitute MariaDB integration coverage.
+
+## Cycle 91 authenticated setup access
+- A private `BRITE_INSTALL_SETUP_TOKEN` environment variable (32–256 characters) is required before the installer offers an authorization form. Do not put this token in source control, URLs, logs or public web configuration.
+- The installer uses a dedicated HTTP-only SameSite=Strict session cookie scoped to `/install`, CSRF checks, constant-time token comparison, session ID rotation and a 15-minute authorization window.
+- Setup authorization is invalidated whenever an existing `.env` or `.brite-installed.lock` is detected. The installer remains read-only; no configuration/database writes are permitted yet.
+- **Before enabling writes:** enforce HTTPS (not just secure cookies when available), add rate limiting, trusted operator network restrictions, recheck setup state at every mutation, and establish an atomic installation lock. This authorization form alone is not sufficient for internet-exposed installation.
