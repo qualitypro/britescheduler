@@ -181,3 +181,9 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - Failed setup authorization attempts are limited to five per session followed by a 15-minute cooldown. **This is not a distributed/IP-based rate limit** and can be bypassed by starting fresh sessions. Enforce additional edge-level rate limiting before internet exposure.
 - `InstallationMutex` supplies a nonblocking exclusive filesystem lock for future installation mutations. Its concurrency test validates basic serialization. No installer mutations currently use it because write operations are still disabled.
 - **Before enabling writes:** strengthen lock-file ownership/symlink-race protections, use server-side rate limiting, add atomic installed-state creation and ensure all installer writes acquire the mutex and revalidate authorization and existing installation state.
+
+## Cycle 91 create-only configuration writer
+- `ConfigurationWriter::write` validates required application URL and DB fields against the checked-in `.env.example` allowlist, rejects control characters, newlines and unsupported keys, and creates a private temporary file with mode 0600.
+- The writer publishes `.env` using an atomic create-only hard link rather than overwriting existing configuration. It removes the temporary file afterward.
+- Tests cover newline injection, 0600 permissions, persistence of expected values and overwrite rejection.
+- **Not yet wired to the browser installer or CLI.** Its caller must hold `InstallationMutex`, revalidate installer authorization and enforce restricted root ownership. Environment values with whitespace or quotes are intentionally unsupported pending a parser-aware encoding implementation. Configuration creation and database provisioning are not yet a single atomic transaction.
