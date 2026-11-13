@@ -78,7 +78,7 @@ require __DIR__ . '/partials/app_header.php';
                 <td><?= $application['email_verified_at'] ? 'Email verified' : 'Email pending' ?></td>
                 <td><?= $escape(ucwords(str_replace('_', ' ', $application['status']))) ?></td>
                 <td><?= $escape($application['submitted_at']) ?></td>
-                <td><?php if (in_array($application['status'], ['pending_review', 'action_required'], true)): ?>
+                <td><?php if ($application['status'] === 'pending_review'): ?>
                   <form class="enrollment-decision" method="post" action="<?= $escape(app_url('/api/enrollment_decision.php')) ?>">
                     <input type="hidden" name="_csrf" value="<?= $escape(csrf_token()) ?>">
                     <input type="hidden" name="application_id" value="<?= (int)$application['id'] ?>">
