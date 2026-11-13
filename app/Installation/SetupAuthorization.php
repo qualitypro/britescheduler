@@ -46,7 +46,19 @@ final class SetupAuthorization
 
     public static function grant(string $root, string $provided): bool
     {
-        if (session_status() !== PHP_SESSION_ACTIVE || !self::authorize($root, $provided)) return false;
+        if (session_status() !== PHP_SESSION_ACTIVE) return false;
+        $now = time();
+        if ((int)($_SESSION['brite_install_attempts_until'] ?? 0) > $now) return false;
+        if (!self::authorize($root, $provided)) {
+            $attempts = (int)($_SESSION['brite_install_attempts'] ?? 0) + 1;
+            $_SESSION['brite_install_attempts'] = $attempts;
+            if ($attempts >= 5) {
+                $_SESSION['brite_install_attempts_until'] = $now + 900;
+                $_SESSION['brite_install_attempts'] = 0;
+            }
+            return false;
+        }
+        unset($_SESSION['brite_install_attempts'], $_SESSION['brite_install_attempts_until']);
         session_regenerate_id(true);
         $_SESSION['brite_install_authorized'] = true;
         $_SESSION['brite_install_authorized_until'] = time() + 900;
