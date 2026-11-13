@@ -5,8 +5,10 @@ require_once dirname(__DIR__) . '/app/bootstrap.php';
 require_once dirname(__DIR__) . '/app/Registration/ApplicationLifecycle.php';
 require_once dirname(__DIR__) . '/app/Registration/Policy.php';
 require_once dirname(__DIR__) . '/app/Registration/ReviewService.php';
+require_once dirname(__DIR__) . '/app/Registration/ApprovalService.php';
 
 use BriteScheduler\Registration\ReviewService;
+use BriteScheduler\Registration\ApprovalService;
 
 require_method('POST');
 $user = Auth::requireUser();
@@ -20,7 +22,11 @@ if (!$applicationId || !is_string($action) || !is_string($reason)) {
     json_response(['error' => 'Invalid enrollment request'], 422);
 }
 try {
-    ReviewService::decide(Database::connection(), (int)$tenant['tenant_id'], (int)$user['id'], $applicationId, $action, $reason);
+    if ($action === 'approve') {
+        ApprovalService::approve(Database::connection(), (int)$tenant['tenant_id'], (int)$user['id'], $applicationId);
+    } else {
+        ReviewService::decide(Database::connection(), (int)$tenant['tenant_id'], (int)$user['id'], $applicationId, $action, $reason);
+    }
     json_response(['ok' => true]);
 } catch (\DomainException $exception) {
     json_response(['error' => $exception->getMessage()], 422);
