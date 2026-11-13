@@ -19,3 +19,45 @@
 @media(max-width:700px){.brite-app .brite-command-trigger{padding:8px 10px;font-size:.75rem}.brite-command-dialog{inset:3vh 0 auto;max-height:92dvh}.brite-command-frame{max-height:92dvh}.brite-command-hint{font-size:.72rem}}
 @media(max-width:390px){.brite-app .brite-command-trigger{font-size:0;width:40px;min-width:40px}.brite-app .brite-command-trigger::before{content:'⌕';font-size:1.5rem;line-height:1}}
 @media(prefers-reduced-motion:reduce){.brite-command-dialog,.brite-command-option{scroll-behavior:auto}}
+
+/* Persistent main-menu search sits above the accordion, matching sidebar links. */
+.brite-app .brite-sidebar-nav > .brite-command-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 12px;
+    margin: 0 0 6px;
+    text-align: left;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+.brite-app .brite-sidebar-nav > .brite-command-trigger:hover,
+.brite-app .brite-sidebar-nav > .brite-command-trigger:focus-visible {
+    background: var(--brite-indigo-soft, #eef2ff);
+    border-color: var(--brite-border, #cbd5e1);
+}
+.brite-app .brite-sidebar-nav > .brite-command-trigger .brite-nav-icon {
+    flex: 0 0 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+@media (max-width:390px) {
+    .brite-app .brite-sidebar-nav > .brite-command-trigger {
+        width: 100%;
+        min-width: 0;
+        font-size: inherit;
+    }
+    .brite-app .brite-sidebar-nav > .brite-command-trigger::before {
+        content: none;
+    }
+}
+
