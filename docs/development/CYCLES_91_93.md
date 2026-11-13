@@ -129,3 +129,8 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - Documents are returned as attachments, not inline browser content, with no-store caching, no-sniff, sandbox CSP, and frame denial. No public storage URLs or original filenames are disclosed.
 - Requires migration 042 and the private vault configuration. No public inspection route should be added.
 - **Outstanding:** applicant upload authorization, malware scanning, retention/deletion, identity verification, reviewer UI, and DB-backed integration/security testing. Do not use this endpoint in production until those controls and a security review are complete.
+
+## Cycle 92 moderator queue integration
+- The owner/admin enrollment queue now loads document metadata for only the applications already selected in the tenant-scoped queue.
+- For each document, reviewers can request an audited attachment download and, while pending, submit a reasoned review decision. All actions use existing authenticated, CSRF-protected endpoints.
+- This UI does not allow applicants to upload documents and does not constitute government ID verification. Operational use remains blocked pending upload authentication, malware scanning, retention, and identity verification.
