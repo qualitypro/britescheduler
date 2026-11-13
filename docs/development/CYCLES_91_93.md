@@ -93,3 +93,10 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - Added `php bin/brite mail:status` with aggregate pending/sending/sent/failed counts and stale (>15-minute) sending claim count; it does not expose recipient email or token content.
 - **Manual intervention remains necessary** for stale `sending` claims to avoid duplicate verification emails. Mail transport acceptance does not guarantee delivery.
 - Earlier commit `94184042b3eb77ace06f931d47ba73ccabaf3ba2` passed GitHub Actions Source smoke checks and Enrollment foundation checks; newer commits must pass their own runs.
+
+## Email outbox recovery (operator only)
+- `php bin/brite mail:status` now lists up to 50 stale message IDs, without displaying email addresses or token bodies.
+- `php bin/brite mail:retry-stale ID --confirm-duplicate-risk` explicitly requeues a stale sending message only if its token is still unconsumed and unexpired, the encrypted body exists, and retry budget remains. It does not automatically recover stalled messages.
+- **Duplicate delivery risk:** a worker may have delivered the message before crashing. Inspect mail provider logs before requeuing; the confirmation flag acknowledges this uncertainty. No automated resend is performed.
+- Enrollment decision API now permits an empty reason for approval, while request-info/reject retain their reason validation.
+- These changes are committed but require CI and DB-backed integration tests before deployment.
