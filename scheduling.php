@@ -61,6 +61,17 @@ require __DIR__.'/partials/app_header.php';
     min-height:700px;
 }
 
+/* Month day numbers are direct navigation controls, distinct from cell booking. */
+#calendar .fc-daygrid-day-number {
+    cursor: pointer;
+}
+#calendar .fc-daygrid-day-number:hover,
+#calendar .fc-daygrid-day-number:focus-visible {
+    text-decoration: underline;
+    color: var(--bs-primary, #2563eb);
+    outline-offset: 2px;
+}
+
 /* Expanded appointment preview is rendered outside clipped calendar cells. */
 .brite-calendar-hover-preview {
     position: fixed;
@@ -4269,23 +4280,6 @@ document.addEventListener('DOMContentLoaded',async ()=>{
 
                 events:loadEvents,
 
-                // Clicking the month cell's day number opens that exact date in Day view.
-                // Keep clicks elsewhere in the cell available for client booking.
-                dayCellDidMount: info => {
-                    if (info.view.type !== 'dayGridMonth') return;
-                    const number = info.el.querySelector('.fc-daygrid-day-number');
-                    if (!number) return;
-                    number.setAttribute('aria-label', 'Open day view for ' +
-                        info.date.toLocaleDateString('en-US', {
-                            year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'
-                        }));
-                    number.addEventListener('click', event => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        calendar.changeView('timeGridDay', info.date);
-                    });
-                },
-
                 // Client date clicks start self-service booking.
                 // Other read-only roles retain a non-editable calendar.
                 dateClick:info=>{
@@ -4375,6 +4369,25 @@ document.addEventListener('DOMContentLoaded',async ()=>{
                 }
             }
         );
+
+        // FullCalendar renders the day-number anchor after dayCellDidMount.
+        // Delegate at the calendar root in capture phase so clicking the number
+        // wins over the cell's booking/dateClick and other click handlers.
+        const calendarRoot = document.getElementById('calendar');
+        function openMonthNumberDay(event) {
+            if (!calendar || calendar.view.type !== 'dayGridMonth') return;
+            const target = event.target instanceof Element ? event.target : null;
+            const number = target && target.closest('.fc-daygrid-day-number');
+            if (!number || !calendarRoot.contains(number)) return;
+            const cell = number.closest('.fc-daygrid-day[data-date]');
+            const date = cell && cell.getAttribute('data-date');
+            if (!date || !/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            calendar.changeView('timeGridDay', date);
+        }
+        calendarRoot.addEventListener('click', openMonthNumberDay, true);
 
         calendar.render();
 
