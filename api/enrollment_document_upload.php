@@ -2,7 +2,9 @@
 declare(strict_types=1);
 require_once dirname(__DIR__) . '/app/bootstrap.php';
 require_once dirname(__DIR__) . '/app/Registration/DocumentVault.php';
+require_once dirname(__DIR__) . '/app/Registration/UploadScanner.php';
 use BriteScheduler\Registration\DocumentVault;
+use BriteScheduler\Registration\UploadScanner;
 
 require_method('POST');
 verify_csrf();
@@ -32,6 +34,7 @@ try {
         WHERE application_id = ? AND status <> 'deleted'");
     $q->execute([$id]);
     if ((int)$q->fetchColumn() >= 12) throw new DomainException('Document submission limit reached');
+    UploadScanner::scan($file['tmp_name']);
     $storageKey = DocumentVault::store($file['tmp_name'], $file['name']);
     $q = $pdo->prepare("INSERT INTO registration_documents
         (application_id, document_type, storage_key, status)
