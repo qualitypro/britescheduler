@@ -12,6 +12,7 @@ on:
       - 'api/enrollment_document_review.php'
       - 'api/enrollment_document_inspect.php'
       - 'api/enrollment_document_upload.php'
+      - 'app/Registration/UploadScanner.php'
       - 'enrollment-documents.php'
       - 'api/auth/register.php'
       - 'sign-up.v2.php'
