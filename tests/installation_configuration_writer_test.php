@@ -16,6 +16,10 @@ try {
         throw new RuntimeException('Newline injection accepted');
     } catch (DomainException $expected) {}
     if (file_exists($root . '/.env')) throw new RuntimeException('Rejected config was written');
+    try {
+        ConfigurationWriter::write($root, array_merge($valid, ['DB_HOST'=>'127.0.0.1;dbname=other']));
+        throw new RuntimeException('DSN delimiter injection accepted');
+    } catch (DomainException $expected) {}
     ConfigurationWriter::write($root, $valid);
     $mode = fileperms($root . '/.env') & 0777;
     if ($mode !== 0600) throw new RuntimeException('Configuration permissions not private');
