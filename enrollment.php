@@ -14,6 +14,7 @@ if (!in_array($filter, $allowed, true)) {
 }
 $rows = [];
 $counts = [];
+$documentsByApplication = [];
 $unavailable = false;
 try {
     $pdo = Database::connection();
@@ -38,6 +39,19 @@ try {
         $query->execute([$tenantId, $filter]);
     }
     $rows = $query->fetchAll();
+    $applicationIds = array_map(static fn(array $row): int => (int)$row['id'], $rows);
+    if ($applicationIds) {
+        $placeholders = implode(',', array_fill(0, count($applicationIds), '?'));
+        $documentsQuery = $pdo->prepare(
+            "SELECT id, application_id, document_type, status, uploaded_at
+             FROM registration_documents WHERE application_id IN ($placeholders)
+             AND deleted_at IS NULL ORDER BY uploaded_at DESC, id DESC"
+        );
+        $documentsQuery->execute($applicationIds);
+        foreach ($documentsQuery->fetchAll() as $document) {
+            $documentsByApplication[(int)$document['application_id']][] = $document;
+        }
+    }
 } catch (PDOException $exception) {
     // Schema may not yet have been applied. Do not expose SQL or credentials.
     error_log('Enrollment query unavailable: ' . $exception->getCode());
@@ -78,7 +92,28 @@ require __DIR__ . '/partials/app_header.php';
                 <td><?= $application['email_verified_at'] ? 'Email verified' : 'Email pending' ?></td>
                 <td><?= $escape(ucwords(str_replace('_', ' ', $application['status']))) ?></td>
                 <td><?= $escape($application['submitted_at']) ?></td>
-                <td><?php if ($application['status'] === 'pending_review'): ?>
+                <td>
+                <?php foreach ($documentsByApplication[(int)$application['id']] ?? [] as $document): ?>
+                  <div class="card" style="padding:10px;margin-bottom:8px">
+                    <strong><?= $escape(ucwords(str_replace('_', ' ', $document['document_type']))) ?></strong>
+                    <span class="muted"><?= $escape($document['status']) ?></span>
+                    <form method="post" action="<?= $escape(app_url('/api/enrollment_document_inspect.php')) ?>">
+                      <input type="hidden" name="_csrf" value="<?= $escape(csrf_token()) ?>">
+                      <input type="hidden" name="document_id" value="<?= (int)$document['id'] ?>">
+                      <button type="submit">Download for inspection</button>
+                    </form>
+                    <?php if ($document['status'] === 'pending'): ?>
+                      <form class="document-decision" method="post" action="<?= $escape(app_url('/api/enrollment_document_review.php')) ?>">
+                        <input type="hidden" name="_csrf" value="<?= $escape(csrf_token()) ?>">
+                        <input type="hidden" name="document_id" value="<?= (int)$document['id'] ?>">
+                        <label>Review notes <input name="reason" minlength="5" maxlength="500" required></label>
+                        <button type="submit" name="decision" value="verified">Mark reviewed</button>
+                        <button type="submit" name="decision" value="rejected">Reject document</button>
+                      </form>
+                    <?php endif; ?>
+                  </div>
+                <?php endforeach; ?>
+                <?php if ($application['status'] === 'pending_review'): ?>
                   <form class="enrollment-decision" method="post" action="<?= $escape(app_url('/api/enrollment_decision.php')) ?>">
                     <input type="hidden" name="_csrf" value="<?= $escape(csrf_token()) ?>">
                     <input type="hidden" name="application_id" value="<?= (int)$application['id'] ?>">
@@ -98,6 +133,27 @@ require __DIR__ . '/partials/app_header.php';
     <?php endif; ?>
   </div>
 <script>
+document.querySelectorAll('.document-decision').forEach(form => {
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const decision = event.submitter?.value;
+    if (!['verified', 'rejected'].includes(decision) || !form.reportValidity()) return;
+    if (!confirm('Record this document review decision? This does not verify the applicant identity.')) return;
+    const payload = new FormData(form);
+    payload.set('decision', decision);
+    const buttons = form.querySelectorAll('button');
+    buttons.forEach(button => button.disabled = true);
+    try {
+      const response = await fetch(form.action, {method:'POST', credentials:'same-origin', body:payload, headers:{Accept:'application/json'}});
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Document review failed');
+      location.reload();
+    } catch (error) {
+      alert(error.message || 'Document review failed');
+      buttons.forEach(button => button.disabled = false);
+    }
+  });
+});
 document.querySelectorAll('.enrollment-decision').forEach(form => {
   form.addEventListener('submit', async event => {
     event.preventDefault();
