@@ -25,13 +25,14 @@ file_put_contents($env, "APP_ENV=test\nDB_HOST=$host\nDB_PORT=$port\nDB_NAME=$db
 chmod($env, 0600);
 try {
     file_put_contents($root . '/.brite-migration-recovery-required', "test-marker\n");
+    $blocked = false;
     try {
         FirstRunInstaller::install($root, $pdo, [
             'email'=>'initial-owner@example.test', 'first_name'=>'Initial','last_name'=>'Owner',
             'password'=>'long-test-only-password','tenant_name'=>'Test Tenant','tenant_slug'=>'test-tenant',
         ], true);
-        throw new RuntimeException('Recovery marker was ignored');
-    } catch (RuntimeException $expected) {}
+    } catch (RuntimeException $expected) { $blocked = true; }
+    if (!$blocked) throw new RuntimeException('Recovery marker was ignored');
     unlink($root . '/.brite-migration-recovery-required');
     $result = FirstRunInstaller::install($root, $pdo, [
         'email'=>'initial-owner@example.test',
