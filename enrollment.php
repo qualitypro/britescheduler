@@ -46,7 +46,6 @@ try {
 $escape = static fn(mixed $value): string => htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 require __DIR__ . '/partials/app_header.php';
 ?>
-<main class="brite-content" id="briteMainContent">
   <div class="wrap">
     <header><h1>Enrollment</h1><p class="muted">Review new user registrations and verification status for your business.</p></header>
     <?php if ($unavailable): ?>
@@ -88,5 +87,4 @@ require __DIR__ . '/partials/app_header.php';
       <p class="muted">Read-only queue preview. Approval, rejection, verification email delivery, and provisioning are not enabled yet.</p>
     <?php endif; ?>
   </div>
-</main>
 <?php require __DIR__ . '/partials/app_footer.php'; ?>
