@@ -65,6 +65,7 @@ if ($command === 'mail:status') {
             echo $name . ': ' . $count . PHP_EOL;
         }
         echo 'stale sending claims: ' . $status['stale_claims'] . PHP_EOL;
+        if ($status['stale_ids']) echo 'stale message IDs (up to 50): ' . implode(', ', $status['stale_ids']) . PHP_EOL;
         exit($status['stale_claims'] > 0 ? 1 : 0);
     } catch (Throwable $error) {
         fwrite(STDERR, "Unable to inspect enrollment email delivery.\n");
