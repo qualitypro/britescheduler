@@ -158,3 +158,8 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - Owners/admins can place or release a document hold from the enrollment queue, providing a reason. Both changes are tenant-scoped, CSRF-protected, transactional and audited.
 - `documents:due` and `documents:purge` exclude held documents even when their 90-day retention deadline has passed.
 - **Operational limitations:** this is an application-level preservation hold, not a substitute for legal hold procedures, off-site backup controls, access review or regulatory compliance. Migration 043 must be applied before enabling the new UI or retention commands.
+
+## Cycle 92–93 onboarding integration regression tests
+- Added `registration_lifecycle_integration_test.php` to reject premature email approval, rejected-application reactivation, contractor approval without government ID/phone and contractor approval without moderator authorization.
+- Added `registration_approval_integration_test.php` using an isolated SQLite schema to exercise `ApprovalService::approve`: an email-verified contractor without identity verification must remain pending with no user created; an eligible client must provision a user, client and membership atomically.
+- These tests run in enrollment CI. **Scope:** they validate service logic and transaction behavior, not the MariaDB migration schema, real upload scanning, authenticated HTTP requests, moderator UI, or a complete deployed onboarding journey. Full MariaDB and browser integration testing is still required.
