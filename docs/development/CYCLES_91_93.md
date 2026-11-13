@@ -187,3 +187,10 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - The writer publishes `.env` using an atomic create-only hard link rather than overwriting existing configuration. It removes the temporary file afterward.
 - Tests cover newline injection, 0600 permissions, persistence of expected values and overwrite rejection.
 - **Not yet wired to the browser installer or CLI.** Its caller must hold `InstallationMutex`, revalidate installer authorization and enforce restricted root ownership. Environment values with whitespace or quotes are intentionally unsupported pending a parser-aware encoding implementation. Configuration creation and database provisioning are not yet a single atomic transaction.
+
+## Cycle 91 migration execution foundation
+- `SqlStatements::split` separates SQL statements outside quoted strings, backtick identifiers and ordinary comments, rejecting unterminated literals and executable MySQL comments. Regression tests cover quoted semicolons and unsafe input.
+- `MigrationRunner::run` is an **unwired, CLI-only** execution service requiring explicit confirmation, MySQL/MariaDB PDO, an exclusive filesystem mutex, contiguous known migration history and SHA-256-verified preflight.
+- Before each migration, a private `.brite-migration-recovery-required` marker is created. If any statement or history write fails, the marker remains and all subsequent attempts refuse execution until a qualified operator reconciles the database. This is deliberate: MySQL DDL is not transactionally rollback-safe.
+- Completed migrations are recorded in `schema_migrations`. The recovery marker is removed only after recording success.
+- **Not production-ready:** migration SQL compatibility across the complete repository and MariaDB versions has not been tested; file-based locking assumes a single shared filesystem; no CLI command or browser execution is wired; recovery requires manual inspection, and backup/restore orchestration is not implemented. Do not run against a live database until full integration testing and backup validation.
