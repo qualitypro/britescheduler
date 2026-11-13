@@ -27,7 +27,22 @@ final class UploadScanner
             $pipes, null, ['PATH' => '/usr/bin:/bin']);
         if (!is_resource($process)) throw new RuntimeException('Document malware scanner unavailable');
         fclose($pipes[0]);
-        $status = proc_close($process);
+        $deadline = microtime(true) + 30.0;
+        $status = -1;
+        do {
+            $state = proc_get_status($process);
+            if (!$state['running']) {
+                $status = (int)$state['exitcode'];
+                break;
+            }
+            if (microtime(true) >= $deadline) {
+                proc_terminate($process, 9);
+                proc_close($process);
+                throw new RuntimeException('Document malware scan timed out');
+            }
+            usleep(100000);
+        } while (true);
+        proc_close($process);
         if ($status === 1) throw new DomainException('Document rejected by security scan');
         if ($status !== 0) throw new RuntimeException('Document malware scan could not complete');
     }
