@@ -61,3 +61,30 @@
     }
 }
 
+
+/* Sidebar search uses the same dark hover/focus treatment as navigation links. */
+.brite-app .brite-sidebar-nav > .brite-command-trigger {
+    min-height: 43px;
+    padding: 10px 13px;
+    gap: 12px;
+    color: #cbd5e1;
+    font-size: .875rem;
+    font-weight: 550;
+    border: 1px solid transparent;
+    background: transparent;
+    transition: background 180ms ease, color 180ms ease;
+}
+.brite-app .brite-sidebar-nav > .brite-command-trigger:hover,
+.brite-app .brite-sidebar-nav > .brite-command-trigger:focus-visible {
+    background: rgba(255,255,255,.11);
+    color: #fff;
+    border-color: transparent;
+}
+.brite-app .brite-sidebar-nav > .brite-command-trigger:focus-visible {
+    outline: 2px solid #a5b4fc;
+    outline-offset: 1px;
+}
+.brite-app .brite-sidebar-nav > .brite-command-trigger .brite-nav-icon {
+    width: 22px;
+    flex: 0 0 22px;
+}
