@@ -4,6 +4,11 @@ on:
     paths:
       - 'app/Registration/**'
       - 'app/Installation/**'
+      - 'migrations/038_registration_foundation.sql'
+      - 'migrations/039_enrollment_rate_limits.sql'
+      - 'migrations/040_registration_consents.sql'
+      - 'api/auth/register.php'
+      - 'sign-up.v2.php'
       - 'api/enrollment_decision.php'
       - 'enrollment.php'
       - 'verify-enrollment.php'
@@ -22,7 +27,7 @@ jobs:
       - name: Lint enrollment and installer PHP
         run: |
           set -eu
-          for file in app/Registration/*.php app/Installation/*.php api/enrollment_decision.php enrollment.php verify-enrollment.php install/index.php bin/brite tests/registration_*_test.php; do
+          for file in app/Registration/*.php app/Installation/*.php api/enrollment_decision.php api/auth/register.php enrollment.php sign-up.v2.php verify-enrollment.php install/index.php bin/brite tests/registration_*_test.php; do
             php -l "$file"
           done
       - name: Pure policy and security tests
