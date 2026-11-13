@@ -4269,6 +4269,23 @@ document.addEventListener('DOMContentLoaded',async ()=>{
 
                 events:loadEvents,
 
+                // Clicking the month cell's day number opens that exact date in Day view.
+                // Keep clicks elsewhere in the cell available for client booking.
+                dayCellDidMount: info => {
+                    if (info.view.type !== 'dayGridMonth') return;
+                    const number = info.el.querySelector('.fc-daygrid-day-number');
+                    if (!number) return;
+                    number.setAttribute('aria-label', 'Open day view for ' +
+                        info.date.toLocaleDateString('en-US', {
+                            year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'
+                        }));
+                    number.addEventListener('click', event => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        calendar.changeView('timeGridDay', info.date);
+                    });
+                },
+
                 // Client date clicks start self-service booking.
                 // Other read-only roles retain a non-editable calendar.
                 dateClick:info=>{
