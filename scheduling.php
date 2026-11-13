@@ -1961,7 +1961,7 @@ function showAppointmentDetails(event) {
         ['Status', String(appointment.status || 'scheduled')
             .replaceAll('_', ' ')],
         ['Location', appointment.location || 'Not specified'],
-        ...(isManagementRole
+        ...(isManagementRole && window.BRITE_CALENDAR_ROLE !== 'owner'
             ? [['Contractors', contractorNames.join(', ') || 'Unassigned']]
             : [])
     ];
