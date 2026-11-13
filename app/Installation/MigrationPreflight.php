@@ -31,7 +31,7 @@ final class MigrationPreflight
                 throw new DomainException('Empty migration file');
             }
             if (preg_match('/\b(?:DELIMITER|SOURCE|LOAD\s+DATA|INTO\s+OUTFILE|INTO\s+DUMPFILE)\b/i', $sql)) {
-                throw new DomainException('Migration requires manual SQL review');
+                throw new DomainException('Migration requires manual SQL review: ' . $version);
             }
             $results[] = ['version' => $version, 'sha256' => $checksum, 'bytes' => strlen($sql)];
         }
