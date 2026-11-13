@@ -386,9 +386,6 @@ My Locations
                 aria-controls="briteSidebar"
                 aria-expanded="false">&#9776;</button>
 
-            <div class="brite-topbar-title">
-                <?=htmlspecialchars($pageTitle??'Dashboard')?>
-            </div>
         </div>
 
         <nav class="brite-quick-actions" aria-label="Quick actions">
