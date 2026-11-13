@@ -28,7 +28,7 @@ jobs:
       - name: Lint enrollment and installer PHP
         run: |
           set -eu
-          for file in app/Registration/*.php app/Installation/*.php api/enrollment_decision.php api/auth/register.php enrollment.php sign-up.v2.php verify-enrollment.php install/index.php bin/brite tests/registration_*_test.php tests/installation_inventory_test.php; do
+          for file in app/Registration/*.php app/Installation/*.php api/enrollment_decision.php api/auth/register.php enrollment.php sign-up.v2.php verify-enrollment.php install/index.php bin/brite tests/registration_*_test.php tests/installation_inventory_test.php tests/installation_migration_plan_test.php; do
             php -l "$file"
           done
       - name: Pure policy and security tests
@@ -37,4 +37,5 @@ jobs:
           php tests/registration_security_test.php
           php tests/registration_document_vault_test.php
           php tests/installation_inventory_test.php
+          php tests/installation_migration_plan_test.php
           ENROLLMENT_OUTBOX_KEY=$(php -r 'echo base64_encode(str_repeat("x",32));') php tests/registration_email_envelope_test.php
