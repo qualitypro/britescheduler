@@ -140,3 +140,9 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - Added `enrollment-documents.php` for contractor-only upload after verified email and `api/enrollment_document_upload.php` with CSRF, server-side application status/type validation, row locking, a maximum of 12 active documents per application, 10 MiB file limits, private encrypted vault storage and an atomic document/audit database transaction.
 - Failed database transactions attempt to discard newly created vault objects. Reviewers use the existing audited inspection and decision workflow.
 - **Production blockers:** upload malware scanning, file content sanitization, stronger applicant reauthentication/re-entry after the short-lived session, retention/deletion implementation, DB-backed integration testing, and real government ID verification. Do not expose this workflow publicly in production before those controls are implemented and security reviewed.
+
+## Cycle 92 mandatory upload malware scanning
+- Added `UploadScanner::scan` before vault storage. It requires a verified HTTP upload and a configured absolute executable path to a trusted ClamAV `clamscan` binary in `ENROLLMENT_CLAMSCAN_BIN`.
+- The process is invoked without a shell, discards scanner output, and fails closed on malware detection, missing configuration, scanner errors, and a 30-second timeout.
+- Added a negative regression test for non-upload files. Full positive-path scanning requires an HTTP upload integration environment with ClamAV and malware signature fixtures.
+- **Security limitations:** scanners do not guarantee harmless documents; PDF/image sanitization, scan engine signature maintenance, resource controls, retention and identity verification still require operational controls. Uploads must not be enabled until the scanner is installed and integration-tested.
