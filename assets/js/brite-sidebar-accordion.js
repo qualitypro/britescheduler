@@ -15,6 +15,8 @@
             management: '<path d="M3 21V7l9-4 9 4v14M3 10h18M9 21v-7h6v7"/>',
             administration: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/>',
             subscriptions: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17.5h7M17.5 14v7"/>',
+            crm: '<circle cx="8" cy="8" r="3"/><path d="M2.5 20v-2a5.5 5.5 0 0 1 11 0v2"/><rect x="15" y="4" width="7" height="5" rx="1"/><path d="M16 13h5M16 17h5M16 21h5"/>',
+            intelligence: '<path d="M4 19V12M9 19V8M14 19V14M19 19V5"/><path d="M3 21h18"/><circle cx="19" cy="4" r="1"/>',
             personal: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>'
         };
         const groups = labels.map((label, index) => {
