@@ -85,3 +85,11 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - The worker clears the encrypted body after transport acceptance; transport acceptance is **not** proof of inbox delivery.
 - **Operational limitation:** A worker terminated while sending leaves the message in `sending` state. It must be reconciled by an operator; automatic recovery could resend a delivered message. Mail provider callbacks, stale claim reconciliation, delivery metrics, and end-to-end testing remain pending.
 - The CI test checks encryption round-trips and tamper rejection, but does not test a real mail transport or database.
+
+## Reliability and operations hardening
+- Corrected Enrollment approval UI so a reason is required for request-info/reject but not for approve.
+- Corrected enrollment throttle bucket rollover handling.
+- Outbox delivery excludes consumed or expired email-verification tokens.
+- Added `php bin/brite mail:status` with aggregate pending/sending/sent/failed counts and stale (>15-minute) sending claim count; it does not expose recipient email or token content.
+- **Manual intervention remains necessary** for stale `sending` claims to avoid duplicate verification emails. Mail transport acceptance does not guarantee delivery.
+- Earlier commit `94184042b3eb77ace06f931d47ba73ccabaf3ba2` passed GitHub Actions Source smoke checks and Enrollment foundation checks; newer commits must pass their own runs.
