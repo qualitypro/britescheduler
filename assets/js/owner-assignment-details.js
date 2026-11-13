@@ -302,7 +302,7 @@
         container.className = 'brite-owner-assignment-details';
 
         const heading = document.createElement('h3');
-        heading.textContent = 'Contractor Assignment Status';
+        heading.textContent = 'Contractors';
 
         const body = document.createElement('div');
         body.className = 'brite-assignment-pill-list';
