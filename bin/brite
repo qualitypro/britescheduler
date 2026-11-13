@@ -19,6 +19,7 @@ if ($command === 'help' || $command === '--help') {
     echo "  php bin/brite status       Read-only database migration status (no secrets)\n";
     echo "  php bin/brite mail:send   Deliver pending enrollment email (CLI only)\n";
     echo "  php bin/brite mail:status Read-only delivery counts and stale claims\n";
+    echo "  php bin/brite mail:retry-stale ID --confirm-duplicate-risk  Explicit recovery\n";
     echo "Installation and migration execution are not yet enabled.\n";
     exit(0);
 }
@@ -36,6 +37,24 @@ if ($command === 'migrations') {
         echo $migration['version'] . '  sha256:' . $migration['sha256'] . PHP_EOL;
     }
     exit(0);
+}
+if ($command === 'mail:retry-stale') {
+    if (!isset($argv[2], $argv[3]) || !ctype_digit($argv[2]) ||
+        (int)$argv[2] < 1 || $argv[3] !== '--confirm-duplicate-risk') {
+        fwrite(STDERR, "Usage: php bin/brite mail:retry-stale ID --confirm-duplicate-risk\n");
+        exit(2);
+    }
+    require_once $root . '/app/bootstrap.php';
+    require_once $root . '/app/Registration/OutboxRecovery.php';
+    try {
+        $requeued = \BriteScheduler\Registration\OutboxRecovery::retryStale(Database::connection(), (int)$argv[2]);
+        echo $requeued ? "Stale message requeued. Duplicate delivery remains possible.\n"
+            : "Message not eligible for recovery; no changes made.\n";
+        exit($requeued ? 0 : 1);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Unable to recover stale message.\n");
+        exit(1);
+    }
 }
 if ($command === 'mail:status') {
     require_once $root . '/app/bootstrap.php';
