@@ -60,3 +60,13 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - Configure `ENROLLMENT_MAIL_FROM` and a working PHP `mail()` transport before testing. Transport acceptance is **not** proof of delivery.
 - **Deployment blocker:** Real published Terms/Privacy links and versioned consent evidence, abuse/rate limiting, email queue/retry, duplicate-race protection, provider verification, and approval/provisioning are not yet complete. Do not deploy public signup from this branch.
 - No migration or end-to-end test was executed against the local environment.
+
+## Cycle 93D — Approval, throttling, and consent (code committed; integration pending)
+- `ApprovalService::approve` provisions a verified eligible client or contractor in a single database transaction, creates the active tenant membership and role profile, clears the pending password hash, and writes an approval audit entry. Business applications are not supported by this approval endpoint.
+- Contractor approval is blocked unless email, phone, and government ID verification records are explicitly marked verified and unexpired. No actual phone or ID verification provider is integrated, so contractors cannot complete this path yet.
+- Enrollment owner/admin UI now exposes Approve; request-info/reject remain available.
+- Migration 039 adds database-backed fixed-window request throttling. Set `ENROLLMENT_RATE_SECRET` to a stable high-entropy secret (32+ characters). Limits: 10 submissions per source IP and 5 per email per hour. Throttle storage holds HMAC digests, not raw identifiers.
+- Migration 040 adds versioned consent evidence. Configure `ENROLLMENT_TERMS_URL`, `ENROLLMENT_PRIVACY_URL` (HTTPS), `ENROLLMENT_TERMS_VERSION`, `ENROLLMENT_PRIVACY_VERSION`; signup is blocked when legal configuration is missing.
+- Configure `ENROLLMENT_MAIL_FROM` and a working PHP mail transport. No real delivery, mail retries, provider verification, browser checks, or database integration tests have been completed.
+- Apply migrations 038, 039 and 040 in order only after reviewing backup and schema compatibility. No local changes or migrations have been performed by this development work.
+- Remaining release blockers: real identity/phone verification, business enrollment and platform review, legal document publication, mail queue and delivery assurance, cross-tenant/integration tests, concurrency/duplicate race hardening, installation wizard completion.
