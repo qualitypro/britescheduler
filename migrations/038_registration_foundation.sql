@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS registration_applications (
 CREATE TABLE IF NOT EXISTS registration_verifications (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
  application_id BIGINT UNSIGNED NOT NULL,
- verification_type ENUM('email','phone','government_id','business','license','insurance') NOT NULL,
+ verification_type ENUM('email','phone','government_id','authorized_representative_id','business_details','business','license','insurance') NOT NULL,
  status ENUM('pending','verified','failed','expired') NOT NULL DEFAULT 'pending',
  provider_reference VARCHAR(190) NULL,
  verified_at DATETIME NULL,
