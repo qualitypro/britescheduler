@@ -1,0 +1,36 @@
+#!/usr/bin/env php
+<?php
+declare(strict_types=1);
+
+$root = dirname(__DIR__);
+require_once $root . '/app/Installation/RequirementsChecker.php';
+require_once $root . '/app/Installation/MigrationInventory.php';
+
+use BriteScheduler\Installation\RequirementsChecker;
+use BriteScheduler\Installation\MigrationInventory;
+
+$command = $argv[1] ?? 'help';
+if ($command === 'help' || $command === '--help') {
+    echo "Brite Scheduler setup tools\n";
+    echo "  php bin/brite doctor       Read-only PHP and filesystem diagnostics\n";
+    echo "  php bin/brite migrations  Read-only ordered SQL migration inventory\n";
+    echo "Installation and migration execution are not yet enabled.\n";
+    exit(0);
+}
+if ($command === 'doctor') {
+    $checks = RequirementsChecker::inspect($root);
+    $failed = false;
+    foreach ($checks as $name => $check) {
+        echo ($check['ok'] ? '[PASS] ' : '[FAIL] ') . $name . ': ' . $check['detail'] . PHP_EOL;
+        $failed = $failed || !$check['ok'];
+    }
+    exit($failed ? 1 : 0);
+}
+if ($command === 'migrations') {
+    foreach (MigrationInventory::list($root) as $migration) {
+        echo $migration['version'] . '  sha256:' . $migration['sha256'] . PHP_EOL;
+    }
+    exit(0);
+}
+fwrite(STDERR, "Unknown or unavailable command. Run: php bin/brite help\n");
+exit(2);
