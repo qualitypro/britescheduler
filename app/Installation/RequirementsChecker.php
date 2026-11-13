@@ -15,7 +15,7 @@ final class RequirementsChecker
         }
         $checks['migrations_directory'] = ['ok' => is_dir($root . '/migrations'), 'detail' => 'SQL migration directory exists'];
         $checks['config_template'] = ['ok' => is_file($root . '/.env.example'), 'detail' => 'Configuration template exists'];
-        $checks['env_exists'] = ['ok' => is_file($root . '/.env'), 'detail' => 'Local .env file exists (content never displayed)'];
+        $checks['new_install_configuration'] = ['ok' => !file_exists($root . '/.env') && !is_link($root . '/.env'), 'detail' => 'New browser installation requires no existing .env file'];
         $checks['env_not_web_root'] = ['ok' => is_file($root . '/.htaccess') || !is_file($root . '/.env'), 'detail' => 'Review web-server protection of .env (Apache .htaccess presence only)'];
         return $checks;
     }
