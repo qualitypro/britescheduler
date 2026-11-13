@@ -83,6 +83,7 @@ require __DIR__ . '/partials/app_header.php';
                     <input type="hidden" name="_csrf" value="<?= $escape(csrf_token()) ?>">
                     <input type="hidden" name="application_id" value="<?= (int)$application['id'] ?>">
                     <label>Reason <input name="reason" minlength="5" maxlength="500" required placeholder="Reason for decision" aria-label="Review reason for application <?= (int)$application['id'] ?>"></label>
+                    <button type="submit" name="action" value="approve">Approve</button>
                     <button type="submit" name="action" value="request_info">Request info</button>
                     <button type="submit" name="action" value="reject">Reject</button>
                   </form>
@@ -93,7 +94,7 @@ require __DIR__ . '/partials/app_header.php';
           </tbody>
         </table>
       </div>
-      <p class="muted">Request-info and rejection decisions are recorded in the audit trail. Notifications, approval, verification email delivery, and provisioning are not enabled yet.</p>
+      <p class="muted">Request-info and rejection decisions are recorded in the audit trail. Approval provisions verified, eligible accounts. Notification delivery and external identity verification are not integrated yet.</p>
     <?php endif; ?>
   </div>
 <script>
@@ -101,9 +102,9 @@ document.querySelectorAll('.enrollment-decision').forEach(form => {
   form.addEventListener('submit', async event => {
     event.preventDefault();
     const action = event.submitter?.value;
-    if (!['request_info', 'reject'].includes(action)) return;
+    if (!['approve', 'request_info', 'reject'].includes(action)) return;
     if (!form.reportValidity()) return;
-    if (!confirm(action === 'reject' ? 'Reject this enrollment application?' : 'Request additional information? No email will be sent automatically.')) return;
+    if (!confirm(action === 'approve' ? 'Approve and activate this applicant? Verification requirements must be satisfied.' : (action === 'reject' ? 'Reject this enrollment application?' : 'Request additional information? No email will be sent automatically.'))) return;
     const payload = new FormData(form);
     payload.set('action', action);
     const buttons = form.querySelectorAll('button');
