@@ -17,6 +17,11 @@ final class OutboxStatus
         }
         $q = $pdo->query("SELECT COUNT(*) FROM registration_email_outbox
             WHERE status = 'sending' AND claimed_at < UTC_TIMESTAMP() - INTERVAL 15 MINUTE");
-        return ['counts' => $counts, 'stale_claims' => (int)$q->fetchColumn()];
+        $stale = (int)$q->fetchColumn();
+        $q = $pdo->query("SELECT id FROM registration_email_outbox
+            WHERE status = 'sending' AND claimed_at < UTC_TIMESTAMP() - INTERVAL 15 MINUTE
+            ORDER BY id ASC LIMIT 50");
+        return ['counts' => $counts, 'stale_claims' => $stale,
+            'stale_ids' => array_map('intval', $q->fetchAll(PDO::FETCH_COLUMN))];
     }
 }
