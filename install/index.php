@@ -1,0 +1,36 @@
+<?php
+declare(strict_types=1);
+
+// Deliberately read-only until a guarded installation state machine is implemented.
+// Do not include app/bootstrap.php: it opens sessions and assumes installed config.
+$root = dirname(__DIR__);
+require_once $root . '/app/Installation/RequirementsChecker.php';
+require_once $root . '/app/Installation/MigrationInventory.php';
+use BriteScheduler\Installation\RequirementsChecker;
+use BriteScheduler\Installation\MigrationInventory;
+
+header('Content-Type: text/html; charset=utf-8');
+header('Cache-Control: no-store');
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Referrer-Policy: no-referrer');
+header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+$checks = RequirementsChecker::inspect($root);
+$ready = !in_array(false, array_column($checks, 'ok'), true);
+$escape = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+?>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brite Scheduler — Installation diagnostics</title>
+<style>body{font:16px system-ui,sans-serif;max-width:760px;margin:5vh auto;padding:0 20px;background:#f8fafc;color:#172554}main{background:white;padding:28px;border-radius:16px;box-shadow:0 8px 30px #0001}li{padding:10px;border-bottom:1px solid #e2e8f0}.pass{color:#166534}.fail{color:#991b1b}small{color:#475569}</style></head>
+<body><main><h1>Brite Scheduler installation</h1>
+<p>Pre-installation diagnostics only. This page cannot change your database, write configuration, or create accounts.</p>
+<h2>System requirements</h2><ul>
+<?php foreach ($checks as $name => $check): ?>
+<li><strong class="<?= $check['ok'] ? 'pass' : 'fail' ?>"><?= $check['ok'] ? 'PASS' : 'CHECK' ?></strong>
+<?= $escape($check['detail']) ?></li>
+<?php endforeach; ?></ul>
+<p><?= $ready ? 'Basic checks passed. Additional security checks and the installation wizard are still required.' : 'Some checks require attention before installation.' ?></p>
+<p><small>Migration files discovered: <?= count(MigrationInventory::list($root)) ?>. No migrations have been executed.</small></p>
+<p><small>Restrict access to /install at the web server. This page does not establish installation authorization.</small></p>
+</main></body></html>
