@@ -3,8 +3,10 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/app/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/app/Registration/VerificationTokens.php';
+require_once dirname(__DIR__, 2) . '/app/Registration/EnrollmentThrottle.php';
 
 use BriteScheduler\Registration\VerificationTokens;
+use BriteScheduler\Registration\EnrollmentThrottle;
 
 require_method('POST');
 verify_csrf();
@@ -33,6 +35,14 @@ if ($type === 'contractor' && $phone === '') {
     json_response(['error' => 'Contractor phone number is required'], 422);
 }
 $db = Database::connection();
+try {
+    EnrollmentThrottle::check($db, (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown'), $email);
+} catch (\DomainException $exception) {
+    json_response(['error' => $exception->getMessage()], 429);
+} catch (\Throwable $exception) {
+    error_log('Enrollment throttle unavailable: ' . get_class($exception));
+    json_response(['error' => 'Enrollment temporarily unavailable'], 503);
+}
 $q = $db->prepare("SELECT id FROM tenants WHERE id = ? AND status = 'active'");
 $q->execute([$tenantId]);
 if (!$q->fetchColumn()) {
