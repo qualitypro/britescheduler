@@ -53,3 +53,10 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - `verify-enrollment.php` provides a CSRF-protected token submission page; this is not a signup or email-delivery workflow. It does not activate an account.
 - Token generation and outbound email delivery are **not connected**. Do not publish verification links until issuance and delivery are integrated.
 - `.github/workflows/enrollment-checks.yml` adds PHP lint and pure unit tests on pull requests. CI success does not replace database, browser, and tenant-isolation testing.
+
+## Cycle 93 registration integration (partial)
+- Existing `api/auth/register.php` no longer creates active users or memberships. It creates a tenant-specific `pending_email` application, a hashed one-time token, and an audit record.
+- `sign-up.v2.php` now requires explicit business selection, a 12-character minimum password, and a consent checkbox; successful submission displays pending-verification instructions rather than signing the applicant in.
+- Configure `ENROLLMENT_MAIL_FROM` and a working PHP `mail()` transport before testing. Transport acceptance is **not** proof of delivery.
+- **Deployment blocker:** Real published Terms/Privacy links and versioned consent evidence, abuse/rate limiting, email queue/retry, duplicate-race protection, provider verification, and approval/provisioning are not yet complete. Do not deploy public signup from this branch.
+- No migration or end-to-end test was executed against the local environment.
