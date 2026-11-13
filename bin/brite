@@ -23,6 +23,7 @@ if ($command === 'help' || $command === '--help') {
     echo "  php bin/brite status       Read-only database migration status (no secrets)\n";
     echo "  php bin/brite migrate:plan Strict read-only ordered migration plan\n";
     echo "  php bin/brite migrate:check Check pending migration file integrity\n";
+    echo "  php bin/brite documents:purge ID --confirm-retention  Purge expired private document\n";
     echo "  php bin/brite mail:send   Deliver pending enrollment email (CLI only)\n";
     echo "  php bin/brite mail:status Read-only delivery counts and stale claims\n";
     echo "  php bin/brite mail:retry-stale ID --confirm-duplicate-risk  Explicit recovery\n";
@@ -43,6 +44,25 @@ if ($command === 'migrations') {
         echo $migration['version'] . '  sha256:' . $migration['sha256'] . PHP_EOL;
     }
     exit(0);
+}
+if ($command === 'documents:purge') {
+    if (count($argv) !== 4 || !ctype_digit($argv[2]) || (int)$argv[2] < 1 ||
+        $argv[3] !== '--confirm-retention') {
+        fwrite(STDERR, "Usage: php bin/brite documents:purge ID --confirm-retention\n");
+        exit(2);
+    }
+    require_once $root . '/app/bootstrap.php';
+    require_once $root . '/app/Registration/DocumentVault.php';
+    require_once $root . '/app/Registration/DocumentRetention.php';
+    try {
+        $deleted = \BriteScheduler\Registration\DocumentRetention::purge(Database::connection(), (int)$argv[2]);
+        echo $deleted ? "Expired document purged; audit record preserved.\n"
+            : "Document is not eligible for retention cleanup; no changes made.\n";
+        exit($deleted ? 0 : 1);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Retention cleanup failed; investigate vault/database consistency.\n");
+        exit(1);
+    }
 }
 if ($command === 'mail:retry-stale') {
     if (!isset($argv[2], $argv[3]) || !ctype_digit($argv[2]) ||
