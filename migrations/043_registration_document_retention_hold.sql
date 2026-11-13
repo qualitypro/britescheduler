@@ -8,3 +8,6 @@ ALTER TABLE registration_documents
     FOREIGN KEY (retention_hold_by) REFERENCES users(id) ON DELETE SET NULL,
   ADD INDEX idx_registration_documents_retention_due
     (retention_hold, delete_after, deleted_at);
+
+ALTER TABLE registration_document_audit
+  MODIFY COLUMN action ENUM('uploaded','viewed','verified','rejected','deleted','hold_placed','hold_released') NOT NULL;
