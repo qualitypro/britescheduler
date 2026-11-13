@@ -23,14 +23,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install PHP CLI and mbstring
-        run: sudo apt-get update && sudo apt-get install -y php-cli php-mbstring
+        run: sudo apt-get update && sudo apt-get install -y php-cli php-mbstring php-sqlite3
       - name: Lint enrollment and installer PHP
         run: |
           set -eu
-          for file in app/Registration/*.php app/Installation/*.php api/enrollment_decision.php api/auth/register.php enrollment.php sign-up.v2.php verify-enrollment.php install/index.php bin/brite tests/registration_*_test.php; do
+          for file in app/Registration/*.php app/Installation/*.php api/enrollment_decision.php api/auth/register.php enrollment.php sign-up.v2.php verify-enrollment.php install/index.php bin/brite tests/registration_*_test.php tests/installation_inventory_test.php; do
             php -l "$file"
           done
       - name: Pure policy and security tests
         run: |
           php tests/registration_policy_test.php
           php tests/registration_security_test.php
+          php tests/installation_inventory_test.php
