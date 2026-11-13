@@ -39,3 +39,11 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - It handles missing migration 038 without exposing database errors.
 - Do not enable review mutations until reviewer authorization, audit transactions, email verification, and provisioning are implemented and tested.
 - Browser, PHP lint, and MariaDB integration checks remain pending.
+
+## Cycle 93C moderation actions (partial)
+- Enrollment now supports request-info and rejection for `pending_review` applications only.
+- `api/enrollment_decision.php` enforces POST, CSRF, authenticated owner/admin, active tenant membership, and server-side tenant isolation.
+- `ReviewService` locks the application row and commits its status change and reviewer audit record atomically.
+- Request-info does **not** send email. Manual follow-up is required until notification delivery is implemented.
+- Approval and account provisioning remain disabled. Migration 038 must be applied before the page or endpoint can function.
+- No PHP runtime, database, browser, or cross-tenant integration test has been run in this environment.
