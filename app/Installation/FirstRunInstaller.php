@@ -11,9 +11,9 @@ use Throwable;
 /** First-run CLI installation orchestration; never use against an existing tenant database. */
 final class FirstRunInstaller
 {
-    public static function install(string $root, PDO $pdo, array $owner, bool $confirmed): array
+    public static function install(string $root, PDO $pdo, array $owner, bool $confirmed, bool $trustedBrowser = false): array
     {
-        if (PHP_SAPI !== 'cli' || !$confirmed || $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'mysql') {
+        if ((PHP_SAPI !== 'cli' && !$trustedBrowser) || !$confirmed || $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'mysql') {
             throw new DomainException('Explicit CLI MySQL installation confirmation required');
         }
         $root = rtrim($root, '/');
@@ -56,7 +56,7 @@ final class FirstRunInstaller
                 throw new DomainException('No installation migrations found');
             }
             MigrationPreflight::inspect($root, $plan['pending']);
-            $applied = MigrationRunner::run($root, $pdo, true, true);
+            $applied = MigrationRunner::run($root, $pdo, true, true, $trustedBrowser);
             $pdo->beginTransaction();
             try {
                 if ((int)$pdo->query('SELECT COUNT(*) FROM tenants')->fetchColumn() !== 0 ||
