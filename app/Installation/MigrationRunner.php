@@ -13,15 +13,15 @@ use RuntimeException;
  */
 final class MigrationRunner
 {
-    public static function run(string $root, PDO $pdo, bool $confirmed): array
+    public static function run(string $root, PDO $pdo, bool $confirmed, bool $alreadyLocked = false): array
     {
         if (PHP_SAPI !== 'cli' || !$confirmed) throw new DomainException('Explicit CLI confirmation required');
         if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'mysql') {
             throw new DomainException('Migration runner requires MySQL/MariaDB');
         }
         $root = rtrim($root, '/');
-        $mutex = new InstallationMutex();
-        $mutex->acquire($root);
+        $mutex = $alreadyLocked ? null : new InstallationMutex();
+        if ($mutex !== null) $mutex->acquire($root);
         try {
             $failure = $root . '/.brite-migration-recovery-required';
             if (file_exists($failure) || is_link($failure)) {
@@ -57,7 +57,7 @@ final class MigrationRunner
             }
             return $completed;
         } finally {
-            $mutex->release();
+            if ($mutex !== null) $mutex->release();
         }
     }
 }
