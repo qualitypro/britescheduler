@@ -15,7 +15,12 @@ try {
     unlink($root . '/.env');
     session_start();
     if (SetupAuthorization::isAuthorized($root)) throw new RuntimeException('Unverified session accepted');
-    if (!SetupAuthorization::grant($root, $secret)) throw new RuntimeException('Setup grant rejected');
+    for ($attempt = 0; $attempt < 5; $attempt++) {
+        if (SetupAuthorization::grant($root, str_repeat('x', 40))) throw new RuntimeException('Invalid token accepted');
+    }
+    if (SetupAuthorization::grant($root, $secret)) throw new RuntimeException('Locked out token accepted');
+    $_SESSION['brite_install_attempts_until'] = time() - 1;
+    if (!SetupAuthorization::grant($root, $secret)) throw new RuntimeException('Setup grant rejected after cooldown');
     if (!SetupAuthorization::isAuthorized($root)) throw new RuntimeException('Authorized session rejected');
     if (SetupAuthorization::verifyCsrf(str_repeat('0', 64))) throw new RuntimeException('Invalid CSRF accepted');
     if (!SetupAuthorization::verifyCsrf(SetupAuthorization::csrfToken())) throw new RuntimeException('Valid CSRF rejected');
