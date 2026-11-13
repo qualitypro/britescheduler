@@ -93,7 +93,7 @@ $escape = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTE
 <body><main><h1>Brite Scheduler installation</h1>
 <p>New installations only. Review database backups, configure a dedicated empty MariaDB database, and restrict installer access to trusted administrators.</p>
 <h2>Installation access</h2>
-<p><?= $gate['installed_lock'] ? 'Installation is locked.' : ($gate['existing_configuration'] ? 'Existing configuration detected; setup writes are disabled.' : ($gate['setup_token_configured'] ? 'A setup token is configured. Installer execution is not yet available.' : 'A private setup authorization token must be configured before installation can begin.')) ?></p>
+<p><?= $gate['installed_lock'] ? 'Installation is locked.' : ($gate['existing_configuration'] ? 'Existing configuration detected; setup writes are disabled.' : ($gate['setup_token_configured'] ? 'A setup token is configured. Authenticate to start installation.' : 'A private setup authorization token must be configured before installation can begin.')) ?></p>
 <?php if ($notice !== ''): ?><p role="status"><?= $escape($notice) ?></p><?php endif; ?>
 <?php if ($gate['setup_may_begin'] && !$authorized): ?>
 <form method="post" autocomplete="off">
@@ -133,5 +133,5 @@ $escape = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTE
 <?php endforeach; ?></ul>
 <p><?= $ready ? 'Basic requirements inspected. Review server security before installation.' : 'Some checks require attention before installation.' ?></p>
 <p><small>Migration files discovered: <?= count(MigrationInventory::list($root)) ?>. Migration execution is available only through an explicitly authorized setup operation.</small></p>
-<p><small>Restrict access to /install at the web server. Only use this page over direct HTTPS with server-side access restrictions.</small></p>
+<p><small>Restrict access to /install at the web server. Use direct HTTPS and trusted administrator network restrictions. Disable this route after setup.</small></p>
 </main></body></html>
