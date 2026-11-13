@@ -28,9 +28,45 @@ if ($command === 'help' || $command === '--help') {
     echo "  php bin/brite mail:send   Deliver pending enrollment email (CLI only)\n";
     echo "  php bin/brite mail:status Read-only delivery counts and stale claims\n";
     echo "  php bin/brite mail:retry-stale ID --confirm-duplicate-risk  Explicit recovery\n";
+    echo "  php bin/brite install:configure --confirm-new-install  Write private .env from process environment\n";
     echo "  php bin/brite install:complete --confirm-empty-database  Install new database and first owner\n";
     echo "Browser installation and general migration upgrades remain disabled.\n";
     exit(0);
+}
+if ($command === 'install:configure') {
+    if (count($argv) !== 3 || $argv[2] !== '--confirm-new-install') {
+        fwrite(STDERR, "Usage: php bin/brite install:configure --confirm-new-install\n");
+        exit(2);
+    }
+    require_once $root . '/app/Installation/InstallerGate.php';
+    require_once $root . '/app/Installation/SetupAuthorization.php';
+    require_once $root . '/app/Installation/InstallationMutex.php';
+    require_once $root . '/app/Installation/ConfigurationWriter.php';
+    try {
+        $mutex = new \BriteScheduler\Installation\InstallationMutex();
+        $mutex->acquire($root);
+        try {
+            if (!\BriteScheduler\Installation\SetupAuthorization::authorize(
+                $root, getenv('BRITE_INSTALL_PROVIDED_TOKEN') ?: ''
+            )) {
+                throw new DomainException('Setup authorization denied');
+            }
+            $values = [];
+            foreach (['APP_URL','DB_HOST','DB_PORT','DB_NAME','DB_USER','DB_PASS'] as $key) {
+                $value = getenv($key);
+                if ($value === false) throw new DomainException('Required configuration missing');
+                $values[$key] = $value;
+            }
+            \BriteScheduler\Installation\ConfigurationWriter::write($root, $values);
+        } finally {
+            $mutex->release();
+        }
+        echo "Private configuration created. No database changes made.\n";
+        exit(0);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Configuration creation refused. No existing configuration was overwritten.\n");
+        exit(1);
+    }
 }
 if ($command === 'install:complete') {
     if (count($argv) !== 3 || $argv[2] !== '--confirm-empty-database') {
