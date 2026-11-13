@@ -112,3 +112,8 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - The planner refuses unknown applied versions, duplicate inventory versions, and migration history gaps rather than guessing what to execute.
 - Added pure regression tests for ordered pending migrations, unknown versions, duplicate entries and gaps.
 - **No SQL execution is enabled.** Running migrations safely still requires reviewed migration parsing, lock and backup policies, idempotency checks, checksum persistence, partial-failure recovery, and an explicitly authorized installer flow.
+
+## Cycle 91 migration file preflight
+- Added `php bin/brite migrate:check`: read-only validation of pending migration inventory entries, file checksums, symlink refusal, empty SQL files, and selected unsupported SQL constructs.
+- Added regression tests for accepted files, checksum drift and unsupported SQL.
+- Preflight is **not** a complete SQL parser or a guarantee that migrations are safe or reversible. It does not execute SQL or create backups, and cannot substitute for reviewed migration execution and database integration testing.
