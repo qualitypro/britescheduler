@@ -291,7 +291,21 @@
         return wrapper;
     }
 
+    function removePlainContractorField() {
+        // The assignment pills are the single contractor display in this dialog.
+        // Remove the legacy text-only definition-list pair if it was rendered.
+        const grid = content.querySelector('.appointment-details-grid');
+        if (!grid) return;
+        for (const label of grid.querySelectorAll('dt')) {
+            if (label.textContent.trim() !== 'Contractors') continue;
+            const value = label.nextElementSibling;
+            if (value?.tagName === 'DD') value.remove();
+            label.remove();
+        }
+    }
+
     async function refreshDetails(appointmentId) {
+        removePlainContractorField();
         const sequence = ++requestSequence;
 
         content.querySelectorAll(
