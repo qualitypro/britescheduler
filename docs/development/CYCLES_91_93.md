@@ -236,3 +236,8 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - [ ] Review installation failure/recovery procedure with operator; test restore from a verified backup
 
 The feature implementation is complete enough for controlled staging validation, **not an assertion of production readiness**. Do not merge or deploy without the unchecked acceptance items.
+
+## Cycle 91 integration verification update
+- The disposable MariaDB 10.11 job has passed complete migration application, first owner creation, password-hash verification, recovery-marker refusal and reinstall blocking.
+- The PHP policy/security suite has passed with the browser installer and rate-limiter changes. Later commits still require their own successful CI run.
+- Browser HTTPS end-to-end verification and target-environment staging remain required before treating Cycle 91 as production-ready.
