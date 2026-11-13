@@ -134,3 +134,9 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - The owner/admin enrollment queue now loads document metadata for only the applications already selected in the tenant-scoped queue.
 - For each document, reviewers can request an audited attachment download and, while pending, submit a reasoned review decision. All actions use existing authenticated, CSRF-protected endpoints.
 - This UI does not allow applicants to upload documents and does not constitute government ID verification. Operational use remains blocked pending upload authentication, malware scanning, retention, and identity verification.
+
+## Cycle 92 applicant document upload
+- Email verification now returns the verified application ID to the verification page, which regenerates the session ID and grants a 30-minute session-bound upload capability. This is not a general login or approval.
+- Added `enrollment-documents.php` for contractor-only upload after verified email and `api/enrollment_document_upload.php` with CSRF, server-side application status/type validation, row locking, a maximum of 12 active documents per application, 10 MiB file limits, private encrypted vault storage and an atomic document/audit database transaction.
+- Failed database transactions attempt to discard newly created vault objects. Reviewers use the existing audited inspection and decision workflow.
+- **Production blockers:** upload malware scanning, file content sanitization, stronger applicant reauthentication/re-entry after the short-lived session, retention/deletion implementation, DB-backed integration testing, and real government ID verification. Do not expose this workflow publicly in production before those controls are implemented and security reviewed.
