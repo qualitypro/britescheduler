@@ -18,6 +18,7 @@ if ($command === 'help' || $command === '--help') {
     echo "  php bin/brite migrations  Read-only ordered SQL migration inventory\n";
     echo "  php bin/brite status       Read-only database migration status (no secrets)\n";
     echo "  php bin/brite mail:send   Deliver pending enrollment email (CLI only)\n";
+    echo "  php bin/brite mail:status Read-only delivery counts and stale claims\n";
     echo "Installation and migration execution are not yet enabled.\n";
     exit(0);
 }
@@ -35,6 +36,21 @@ if ($command === 'migrations') {
         echo $migration['version'] . '  sha256:' . $migration['sha256'] . PHP_EOL;
     }
     exit(0);
+}
+if ($command === 'mail:status') {
+    require_once $root . '/app/bootstrap.php';
+    require_once $root . '/app/Registration/OutboxStatus.php';
+    try {
+        $status = \BriteScheduler\Registration\OutboxStatus::inspect(Database::connection());
+        foreach ($status['counts'] as $name => $count) {
+            echo $name . ': ' . $count . PHP_EOL;
+        }
+        echo 'stale sending claims: ' . $status['stale_claims'] . PHP_EOL;
+        exit($status['stale_claims'] > 0 ? 1 : 0);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Unable to inspect enrollment email delivery.\n");
+        exit(1);
+    }
 }
 if ($command === 'mail:send') {
     require_once $root . '/app/bootstrap.php';
