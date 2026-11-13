@@ -5,15 +5,18 @@ declare(strict_types=1);
 $root = dirname(__DIR__);
 require_once $root . '/app/Installation/RequirementsChecker.php';
 require_once $root . '/app/Installation/MigrationInventory.php';
+require_once $root . '/app/Installation/InstallationStatus.php';
 
 use BriteScheduler\Installation\RequirementsChecker;
 use BriteScheduler\Installation\MigrationInventory;
+use BriteScheduler\Installation\InstallationStatus;
 
 $command = $argv[1] ?? 'help';
 if ($command === 'help' || $command === '--help') {
     echo "Brite Scheduler setup tools\n";
     echo "  php bin/brite doctor       Read-only PHP and filesystem diagnostics\n";
     echo "  php bin/brite migrations  Read-only ordered SQL migration inventory\n";
+    echo "  php bin/brite status       Read-only database migration status (no secrets)\n";
     echo "Installation and migration execution are not yet enabled.\n";
     exit(0);
 }
@@ -31,6 +34,24 @@ if ($command === 'migrations') {
         echo $migration['version'] . '  sha256:' . $migration['sha256'] . PHP_EOL;
     }
     exit(0);
+}
+if ($command === 'status') {
+    require_once $root . '/app/bootstrap.php';
+    try {
+        $status = InstallationStatus::inspect($root, Database::connection());
+        echo 'Installed migrations: ' . count($status['applied']) . PHP_EOL;
+        echo 'Pending migrations: ' . count($status['pending']) . PHP_EOL;
+        foreach ($status['pending'] as $migration) {
+            echo '[PENDING] ' . $migration['version'] . PHP_EOL;
+        }
+        foreach ($status['unknown'] as $version) {
+            echo '[UNKNOWN] ' . $version . PHP_EOL;
+        }
+        exit(count($status['unknown']) ? 1 : 0);
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Unable to inspect migration status. Verify database configuration.\n");
+        exit(1);
+    }
 }
 fwrite(STDERR, "Unknown or unavailable command. Run: php bin/brite help\n");
 exit(2);
