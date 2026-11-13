@@ -117,3 +117,9 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - Added `php bin/brite migrate:check`: read-only validation of pending migration inventory entries, file checksums, symlink refusal, empty SQL files, and selected unsupported SQL constructs.
 - Added regression tests for accepted files, checksum drift and unsupported SQL.
 - Preflight is **not** a complete SQL parser or a guarantee that migrations are safe or reversible. It does not execute SQL or create backups, and cannot substitute for reviewed migration execution and database integration testing.
+
+## Cycle 92 contractor document review foundation
+- Migration 042 adds `registration_document_audit` with document, application, tenant, actor, action and reason for sensitive review events. Its restrictive foreign keys mean deletion must be coordinated with audit retention policy.
+- Added `DocumentReviewService::decide` and `api/enrollment_document_review.php`: CSRF-protected authenticated owner/admin review scoped to the current tenant, limited to contractor documents in pending status and eligible application states. Decisions and audit entries commit atomically.
+- **Trust boundary:** document status `verified` indicates a reviewer marked the submitted document as reviewed; this does not create a `registration_verifications.government_id` record, grant account approval, or prove identity. A separate identity verification workflow is required.
+- **Not ready for operational use:** applicant-authenticated uploads, safe document inspection, malware scanning, access audit, retention deletion and identity-verification provider integration remain unimplemented. Do not mark documents verified without actually inspecting them through a secure authorized workflow.
