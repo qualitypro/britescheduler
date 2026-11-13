@@ -18,6 +18,9 @@ final class BrowserInstaller
         if (!InstallerGate::inspect($root)['setup_may_begin']) {
             throw new DomainException('Existing installation detected');
         }
+        if (strtolower((string)parse_url((string)($configuration['APP_URL'] ?? ''), PHP_URL_SCHEME)) !== 'https') {
+            throw new DomainException('Browser installation requires an HTTPS application URL');
+        }
         // The configuration file is create-only; if DB connection or migration
         // fails, retain it for trusted CLI recovery, not repeated browser writes.
         $mutex = new InstallationMutex();
