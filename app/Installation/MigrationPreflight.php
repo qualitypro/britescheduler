@@ -7,11 +7,7 @@ require_once __DIR__ . '/SqlStatements.php';
 
 use DomainException;
 
-/**
- * Migration execution safety gate. No database writes.
- * Rejects unsupported SQL constructs and prevents accidental execution
- * of a multi-statement file as a single PDO statement.
- */
+/** Read-only SQL migration integrity and unsafe-command preflight. */
 final class MigrationPreflight
 {
     public static function inspect(string $root, array $pending): array
@@ -32,14 +28,7 @@ final class MigrationPreflight
             if (!is_string($sql) || trim($sql) === '') {
                 throw new DomainException('Empty migration file');
             }
-            if (preg_match('/\b(?:DELIMITER|SOURCE|LOAD\s+DATA|INTO\s+OUTFILE|INTO\s+DUMPFILE)\b/i', $sql)) {
-                throw new DomainException('Migration requires manual SQL review: ' . $version);
-            }
-            $results[] = ['version' => $version, 'sha256' => $checksum, 'bytes' => strlen($sql)];
-        }
-        return $results;
-    }
-}            foreach (SqlStatements::split($sql) as $statement) {
+            foreach (SqlStatements::split($sql) as $statement) {
                 if (preg_match('/^(?:DELIMITER|SOURCE|LOAD\s+DATA)\b/i', $statement) ||
                     preg_match('/\bINTO\s+(?:OUTFILE|DUMPFILE)\b/i', $statement)) {
                     throw new DomainException('Migration requires manual SQL review: ' . $version);
