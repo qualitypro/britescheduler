@@ -7,18 +7,38 @@ $root = dirname(__DIR__);
 require_once $root . '/app/Installation/RequirementsChecker.php';
 require_once $root . '/app/Installation/MigrationInventory.php';
 require_once $root . '/app/Installation/InstallerGate.php';
+require_once $root . '/app/Installation/SetupAuthorization.php';
 use BriteScheduler\Installation\RequirementsChecker;
 use BriteScheduler\Installation\MigrationInventory;
 use BriteScheduler\Installation\InstallerGate;
+use BriteScheduler\Installation\SetupAuthorization;
 
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_name('BRITE_INSTALL');
+    session_set_cookie_params(['lifetime'=>0,'path'=>'/install','secure'=>!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off','httponly'=>true,'samesite'=>'Strict']);
+    session_start();
+}
 header('Content-Type: text/html; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
 header('Referrer-Policy: no-referrer');
-header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
 $checks = RequirementsChecker::inspect($root);
 $gate = InstallerGate::inspect($root);
+$notice = '';
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    if (!SetupAuthorization::verifyCsrf((string)($_POST['_csrf'] ?? ''))) {
+        http_response_code(400);
+        $notice = 'Invalid setup request.';
+    } elseif (!SetupAuthorization::grant($root, (string)($_POST['setup_token'] ?? ''))) {
+        http_response_code(403);
+        $notice = 'Setup authorization failed or installation is already configured.';
+    } else {
+        $notice = 'Setup access granted for 15 minutes. Installation writes are not yet enabled.';
+    }
+}
+$authorized = SetupAuthorization::isAuthorized($root);
 $ready = !in_array(false, array_column($checks, 'ok'), true);
 $escape = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 ?>
@@ -30,6 +50,15 @@ $escape = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTE
 <p>Pre-installation diagnostics only. This page cannot change your database, write configuration, or create accounts.</p>
 <h2>Installation access</h2>
 <p><?= $gate['installed_lock'] ? 'Installation is locked.' : ($gate['existing_configuration'] ? 'Existing configuration detected; setup writes are disabled.' : ($gate['setup_token_configured'] ? 'A setup token is configured. Installer execution is not yet available.' : 'A private setup authorization token must be configured before installation can begin.')) ?></p>
+<?php if ($notice !== ''): ?><p role="status"><?= $escape($notice) ?></p><?php endif; ?>
+<?php if ($gate['setup_may_begin'] && !$authorized): ?>
+<form method="post" autocomplete="off">
+<input type="hidden" name="_csrf" value="<?= $escape(SetupAuthorization::csrfToken()) ?>">
+<label for="setup_token">Private setup authorization token</label>
+<input id="setup_token" name="setup_token" type="password" minlength="32" maxlength="256" required autocomplete="off">
+<button type="submit">Authorize setup</button>
+</form>
+<?php elseif ($authorized): ?><p role="status">Authorized setup session active. Database and configuration writes remain disabled.</p><?php endif; ?>
 <h2>System requirements</h2><ul>
 <?php foreach ($checks as $name => $check): ?>
 <li><strong class="<?= $check['ok'] ? 'pass' : 'fail' ?>"><?= $check['ok'] ? 'PASS' : 'CHECK' ?></strong>
