@@ -34,6 +34,12 @@ if (!in_array($type, ['client', 'contractor'], true) ||
 if ($type === 'contractor' && $phone === '') {
     json_response(['error' => 'Contractor phone number is required'], 422);
 }
+$termsVersion = getenv('ENROLLMENT_TERMS_VERSION') ?: '';
+$privacyVersion = getenv('ENROLLMENT_PRIVACY_VERSION') ?: '';
+if ($termsVersion === '' || $privacyVersion === '' ||
+    strlen($termsVersion) > 80 || strlen($privacyVersion) > 80) {
+    json_response(['error' => 'Enrollment legal documents are not configured'], 503);
+}
 $db = Database::connection();
 try {
     EnrollmentThrottle::check($db, (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown'), $email);
@@ -71,6 +77,9 @@ try {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending_email')");
     $q->execute([$tenantId, $type, $first, $last, $email, $phone ?: null, $company ?: null, password_hash($password, PASSWORD_DEFAULT)]);
     $id = (int)$db->lastInsertId();
+    $ipHmac = hash_hmac('sha256', (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown'), getenv('ENROLLMENT_RATE_SECRET'));
+    $q = $db->prepare('INSERT INTO registration_consents (application_id, terms_version, privacy_version, accepted_at, ip_hmac) VALUES (?, ?, ?, UTC_TIMESTAMP(), ?)');
+    $q->execute([$id, $termsVersion, $privacyVersion, $ipHmac]);
     $q = $db->prepare("INSERT INTO registration_tokens (application_id, token_hash, purpose, expires_at)
         VALUES (?, ?, 'email_verify', DATE_ADD(UTC_TIMESTAMP(), INTERVAL 24 HOUR))");
     $q->execute([$id, $hash]);
