@@ -3,9 +3,9 @@
 'use strict';
 const app=document.querySelector('.brite-app');if(!app)return;
 const make=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;};
-const topbar=document.querySelector('.brite-topbar');
+const sidebarNav=document.querySelector('#briteSidebar .brite-sidebar-nav');
 const main=document.getElementById('briteMainContent');
-if(!topbar||!main)return;
+if(!sidebarNav||!main)return;
 // Give visible page sections stable in-page targets without changing their content.
 const existingIds=new Set([...document.querySelectorAll('[id]')].map(n=>n.id));
 main.querySelectorAll('h2,h3').forEach((heading,i)=>{
@@ -17,8 +17,13 @@ main.querySelectorAll('h2,h3').forEach((heading,i)=>{
 });
 const trigger=make('button','brite-command-trigger','Search pages');trigger.type='button';trigger.setAttribute('aria-keyshortcuts','Control+K Meta+K');trigger.setAttribute('aria-haspopup','dialog');
 trigger.title='Find a page or jump to a section (Ctrl/⌘ + K)';
-const quick=document.querySelector('.brite-quick-actions');
-if(quick)quick.before(trigger);else topbar.append(trigger);
+// Keep page search permanently accessible above the accordion sections.
+const searchIcon=make('span','brite-nav-icon');
+searchIcon.setAttribute('aria-hidden','true');
+searchIcon.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>';
+trigger.prepend(searchIcon);
+trigger.setAttribute('aria-label','Search pages and sections');
+sidebarNav.prepend(trigger);
 const dialog=make('dialog','brite-command-dialog');dialog.setAttribute('aria-label','Find pages and sections');
 const frame=make('div','brite-command-frame');
 const header=make('div','brite-command-header');
