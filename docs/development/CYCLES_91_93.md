@@ -106,3 +106,9 @@ Neither command modifies configuration, database, or accounts. The doctor report
 - Configure `ENROLLMENT_DOCUMENT_ROOT` as a private directory outside `ENROLLMENT_WEB_ROOT` and the application directory. Configure a separate `ENROLLMENT_DOCUMENT_KEY` as base64-encoded 32 random bytes. Keep keys and documents out of Git.
 - Added negative security tests for invalid references, absent documents and non-HTTP-upload inputs; CI now runs these tests.
 - **Not complete:** no applicant-authenticated upload endpoint, database linkage, malware scanning, document access audit, retention deletion, provider verification, or contractor onboarding UI. The vault is an internal primitive only; storing a document does not verify an identity. Do not expose vault reads through public endpoints without tenant-scoped authorization and auditing.
+
+## Cycle 91 migration plan safety
+- Added `php bin/brite migrate:plan` to inspect the configured database and produce an ordered, read-only plan of pending migrations with SHA-256 checksums.
+- The planner refuses unknown applied versions, duplicate inventory versions, and migration history gaps rather than guessing what to execute.
+- Added pure regression tests for ordered pending migrations, unknown versions, duplicate entries and gaps.
+- **No SQL execution is enabled.** Running migrations safely still requires reviewed migration parsing, lock and backup policies, idempotency checks, checksum persistence, partial-failure recovery, and an explicitly authorized installer flow.
