@@ -36,7 +36,7 @@ php_files=(
   modules/crm/page.php modules/crm/list_pager.php bidding.php
   client-quote-lookup.php contractor-quote-inbox.php
   tests/cycle90_foundation_test.php tests/cycle90_pagination_boundaries.php
-  tests/cycle90_integration_guards.php
+  tests/cycle90_integration_guards.php tests/widget_layout_integration_guards.php
   dashboard.v2.php client-dashboard.php contractor-dashboard.php
   api/dashboard_widget_layout.php
 )
@@ -58,7 +58,7 @@ done
 echo "=== Smart Dispatch unit tests ==="
 if "$PHP_BIN" tests/dispatch_request_test.php; then echo "PASS: dispatch request tests"; else failures=$((failures+1)); fi
 echo "=== Cycle 90 regression suites ==="
-for test in tests/cycle90_foundation_test.php tests/cycle90_pagination_boundaries.php tests/cycle90_integration_guards.php; do
+for test in tests/cycle90_foundation_test.php tests/cycle90_pagination_boundaries.php tests/cycle90_integration_guards.php tests/widget_layout_integration_guards.php; do
   if "$PHP_BIN" "$test"; then echo "PASS: $test"; else echo "FAIL: $test"; failures=$((failures+1)); fi
 done
 echo "=== Result: $checked source files checked; $failures failures ==="
