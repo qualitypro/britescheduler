@@ -28,7 +28,7 @@ try {
         $check(str_contains($api, "'".$key."'"), 'Dashboard allowlist: '.$key);
     }
     $check(str_contains($migration, 'UNIQUE KEY uq_dashboard_widget_scope'), 'Unique tenant/user/dashboard layout scope');
-    $check(str_contains($js, 'dashboard_widget_layout.php'), 'Widget persistence endpoint');
+    $check(str_contains($js, 'fetch(endpoint') && str_contains($js, "method:'PUT'"), 'Widget persistence request');
     $check(strlen($css) > 0, 'Widget layout stylesheet exists');
     foreach (['dashboard.v2.php','client-dashboard.php','contractor-dashboard.php','modules/intelligence/index.php'] as $page) {
         $source = $read($page);
