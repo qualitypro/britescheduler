@@ -37,6 +37,8 @@ php_files=(
   client-quote-lookup.php contractor-quote-inbox.php
   tests/cycle90_foundation_test.php tests/cycle90_pagination_boundaries.php
   tests/cycle90_integration_guards.php
+  dashboard.v2.php client-dashboard.php contractor-dashboard.php
+  api/dashboard_widget_layout.php
 )
 js_files=(
   assets/js/contractor-profile.js assets/js/brite-app-shell.js assets/js/brite-activity-hub.js
@@ -44,6 +46,7 @@ js_files=(
   assets/js/brite-unified-lists.js assets/js/brite-pagination.js
   assets/js/brite-directory-accordion.js assets/js/client-quote-lookup.js
   assets/js/contractor-quote-inbox.js
+  assets/js/brite-widget-layout.js
 )
 echo "=== Brite Scheduler source smoke checks ==="
 for path in "${php_files[@]}"; do
