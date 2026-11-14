@@ -27,8 +27,8 @@ final class MigrationRunner
             if (file_exists($failure) || is_link($failure)) {
                 throw new RuntimeException('Previous migration may be incomplete; manual recovery required');
             }
-            $plan = MigrationPlan::build($root, $pdo);
-            MigrationPreflight::inspect($root, $plan['pending']);
+            // Cycle 92E is restricted to brand-new empty schemas only.\n            // Never use this installer runner to upgrade an existing tenant database.\n            $tableCount = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()")->fetchColumn();\n            if ($tableCount !== 0) {\n                throw new DomainException('Installer migration execution requires an empty database');\n            }\n            $plan = MigrationPlan::build($root, $pdo);
+            if (!$plan['pending']) throw new DomainException('No migrations to install');\n            MigrationPreflight::inspect($root, $plan['pending']);
             $completed = [];
             foreach ($plan['pending'] as $migration) {
                 $version = $migration['version'];
