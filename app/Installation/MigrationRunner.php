@@ -34,7 +34,8 @@ final class MigrationRunner
                 throw new DomainException('Installer migration execution requires an empty database');
             }
             $plan = MigrationPlan::build($root, $pdo);
-            if (!$plan['pending']) throw new DomainException('No migrations to install');\n            MigrationPreflight::inspect($root, $plan['pending']);
+            if (!$plan['pending']) throw new DomainException('No migrations to install');
+            MigrationPreflight::inspect($root, $plan['pending']);
             $completed = [];
             foreach ($plan['pending'] as $migration) {
                 $version = $migration['version'];
