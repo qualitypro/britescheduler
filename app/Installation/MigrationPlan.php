@@ -23,6 +23,7 @@ final class MigrationPlan
     {
         $names = array_column($inventory, 'version');
         if (count($names) !== count(array_unique($names)) ||
+            count($appliedVersions) !== count(array_unique($appliedVersions)) ||
             array_diff($appliedVersions, $names)) {
             throw new DomainException('Migration history contains duplicate or unknown versions');
         }
