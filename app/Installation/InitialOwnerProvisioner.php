@@ -47,7 +47,7 @@ final class InitialOwnerProvisioner
         }
 
         // Serialize initial provisioning even when separate workers connect concurrently.
-        $lockName = 'brite92f:' . hash('sha256', (string)$pdo->query('SELECT DATABASE()')->fetchColumn());
+        $lockName = 'brite92f:' . substr(hash('sha256', (string)$pdo->query('SELECT DATABASE()')->fetchColumn()), 0, 48);
         $lockStmt = $pdo->prepare('SELECT GET_LOCK(?, 10)');
         $lockStmt->execute([$lockName]);
         if ((int)$lockStmt->fetchColumn() !== 1) {
