@@ -9,6 +9,14 @@ if(!isset(ModuleRegistry::activeFor($tenant)['messaging']))json_response(['error
 $tid=(int)$tenant['tenant_id'];$uid=(int)$user['id'];$db=Database::connection();
 if(($_SERVER['REQUEST_METHOD']??'GET')!=='GET'){header('Allow: GET');json_response(['error'=>'Method not allowed'],405);}
 $action=(string)($_GET['action']??'list');
+if($action==='summary'){
+ $q=$db->prepare("SELECT
+ (SELECT COUNT(*) FROM module_message_threads WHERE tenant_id=?) conversations,
+ (SELECT COUNT(*) FROM module_message_threads WHERE tenant_id=? AND updated_at>=DATE_SUB(NOW(),INTERVAL 7 DAY)) active_week,
+ (SELECT COUNT(*) FROM module_messages WHERE tenant_id=?) messages");
+ $q->execute([$tid,$tid,$tid]);
+ json_response(['ok'=>true,'summary'=>$q->fetch()]);
+}
 if($action==='list'){
  $page=max(1,min(100000,(int)($_GET['page']??1)));
  $size=(int)($_GET['page_size']??25);
@@ -60,6 +68,11 @@ if($action==='thread'){
  $q=$db->prepare('SELECT subject FROM module_message_threads WHERE tenant_id=? AND id=?');
  $q->execute([$tid,$thread]);$subject=$q->fetchColumn();
  if($subject===false)json_response(['error'=>'Conversation unavailable'],404);
+ $participants=[];
+ if(!isset($_GET['before_id'])){
+  $p=$db->prepare("SELECT u.id,u.first_name,u.last_name,COALESCE(tm.role,'member') role FROM module_message_participants mp JOIN users u ON u.id=mp.user_id LEFT JOIN tenant_memberships tm ON tm.tenant_id=mp.tenant_id AND tm.user_id=mp.user_id WHERE mp.tenant_id=? AND mp.thread_id=? ORDER BY u.first_name,u.last_name");
+  $p->execute([$tid,$thread]);$participants=$p->fetchAll();
+ }
  $before=max(0,(int)($_GET['before_id']??0));
  $whereMsg='msg.tenant_id=? AND msg.thread_id=?';
  $messageArgs=[$tid,$thread];
@@ -77,6 +90,6 @@ if($action==='thread'){
   json_response(['error'=>'Unable to record review'],500);
  }
  // Read-only owner review never changes participant read receipts.
- json_response(['ok'=>true,'subject'=>$subject,'messages'=>$messages,'has_more'=>$hasMore,'next_before_id'=>$nextBefore]);
+ json_response(['ok'=>true,'subject'=>$subject,'messages'=>$messages,'has_more'=>$hasMore,'next_before_id'=>$nextBefore,'participants'=>$participants]);
 }
 json_response(['error'=>'Unsupported action'],404);
