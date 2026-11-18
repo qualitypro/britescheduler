@@ -10,6 +10,11 @@ $error='';
 $success=false;
 $invite=null;
 $db=Database::connection();
+if($validToken && ($_SERVER['REQUEST_METHOD']??'GET')==='GET'){
+    // Remove the bearer token from browser history before showing the form.
+    // The token remains server-side for this request and is placed in a POST-only field.
+    header('Referrer-Policy: no-referrer');
+}
 if($validToken){
     $q=$db->prepare("SELECT i.id,i.tenant_id,i.application_id,a.applicant_type,a.full_name,a.email,a.phone
         FROM enrollment_invitations i JOIN enrollment_applications a ON a.id=i.application_id AND a.tenant_id=i.tenant_id
@@ -29,6 +34,10 @@ if($invite && ($_SERVER['REQUEST_METHOD']??'GET')==='POST'){
         $q=$db->prepare("SELECT i.id FROM enrollment_invitations i JOIN enrollment_applications a ON a.id=i.application_id AND a.tenant_id=i.tenant_id WHERE i.id=? AND i.tenant_id=? AND i.accepted_at IS NULL AND i.revoked_at IS NULL AND i.expires_at>UTC_TIMESTAMP() AND a.status='approved' FOR UPDATE");
         $q->execute([(int)$invite['id'],(int)$invite['tenant_id']]);
         if(!$q->fetch())throw new DomainException('Invitation no longer available');
+        // Lock the tenant to serialize activation against other enrollment writes.
+        $lock=$db->prepare('SELECT id FROM tenants WHERE id=? FOR UPDATE');
+        $lock->execute([(int)$invite['tenant_id']]);
+        if(!$lock->fetch())throw new DomainException('Tenant unavailable');
         $q=$db->prepare('SELECT id FROM users WHERE email=? LIMIT 1');
         $q->execute([$invite['email']]);
         if($q->fetch())throw new DomainException('Account already exists; contact the administrator');
