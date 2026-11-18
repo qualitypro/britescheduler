@@ -111,7 +111,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const selected = samePath && (isModule
             ? target.searchParams.has('module') &&
               target.searchParams.get('module') === currentUrl.searchParams.get('module')
-            : target.searchParams.get('book') === currentUrl.searchParams.get('book'));
+            : target.searchParams.get('book') === currentUrl.searchParams.get('book')); 
+        // Keep the current navigation group expanded for deep-linked pages.
+        if (selected) {
+            const parent = link.closest('[data-brite-accordion-content], .brite-nav-submenu');
+            if (parent) parent.hidden = false;
+        }
         if (selected) link.setAttribute('aria-current', 'page');
         else link.removeAttribute('aria-current');
     });
