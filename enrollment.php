@@ -400,6 +400,53 @@ if (($_SERVER['REQUEST_METHOD']??'GET')==='POST') {
 .enrollment-shell .en-workspace-content>.en-panel{margin-top:0}
 @media(max-width:650px){.enrollment-shell .en-workspace-layout{grid-template-columns:1fr}.enrollment-shell .en-vertical-tabs{border-right:0;border-bottom:1px solid var(--en-line,#cbd5e1);padding:0 0 8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}}
 </style>
+<style>
+/* CRM-aligned compact enrollment workspace; visual-only, no workflow changes. */
+.enrollment-shell{padding:12px!important;font-size:12px;line-height:1.4;min-width:0;max-width:100%}
+.enrollment-shell .en-heading{gap:6px;margin:0 0 5px;line-height:1.3}
+.enrollment-shell h1.en-heading{font-size:1.3rem}
+.enrollment-shell h2.en-heading{font-size:1.05rem}
+.enrollment-shell .en-intro{font-size:11.5px;margin:2px 0 9px}
+.enrollment-shell .en-workspace-layout{gap:12px}
+.enrollment-shell .en-workspace-content{display:grid;gap:9px;min-width:0;max-width:100%}
+.enrollment-shell .en-vertical-tabs{gap:2px}
+.enrollment-shell .en-vertical-tabs a{padding:7px 8px;gap:7px;font-size:11.5px;line-height:1.25}
+.enrollment-shell .en-vertical-tabs .en-icon{width:16px;height:16px}
+.enrollment-shell .en-panel{padding:9px;margin:0;border-radius:9px;min-width:0;max-width:100%;overflow-wrap:anywhere}
+.enrollment-shell .en-panel p{margin:5px 0;font-size:11.5px}
+.enrollment-shell .en-toolbar{gap:7px;margin:7px 0;align-items:end}
+.enrollment-shell .en-toolbar label,.enrollment-shell .en-form-grid label{font-size:11.5px;gap:3px;min-width:0}
+.enrollment-shell .en-form-grid{gap:8px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.enrollment-shell input,.enrollment-shell select,.enrollment-shell textarea{max-width:100%;min-width:0;font-size:12px;line-height:1.3;padding:6px 8px!important;border-radius:5px!important;box-sizing:border-box}
+.enrollment-shell input:not([type="hidden"]),.enrollment-shell select{min-height:32px}
+.enrollment-shell textarea{min-height:65px}
+.enrollment-shell .en-btn,.enrollment-shell button{font-size:11.5px;line-height:1.25}
+.enrollment-shell .en-btn{min-height:30px;padding:5px 8px;gap:5px;border-radius:5px}
+.enrollment-shell .en-grid-header{gap:8px}
+.enrollment-shell .en-grid-filter-panel{padding:7px 9px;margin:7px 0;border-radius:7px}
+.enrollment-shell .en-grid-filter-panel>summary{font-size:11.5px}
+.enrollment-shell .en-register-scroll{max-width:100%;overflow-x:auto;border-radius:7px}
+.enrollment-shell .en-register-table{font-size:11.5px;min-width:660px;table-layout:fixed}
+.enrollment-shell .en-register-table th,.enrollment-shell .en-register-table td{padding:6px 7px;overflow-wrap:anywhere;word-break:normal}
+.enrollment-shell .en-unified-grid{min-width:660px}
+.enrollment-shell .en-register-table td small{font-size:10.5px;margin-top:2px}
+.enrollment-shell .en-badges{gap:4px;margin:4px 0}
+.enrollment-shell .en-badge{font-size:10.5px;padding:2px 6px;line-height:1.2}
+.enrollment-shell .en-unified-grid .en-record-panel{width:min(460px,65vw);max-width:100%;padding:9px;margin-top:6px;border-radius:7px;font-size:11.5px}
+.enrollment-shell .en-unified-grid .en-record-panel form{margin:7px 0}
+.enrollment-shell .en-actions{gap:5px;margin:7px 0}
+.enrollment-shell .en-card-meta{font-size:11px;gap:7px}
+.enrollment-shell .en-stats{gap:7px;margin:8px 0 0}
+.enrollment-shell .en-stat{padding:7px 9px;min-width:85px;gap:6px;border-radius:7px;font-size:11.5px}
+.enrollment-shell .en-stat strong{font-size:1.15rem}
+.enrollment-shell .en-empty{padding:12px}
+@media(max-width:650px){
+.enrollment-shell .en-vertical-tabs a{font-size:11px}
+.enrollment-shell .en-register-table{min-width:660px}
+.enrollment-shell .en-unified-grid .en-record-panel{width:min(460px,80vw)}
+.enrollment-shell .en-stat{flex:1 1 120px}
+}
+</style>
 <section class="card enrollment-shell" data-brite-pills="off">
 <h1 class="en-heading"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-users"></use></svg> Enrollment Management</h1>
 <p class="muted en-intro">Review applications, invite approved applicants, and manage enrollment restrictions. Approval alone does not create an account.</p>
