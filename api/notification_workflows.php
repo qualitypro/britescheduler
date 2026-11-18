@@ -32,6 +32,8 @@ try{
  $q->execute([$tid,$uid,'enrollment.review','enrollment_application',$id,json_encode(['decision'=>$decision,'source'=>'notification_workflows'],JSON_THROW_ON_ERROR)]);
  $q=$db->prepare("INSERT INTO notifications (tenant_id,user_id,type,title,body) SELECT ?,m.user_id,'enrollment.reviewed','Enrollment decision recorded',? FROM tenant_memberships m WHERE m.tenant_id=? AND m.role IN ('owner','admin') AND m.status='active'");
  $q->execute([$tid,'Application #'.$id.' marked '.$decision.'.',$tid]);
+ $step=$db->prepare("INSERT INTO activity_workflow_steps (tenant_id,workflow_type,record_id,step_key,step_label,step_order,status,details) VALUES (?,'enrollment',?,'decision','Decision recorded',3,?,?)");
+ $step->execute([$tid,$id,$decision==='rejected'?'blocked':'completed','Application '.$decision]);
  $db->commit();json_response(['ok'=>true,'decision'=>$decision,'next_step'=>$decision==='approved'?'Generate an activation invitation in Enrollment':'Review completed']);
 }catch(DomainException $e){if($db->inTransaction())$db->rollBack();json_response(['error'=>$e->getMessage()],422);}
 catch(Throwable $e){if($db->inTransaction())$db->rollBack();error_log('Notification workflow enrollment review: '.$e->getMessage());json_response(['error'=>'Unable to save review'],500);}
