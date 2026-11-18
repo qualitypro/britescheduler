@@ -236,12 +236,60 @@ HTML;
 }
 $rows=[];
 $blockedEmails=[];
+$restrictionTotal=0;
+$restrictionActiveTotal=0;
+$restrictionClearedTotal=0;
+$restrictionPage=1;
+$restrictionPages=1;
 $invitationCounts=['not_sent'=>0,'invited'=>0,'expired'=>0,'revoked'=>0,'activated'=>0];
 $counts=['pending'=>0,'approved'=>0,'rejected'=>0];
 if ($ready) {
-    $q=$db->prepare('SELECT email,reason,blocked_at FROM enrollment_blocks WHERE tenant_id=? AND unblocked_at IS NULL ORDER BY blocked_at DESC LIMIT 100');
-    $q->execute([$tenantId]);
+    // Restriction register: tenant-scoped, server-paginated, and sortable by allowlisted columns.
+    $restrictionSearch=trim((string)($_GET['restriction_q']??''));
+    if (mb_strlen($restrictionSearch)>190) $restrictionSearch=mb_substr($restrictionSearch,0,190);
+    $restrictionState=(string)($_GET['restriction_state']??'active');
+    if (!in_array($restrictionState,['active','cleared','all'],true)) $restrictionState='active';
+    $restrictionSort=(string)($_GET['restriction_sort']??'newest');
+    $restrictionSortSql=[
+        'newest'=>'b.blocked_at DESC,b.id DESC',
+        'oldest'=>'b.blocked_at ASC,b.id ASC',
+        'email'=>'b.email ASC,b.id DESC',
+        'name'=>'applicant_name ASC,b.email ASC',
+    ];
+    if (!isset($restrictionSortSql[$restrictionSort])) $restrictionSort='newest';
+    $restrictionPage=max(1,min(100000,(int)($_GET['restriction_page']??1)));
+    $restrictionPageSize=15;
+    $restrictionWhere='b.tenant_id=?';
+    $restrictionParams=[$tenantId];
+    if ($restrictionState==='active') $restrictionWhere.=' AND b.unblocked_at IS NULL';
+    elseif ($restrictionState==='cleared') $restrictionWhere.=' AND b.unblocked_at IS NOT NULL';
+    if ($restrictionSearch!=='') {
+        $restrictionWhere.=" AND (b.email LIKE ? ESCAPE '!' OR b.reason LIKE ? ESCAPE '!' OR EXISTS (SELECT 1 FROM enrollment_applications ax WHERE ax.tenant_id=b.tenant_id AND ax.email=b.email AND ax.full_name LIKE ? ESCAPE '!'))";
+        $restrictionPattern='%'.str_replace(['!','%','_'],['!!','!%','!_'],$restrictionSearch).'%';
+        array_push($restrictionParams,$restrictionPattern,$restrictionPattern,$restrictionPattern);
+    }
+    $q=$db->prepare('SELECT COUNT(*) FROM enrollment_blocks b WHERE '.$restrictionWhere);
+    $q->execute($restrictionParams);
+    $restrictionTotal=(int)$q->fetchColumn();
+    $restrictionPages=max(1,(int)ceil($restrictionTotal/$restrictionPageSize));
+    $restrictionPage=min($restrictionPage,$restrictionPages);
+    $restrictionOffset=($restrictionPage-1)*$restrictionPageSize;
+    $restrictionQuery="SELECT b.id,b.email,b.reason,b.blocked_at,b.unblocked_at,b.blocked_by,b.unblocked_by,
+      (SELECT ax.full_name FROM enrollment_applications ax WHERE ax.tenant_id=b.tenant_id AND ax.email=b.email ORDER BY ax.id DESC LIMIT 1) AS applicant_name,
+      (SELECT ax.applicant_type FROM enrollment_applications ax WHERE ax.tenant_id=b.tenant_id AND ax.email=b.email ORDER BY ax.id DESC LIMIT 1) AS applicant_type,
+      (SELECT COUNT(*) FROM enrollment_applications ax WHERE ax.tenant_id=b.tenant_id AND ax.email=b.email) AS application_count,
+      (SELECT u.email FROM users u WHERE u.id=b.blocked_by) AS blocked_by_email,
+      (SELECT u.email FROM users u WHERE u.id=b.unblocked_by) AS unblocked_by_email
+      FROM enrollment_blocks b WHERE ".$restrictionWhere.' ORDER BY '.$restrictionSortSql[$restrictionSort].' LIMIT '.$restrictionPageSize.' OFFSET '.$restrictionOffset;
+    $q=$db->prepare($restrictionQuery);
+    $q->execute($restrictionParams);
     $blockedEmails=$q->fetchAll(PDO::FETCH_ASSOC);
+    $q=$db->prepare('SELECT COUNT(*) FROM enrollment_blocks WHERE tenant_id=? AND unblocked_at IS NULL');
+    $q->execute([$tenantId]);
+    $restrictionActiveTotal=(int)$q->fetchColumn();
+    $q=$db->prepare('SELECT COUNT(*) FROM enrollment_blocks WHERE tenant_id=? AND unblocked_at IS NOT NULL');
+    $q->execute([$tenantId]);
+    $restrictionClearedTotal=(int)$q->fetchColumn();
     $q=$db->prepare('SELECT status,COUNT(*) AS total FROM enrollment_applications WHERE tenant_id=? GROUP BY status');
     $q->execute([$tenantId]);
     foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $r) $counts[$r['status']] = (int)$r['total'];
@@ -321,6 +369,23 @@ require __DIR__ . '/partials/app_header.php';
 @media(max-width:650px){.enrollment-shell .en-stat{flex:1 1 40%}.enrollment-shell .en-toolbar label{flex:1 1 45%}.enrollment-shell .en-actions button{width:100%}}
 </style>
 <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true"><symbol id="en-icon-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></symbol><symbol id="en-icon-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol><symbol id="en-icon-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol><symbol id="en-icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></symbol><symbol id="en-icon-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M7 12h10M10 17h4"/></symbol><symbol id="en-icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></symbol><symbol id="en-icon-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></symbol><symbol id="en-icon-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></symbol><symbol id="en-icon-ban" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 14.14 14.14"/></symbol><symbol id="en-icon-unlock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="11" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/></symbol><symbol id="en-icon-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol><symbol id="en-icon-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14-5L4 8M4 4v4h4M4 13a8 8 0 0 0 14 5l2-2m0 4v-4h-4"/></symbol><symbol id="en-icon-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></symbol><symbol id="en-icon-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></symbol><symbol id="en-icon-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="12" rx="2"/><path d="M8 10V6a4 4 0 1 1 8 0v4"/></symbol><symbol id="en-icon-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 22v-2a8 8 0 0 1 16 0v2"/></symbol><symbol id="en-icon-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 11v6M12 7h.01"/></symbol><symbol id="en-icon-clipboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="18" rx="2"/><path d="M9 4.5V2h6v2.5"/></symbol><symbol id="en-icon-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7l.5 3a2 2 0 0 1-.6 1.8L7 10a16 16 0 0 0 7 7l1.5-2a2 2 0 0 1 1.8-.6l3 .5a2 2 0 0 1 1.7 2Z"/></symbol></svg>
+<style>
+.enrollment-shell .en-register{min-width:0}
+.enrollment-shell .en-register-add{padding:.5rem .65rem;border:1px dashed var(--en-line);border-radius:8px;margin:.65rem 0}
+.enrollment-shell .en-register-add>summary{cursor:pointer;font-weight:600}
+.enrollment-shell .en-register-scroll{overflow-x:auto;max-width:100%;border:1px solid var(--en-line);border-radius:8px}
+.enrollment-shell .en-register-table{width:100%;min-width:680px;border-collapse:collapse;font-size:.84rem}
+.enrollment-shell .en-register-table th{text-align:left;font-weight:650;background:var(--surface-secondary,rgba(120,140,160,.08));padding:.55rem;border-bottom:1px solid var(--en-line)}
+.enrollment-shell .en-register-table td{padding:.55rem;vertical-align:top;border-bottom:1px solid var(--en-line)}
+.enrollment-shell .en-register-table tr:last-child td{border-bottom:0}
+.enrollment-shell .en-register-table td small{display:block;margin-top:.2rem}
+.enrollment-shell .en-register-table time{white-space:nowrap}
+.enrollment-shell .en-register-reason{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:240px}
+.enrollment-shell .en-register-row>summary{cursor:pointer;white-space:nowrap}
+.enrollment-shell .en-register-detail{min-width:200px;max-width:350px;padding:.65rem;margin-top:.4rem;border:1px solid var(--en-line);border-radius:8px;overflow-wrap:anywhere}
+.enrollment-shell .en-register-footer{display:flex;align-items:center;justify-content:space-between;gap:.65rem;flex-wrap:wrap;margin-top:.65rem;font-size:.83rem}
+.enrollment-shell .en-register-pages{display:flex;align-items:center;gap:.5rem}
+</style>
 <section class="card enrollment-shell" data-brite-pills="off">
 <h1 class="en-heading"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-users"></use></svg> Enrollment Management</h1>
 <p class="muted en-intro">Review applications, invite approved applicants, and manage enrollment restrictions. Approval alone does not create an account.</p>
@@ -333,26 +398,69 @@ require __DIR__ . '/partials/app_header.php';
 <?php foreach($invitationCounts as $label=>$count): ?><div class="en-stat"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-mail"></use></svg><strong><?=$esc($count)?></strong><span><?=$esc(ucwords(str_replace('_',' ',$label)))?> invites</span></div><?php endforeach; ?>
 </div>
 <?php if($canReview): ?>
-<details class="en-panel" id="en-restrictions"><summary><svg class="en-icon" aria-hidden="true"><use href="#en-icon-shield"></use></svg> Enrollment restrictions (<?=count($blockedEmails)?> active)</summary>
-<p class="muted">Block an email to stop new applications, approvals and invitations in this business. Any unused invitations are revoked. Existing memberships are not suspended. You can also block directly from an application card below.</p>
-<form method="post" style="display:flex;gap:9px;flex-wrap:wrap;align-items:end">
+<details class="en-panel en-register" id="en-restrictions" <?=isset($_GET['restriction_q'],$_GET['restriction_state'])||isset($_GET['restriction_page'])?'open':''?>>
+<summary><svg class="en-icon" aria-hidden="true"><use href="#en-icon-shield"></use></svg> Enrollment restriction register (<?=$restrictionActiveTotal?> active)</summary>
+<p class="muted">Tenant-specific restrictions prevent new applications, approval and invitations. Blocking revokes unused invitations, but does not suspend existing memberships.</p>
+<div class="en-stats" aria-label="Restriction totals">
+<div class="en-stat"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-ban"></use></svg> <strong><?=$restrictionActiveTotal?></strong> Active</div>
+<div class="en-stat"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-unlock"></use></svg> <strong><?=$restrictionClearedTotal?></strong> Cleared</div>
+<div class="en-stat"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-file"></use></svg> <strong><?=$restrictionTotal?></strong> Matching</div>
+</div>
+<details class="en-register-add"><summary><svg class="en-icon" aria-hidden="true"><use href="#en-icon-plus"></use></svg> Add email restriction</summary>
+<form method="post" class="en-toolbar">
 <input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>">
 <input type="hidden" name="action" value="block">
-<label>Email <input name="email" type="email" maxlength="190" required></label>
-<label>Reason <input name="reason" maxlength="1000" required></label>
-<button type="submit" onclick="return confirm('Block this email and revoke unused invitations?')"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-ban"></use></svg> Block applicant</button>
+<label>Email address <input name="email" type="email" maxlength="190" autocomplete="off" required placeholder="applicant@example.com"></label>
+<label style="flex:2 1 220px">Reason <input name="reason" maxlength="1000" required placeholder="Reason for restricting enrollment"></label>
+<button class="en-btn" type="submit" onclick="return confirm('Restrict enrollment for this email and revoke unused invitations?')"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-ban"></use></svg> Apply restriction</button>
 </form>
-<?php if(!$blockedEmails): ?><p class="muted">No blocked applicants.</p><?php endif; ?>
+</details>
+<form method="get" class="en-toolbar" aria-label="Filter enrollment restrictions">
+<label style="flex:2 1 210px">Search <input name="restriction_q" type="search" maxlength="190" value="<?=$esc($restrictionSearch)?>" placeholder="Name, email or reason"></label>
+<label>State <select name="restriction_state"><option value="active" <?=$restrictionState==='active'?'selected':''?>>Active</option><option value="cleared" <?=$restrictionState==='cleared'?'selected':''?>>Cleared</option><option value="all" <?=$restrictionState==='all'?'selected':''?>>All</option></select></label>
+<label>Sort <select name="restriction_sort"><option value="newest" <?=$restrictionSort==='newest'?'selected':''?>>Newest first</option><option value="oldest" <?=$restrictionSort==='oldest'?'selected':''?>>Oldest first</option><option value="email" <?=$restrictionSort==='email'?'selected':''?>>Email A–Z</option><option value="name" <?=$restrictionSort==='name'?'selected':''?>>Applicant A–Z</option></select></label>
+<button class="en-btn" type="submit"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-filter"></use></svg> Apply</button>
+<a class="en-btn" href="enrollment.php#en-restrictions"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-refresh"></use></svg> Reset</a>
+</form>
+<div class="en-register-scroll" role="region" aria-label="Enrollment restriction records" tabindex="0">
+<table class="en-register-table">
+<thead><tr><th scope="col">Applicant</th><th scope="col">Status</th><th scope="col">Restricted</th><th scope="col">Reason</th><th scope="col">Actions</th></tr></thead>
+<tbody>
 <?php foreach($blockedEmails as $blocked): ?>
-<div class="row" style="gap:12px;align-items:center;flex-wrap:wrap;margin:10px 0">
-<div><strong><?=$esc($blocked['email'])?></strong><div class="muted"><?=$esc($blocked['reason'])?> · <?=$esc($blocked['blocked_at'])?></div></div>
+<tr>
+<td><strong><?=$esc($blocked['applicant_name']?:'Unlinked email')?></strong><small><?=$esc($blocked['email'])?></small><small class="muted"><?= (int)$blocked['application_count'] ?> application(s)<?php if($blocked['applicant_type']): ?> · <?=$esc(ucfirst($blocked['applicant_type']))?><?php endif; ?></small></td>
+<td><?php if($blocked['unblocked_at']===null): ?><span class="en-badge is-blocked"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-ban"></use></svg> Active</span><?php else: ?><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-check"></use></svg> Cleared</span><?php endif; ?></td>
+<td><time datetime="<?=$esc(str_replace(' ','T',$blocked['blocked_at']).'Z')?>"><?=$esc($blocked['blocked_at'])?> UTC</time></td>
+<td><span class="en-register-reason"><?=$esc($blocked['reason'])?></span></td>
+<td>
+<details class="en-register-row">
+<summary><svg class="en-icon" aria-hidden="true"><use href="#en-icon-info"></use></svg> Details / actions</summary>
+<div class="en-register-detail"><strong>Restriction #<?=$esc($blocked['id'])?></strong>
+<p><strong>Reason:</strong> <?=$esc($blocked['reason'])?></p>
+<p><strong>Applied by:</strong> <?=$esc($blocked['blocked_by_email']?:'User #'.$blocked['blocked_by'])?></p>
+<?php if($blocked['unblocked_at']!==null): ?><p><strong>Cleared:</strong> <?=$esc($blocked['unblocked_at'])?> UTC · <?=$esc($blocked['unblocked_by_email']?:'User #'.$blocked['unblocked_by'])?></p><?php endif; ?>
+<?php if($blocked['unblocked_at']===null): ?>
 <form method="post">
 <input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>">
 <input type="hidden" name="action" value="unblock">
 <input type="hidden" name="email" value="<?=$esc($blocked['email'])?>">
-<button type="submit" onclick="return confirm('Unblock this email?')"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-unlock"></use></svg> Unblock</button>
-</form></div>
+<button class="en-btn" type="submit" onclick="return confirm('Remove this restriction? Revoked invitations will not be restored.')"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-unlock"></use></svg> Remove restriction</button>
+</form>
+<?php else: ?><p class="muted">This restriction has been cleared. Use Add email restriction to restrict the address again.</p><?php endif; ?>
+</div></details>
+</td>
+</tr>
 <?php endforeach; ?>
+<?php if(!$blockedEmails): ?><tr><td colspan="5" class="en-empty">No restrictions match these filters.</td></tr><?php endif; ?>
+</tbody></table></div>
+<div class="en-register-footer">
+<span class="muted">Showing <?=$restrictionTotal?($restrictionPage-1)*15+1:0?>–<?=min($restrictionTotal,$restrictionPage*15)?> of <?=$restrictionTotal?> records</span>
+<div class="en-register-pages">
+<?php $restrictionUrl=static function(int $page) use($restrictionSearch,$restrictionState,$restrictionSort): string { return 'enrollment.php?'.http_build_query(['restriction_q'=>$restrictionSearch,'restriction_state'=>$restrictionState,'restriction_sort'=>$restrictionSort,'restriction_page'=>$page]).'#en-restrictions'; }; ?>
+<?php if($restrictionPage>1): ?><a class="en-btn" href="<?=$esc($restrictionUrl($restrictionPage-1))?>"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-refresh"></use></svg> Previous</a><?php endif; ?>
+<span>Page <?=$restrictionPage?> of <?=$restrictionPages?></span>
+<?php if($restrictionPage<$restrictionPages): ?><a class="en-btn" href="<?=$esc($restrictionUrl($restrictionPage+1))?>">Next <svg class="en-icon" aria-hidden="true"><use href="#en-icon-file"></use></svg></a><?php endif; ?>
+</div></div>
 </details>
 <?php endif; ?>
 <details class="en-panel" id="en-new"><summary><svg class="en-icon" aria-hidden="true"><use href="#en-icon-plus"></use></svg> New application</summary>
