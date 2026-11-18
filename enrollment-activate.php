@@ -26,13 +26,13 @@ if($invite && ($_SERVER['REQUEST_METHOD']??'GET')==='POST'){
         $password=(string)($_POST['password']??'');
         if(!$first||!$last||strlen($first)>100||strlen($last)>100||strlen($password)<12||strlen($password)>256)throw new DomainException('Enter your first and last name and a password of at least 12 characters');
         $db->beginTransaction();
-        $q=$db->prepare("SELECT i.id FROM enrollment_invitations i JOIN enrollment_applications a ON a.id=i.application_id AND a.tenant_id=i.tenant_id WHERE i.id=? AND i.tenant_id=? AND i.accepted_at IS NULL AND i.revoked_at IS NULL AND i.expires_at>UTC_TIMESTAMP() AND a.status='approved' FOR UPDATE");
-        $q->execute([(int)$invite['id'],(int)$invite['tenant_id']]);
-        if(!$q->fetch())throw new DomainException('Invitation no longer available');
         // Lock the tenant to serialize activation against other enrollment writes.
         $lock=$db->prepare('SELECT id FROM tenants WHERE id=? FOR UPDATE');
         $lock->execute([(int)$invite['tenant_id']]);
         if(!$lock->fetch())throw new DomainException('Tenant unavailable');
+        $q=$db->prepare("SELECT i.id FROM enrollment_invitations i JOIN enrollment_applications a ON a.id=i.application_id AND a.tenant_id=i.tenant_id WHERE i.id=? AND i.tenant_id=? AND i.accepted_at IS NULL AND i.revoked_at IS NULL AND i.expires_at>UTC_TIMESTAMP() AND a.status='approved' FOR UPDATE");
+        $q->execute([(int)$invite['id'],(int)$invite['tenant_id']]);
+        if(!$q->fetch())throw new DomainException('Invitation no longer available');
         $q=$db->prepare('SELECT id FROM users WHERE email=? LIMIT 1');
         $q->execute([$invite['email']]);
         if($q->fetch())throw new DomainException('Account already exists; contact the administrator');
