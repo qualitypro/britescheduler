@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', function () {
 </style>
 <script defer src="<?=htmlspecialchars(app_url('/modules/messaging/notifications.js?v=75d'),ENT_QUOTES,'UTF-8')?>"></script>
 </head>
-<body class="brite-app"
+<body class="brite-app brite-page-<?=htmlspecialchars(preg_replace('/[^a-z0-9-]/', '-', strtolower(pathinfo((string)($_SERVER['SCRIPT_NAME'] ?? ''), PATHINFO_FILENAME))), ENT_QUOTES, 'UTF-8')?>"
       data-brite-theme="<?=htmlspecialchars($palette, ENT_QUOTES, 'UTF-8')?>"
       data-brite-reduced-motion="<?=htmlspecialchars($reducedMotion, ENT_QUOTES, 'UTF-8')?>"
       data-brite-high-contrast="<?=htmlspecialchars($highContrast, ENT_QUOTES, 'UTF-8')?>">
