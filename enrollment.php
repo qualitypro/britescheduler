@@ -24,7 +24,7 @@ try {
 }
 if ($ready && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     try {
-        if (!csrf_verify((string)($_POST['_csrf'] ?? ''))) {
+        if (!hash_equals(csrf_token(), (string)($_POST['_csrf'] ?? ''))) {
             throw new DomainException('Invalid request token');
         }
         $action = (string)($_POST['action'] ?? '');
