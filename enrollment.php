@@ -646,7 +646,27 @@ if($hasApplication) continue;
 .en-profile-modal-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
 .en-profile-modal-header h2{margin:0;font-size:1.15rem}
 .en-profile-modal .en-record-panel{max-width:none;width:auto;margin:0;box-sizing:border-box}
-.en-profile-modal button:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+ .en-profile-modal button:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+.en-profile-modal{font:inherit;line-height:1.5}
+.en-profile-modal *{box-sizing:border-box}
+.en-profile-modal .en-record-panel{width:100%;max-width:none;min-width:0;white-space:normal;overflow-wrap:anywhere;border:1px solid var(--en-line,#cbd5e1);border-left:4px solid var(--en-accent,#2563eb);border-radius:10px;padding:16px;background:var(--card-bg,var(--surface,#fff));font-size:.92rem}
+.en-profile-modal .en-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.en-profile-modal .en-badges,.en-profile-modal .en-card-meta,.en-profile-modal .en-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.en-profile-modal .en-badges{margin-bottom:12px}
+.en-profile-modal .en-card-meta{margin:10px 0}
+.en-profile-modal .en-record-panel form{display:grid;gap:10px;margin:12px 0;padding:12px;border:1px solid var(--en-line,#cbd5e1);border-radius:9px}
+.en-profile-modal .en-record-panel form label{display:grid;gap:5px;min-width:0}
+.en-profile-modal .en-record-panel :is(input,textarea,select){width:100%;max-width:100%;min-width:0;padding:9px 11px;border:1px solid #94a3b8;border-radius:7px;background:var(--brite-surface,#fff);color:inherit;font:inherit}
+.en-profile-modal .en-record-panel :is(button,.en-btn){width:auto;max-width:100%;min-height:38px;padding:8px 12px;border-radius:7px;cursor:pointer}
+.en-profile-modal .en-record-panel details{margin:10px 0}
+.en-profile-modal .en-record-panel summary{cursor:pointer}
+.en-profile-modal .en-record-panel p{margin:9px 0}
+.en-profile-modal .en-record-panel svg.en-icon{width:1em;height:1em;vertical-align:-.15em;flex:none}
+.en-profile-modal .en-next-step{padding:11px 13px;border-radius:8px;background:var(--brite-surface-muted,#f1f5f9)}
+.en-profile-modal .en-record-panel .en-actions{gap:10px}
+.en-profile-modal .en-record-panel .en-actions button{flex:0 1 auto}
+@media(max-width:600px){.en-profile-modal-shell{padding:12px}.en-profile-modal .en-record-panel{padding:12px}.en-profile-modal .en-record-panel form{padding:10px}.en-profile-modal .en-record-panel .en-actions{flex-direction:column;align-items:stretch}.en-profile-modal .en-record-panel .en-actions button{width:100%}}
+
 </style>
 <dialog id="enProfileModal" class="en-profile-modal" aria-labelledby="enProfileModalTitle">
 <div class="en-profile-modal-shell"><header class="en-profile-modal-header"><h2 id="enProfileModalTitle">Enrollment profile</h2><button type="button" id="enProfileModalClose" class="en-btn">Close</button></header><div id="enProfileModalContent"></div></div>
