@@ -86,17 +86,62 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
 .msg-form{gap:8px}
 .msg-workspace input,.msg-workspace select,.msg-workspace textarea{max-width:100%;min-width:0}
 @media(max-width:700px){.msg-workspace{grid-template-columns:minmax(0,1fr)}}
+/* Cycle 98E — vertical workspace navigation and compact message surfaces. */
+.msg-module-layout{display:grid;grid-template-columns:174px minmax(0,1fr);gap:10px;align-items:start;min-width:0}
+.msg-module-nav{display:flex;flex-direction:column;gap:4px;padding:7px;border:1px solid var(--brite-border,#cbd5e1);border-radius:8px;background:var(--brite-surface,#fff)}
+.msg-module-nav .msg-tab{display:flex;align-items:center;justify-content:flex-start;width:100%;min-height:31px;padding:6px 9px!important;text-align:left;font-size:.79rem;line-height:1.25;border:0!important;border-left:3px solid transparent!important;border-radius:5px!important}
+.msg-module-nav .msg-tab[aria-selected="true"]{border-left-color:#2563eb!important;background:rgba(37,99,235,.09)!important}
+.msg-module-body{min-width:0}
+.msg-module-body .msg-tabpanel[hidden]{display:none!important}
+.msg-module-body .msg-workspace{grid-template-columns:minmax(175px,250px) minmax(0,1fr);gap:7px;min-height:330px}
+.msg-module-body .msg-pane{padding:8px;border-radius:7px}
+.msg-module-body .msg-pane h2{font-size:.91rem;margin:0 0 5px!important}
+.msg-module-body .msg-pane h3{font-size:.85rem;margin:0 0 5px!important}
+.msg-module-body .msg-toolbar{gap:5px;margin-bottom:5px}
+.msg-module-body .msg-toolbar button,.msg-module-body #msgNew{min-height:29px;padding:4px 7px;font-size:.77rem;border-radius:5px}
+.msg-module-body #msgNew{margin-bottom:6px!important}
+.msg-module-body #msgThreadSearch{min-height:29px;margin-bottom:6px;padding:4px 7px!important;font-size:.79rem}
+.msg-module-body .msg-thread{gap:1px;padding:6px 8px;margin-bottom:4px;border-radius:6px}
+.msg-module-body .msg-thread-name{font-size:.8rem}
+.msg-module-body .msg-thread-subject{font-size:.76rem}
+.msg-module-body .msg-thread-preview,.msg-module-body .msg-thread-meta{font-size:.7rem}
+.msg-module-body .msg-unread{padding:1px 5px;font-size:.68rem}
+.msg-module-body .msg-history{gap:6px;min-height:170px;max-height:340px;padding:7px;border-radius:6px}
+.msg-module-body .msg-bubble{max-width:90%;padding:6px 8px;border-radius:7px;font-size:.8rem}
+.msg-module-body .msg-bubble p{margin:3px 0;line-height:1.35}
+.msg-module-body .msg-bubble small{font-size:.7rem}
+.msg-module-body .msg-form{gap:6px}
+.msg-module-body #msgCreate label,.msg-module-body #msgReply label,.msg-module-body #msgOwnerReview>label{gap:3px;font-size:.78rem}
+.msg-module-body #msgCreate :is(input,select,textarea),.msg-module-body #msgReviewSearch{min-height:30px;padding:5px 7px!important;font-size:.8rem}
+.msg-module-body #msgCreate textarea{min-height:75px}
+.brite-app .brite-content .msg-module-body form#msgReply.msg-inline-reply textarea#msgReplyBody{min-height:66px!important;padding:6px 8px!important;font-size:.8rem!important}
+.msg-module-body .msg-actions{gap:5px}
+.msg-module-body .msg-actions button,.msg-module-body #msgCreate button[type=submit],.msg-module-body #msgReply button[type=submit]{min-height:30px!important;padding:5px 9px!important;font-size:.78rem}
+.msg-module-body .msg-help{font-size:.71rem}
+.msg-module-body #msgOwnerReview{padding:7px 9px}
+.msg-module-body #msgOwnerReview>.muted{font-size:.76rem;line-height:1.35}
+.msg-module-body .msg-review-item{gap:3px;margin:4px 0;padding:7px 8px;border-radius:6px;font-size:.78rem}
+.msg-module-body .msg-review-item small{font-size:.7rem}
+.msg-preferences{padding:10px 12px}
+.msg-preferences h2{margin:0 0 8px!important;font-size:.96rem}
+.msg-preferences label{display:flex;align-items:center;gap:7px;font-size:.83rem}
+.msg-preferences p{font-size:.77rem;line-height:1.4;margin:7px 0}
+@media(max-width:850px){.msg-module-layout{grid-template-columns:142px minmax(0,1fr)}.msg-module-body .msg-workspace{grid-template-columns:minmax(145px,205px) minmax(0,1fr)}}
+@media(max-width:650px){.msg-module-layout{grid-template-columns:minmax(0,1fr)}.msg-module-nav{flex-direction:row;flex-wrap:wrap}.msg-module-nav .msg-tab{width:auto;flex:1 1 auto;justify-content:center;border-left:0!important;border-bottom:3px solid transparent!important}.msg-module-nav .msg-tab[aria-selected="true"]{border-left:0!important;border-bottom-color:#2563eb!important}.msg-module-body .msg-workspace{grid-template-columns:minmax(0,1fr);min-height:0}.msg-module-body .msg-history{max-height:290px}}
 </style>
-<section class="card" data-brite-pills="off" style="display:grid;gap:10px">
+<section class="card msg-module" data-brite-pills="off" style="display:grid;gap:8px">
  <div><h1 style="margin:0 0 4px">Messages</h1><p class="muted" style="margin:0;font-size:.85rem">Private conversations within your organization. Clients and contractors can contact the tenant owner by default; direct client–contractor messaging becomes available after a quote request or scheduled assignment.</p></div>
  <p id="msgStatus" role="status" aria-live="polite"></p>
-<?php if($tenant['role']==='owner'): ?>
- <div class="msg-tabs" role="tablist" aria-label="Messaging views">
+<div class="msg-module-layout">
+ <nav class="msg-module-nav" role="tablist" aria-label="Messages sections" aria-orientation="vertical">
  <button type="button" class="msg-tab" id="msgTabInbox" role="tab" aria-controls="msgPanelInbox" aria-selected="true" tabindex="0">My messages</button>
- <button type="button" class="msg-tab" id="msgTabReview" role="tab" aria-controls="msgOwnerReview" aria-selected="false" tabindex="-1">Tenant conversation review</button>
- </div>
+ <?php if($tenant['role']==='owner'): ?>
+ <button type="button" class="msg-tab" id="msgTabReview" role="tab" aria-controls="msgOwnerReview" aria-selected="false" tabindex="-1">Tenant review</button>
  <?php endif; ?>
- <div id="msgPanelInbox" class="msg-workspace msg-tabpanel" <?php if($tenant['role']==='owner'): ?>role="tabpanel" aria-labelledby="msgTabInbox"<?php endif; ?>>
+ <button type="button" class="msg-tab" id="msgTabPreferences" role="tab" aria-controls="msgPreferences" aria-selected="false" tabindex="-1">Preferences</button>
+ </nav>
+ <div class="msg-module-body">
+ <div id="msgPanelInbox" class="msg-workspace msg-tabpanel" role="tabpanel" aria-labelledby="msgTabInbox">
   <aside class="msg-pane" aria-label="Conversations">
    <div class="msg-toolbar"><h2>Inbox</h2><button id="msgRefresh" type="button" class="msg-secondary" title="Refresh conversations">↻ Refresh</button></div>
    <button id="msgNew" type="button" class="msg-primary" style="width:100%;margin-bottom:8px">+ New conversation</button><label for="msgThreadSearch" class="brite-sr-only">Search conversations</label><input id="msgThreadSearch" type="search" placeholder="Find a conversation…" autocomplete="off">
@@ -132,30 +177,38 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
    <div><h3 id="msgReviewHeading">Select a conversation</h3><div id="msgReviewMessages" class="msg-history"><p>Select a thread to inspect the exchange.</p></div></div>
   </div>
  </section>
+
+ <script defer src="<?=htmlspecialchars(app_url('/modules/messaging/owner-review.js?v=75c'),ENT_QUOTES,'UTF-8')?>"></script>
+ <?php endif; ?>
+ <section class="msg-preferences msg-tabpanel msg-pane" id="msgPreferences" role="tabpanel" aria-labelledby="msgTabPreferences" hidden>
+  <h2>Notification preferences</h2>
+  <label><input type="checkbox" id="msgInApp"> Enable in-app message notifications</label>
+  <p class="muted">This setting is saved for your account and tenant. Email and SMS delivery are not enabled in this version.</p>
+ </section>
+ </div>
+</div>
+</section>
 <script>
 document.addEventListener('DOMContentLoaded',function(){
- const tabs=[document.getElementById('msgTabInbox'),document.getElementById('msgTabReview')];
- const panels=[document.getElementById('msgPanelInbox'),document.getElementById('msgOwnerReview')];
+ const tabs=[...document.querySelectorAll('.msg-module-nav [role="tab"]')];
+ const panels=tabs.map(tab=>document.getElementById(tab.getAttribute('aria-controls')));
  function activate(index,focus){
-  tabs.forEach(function(tab,i){tab.setAttribute('aria-selected',i===index?'true':'false');tab.tabIndex=i===index?0:-1;panels[i].hidden=i!==index;});
+  tabs.forEach((tab,i)=>{tab.setAttribute('aria-selected',i===index?'true':'false');tab.tabIndex=i===index?0:-1;panels[i].hidden=i!==index;});
   if(focus)tabs[index].focus();
  }
- tabs.forEach(function(tab,index){
-  tab.addEventListener('click',function(){activate(index,false);});
-  tab.addEventListener('keydown',function(event){
+ tabs.forEach((tab,index)=>{
+  tab.addEventListener('click',()=>activate(index,false));
+  tab.addEventListener('keydown',event=>{
    let next;
-   if(event.key==='ArrowRight')next=(index+1)%tabs.length;
-   else if(event.key==='ArrowLeft')next=(index+tabs.length-1)%tabs.length;
+   if(event.key==='ArrowDown'||event.key==='ArrowRight')next=(index+1)%tabs.length;
+   else if(event.key==='ArrowUp'||event.key==='ArrowLeft')next=(index+tabs.length-1)%tabs.length;
    else if(event.key==='Home')next=0;
    else if(event.key==='End')next=tabs.length-1;
    else return;
    event.preventDefault();activate(next,true);
   });
  });
+ activate(0,false);
 });
 </script>
- <script defer src="<?=htmlspecialchars(app_url('/modules/messaging/owner-review.js?v=75c'),ENT_QUOTES,'UTF-8')?>"></script>
- <?php endif; ?>
- <details><summary>Notification preferences</summary><label style="display:flex;gap:10px;align-items:center;margin-top:12px"><input type="checkbox" id="msgInApp"> Enable in-app message notifications</label><p class="muted">This setting is saved for your account and tenant. Email and SMS delivery are not enabled in this version.</p></details>
-</section>
 <script defer src="<?=htmlspecialchars(app_url('/modules/messaging/messaging.js?v=75l'),ENT_QUOTES,'UTF-8')?>"></script>
