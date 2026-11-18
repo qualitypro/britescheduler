@@ -386,6 +386,17 @@ require __DIR__ . '/partials/app_header.php';
 .enrollment-shell .en-register-footer{display:flex;align-items:center;justify-content:space-between;gap:.65rem;flex-wrap:wrap;margin-top:.65rem;font-size:.83rem}
 .enrollment-shell .en-register-pages{display:flex;align-items:center;gap:.5rem}
 </style>
+<style>
+.enrollment-shell .en-command-bar{position:sticky;top:var(--en-topbar-offset,0px);z-index:40;background:var(--card-bg,var(--surface,#fff));color:inherit;border:1px solid var(--en-line);border-radius:9px;box-shadow:0 4px 14px rgba(0,0,0,.08);padding:.35rem .5rem;margin:.5rem 0}
+.enrollment-shell .en-command-actions{display:flex;align-items:center;gap:.3rem;overflow-x:auto;scrollbar-width:thin}
+.enrollment-shell .en-command{flex:none;display:inline-flex;align-items:center;gap:.35rem;padding:.4rem .65rem;min-height:34px;border:1px solid transparent;border-radius:7px;background:transparent;color:inherit;text-decoration:none;white-space:nowrap;font:inherit;font-size:.84rem;cursor:pointer}
+.enrollment-shell .en-command:hover,.enrollment-shell .en-command:focus-visible{background:var(--surface-secondary,rgba(120,140,160,.12));border-color:var(--en-line)}
+.enrollment-shell .en-command-count{border-radius:20px;background:var(--surface-secondary,rgba(120,140,160,.12));padding:0 .35rem;font-size:.76rem}
+.enrollment-shell #en-command-filters{padding:.5rem .3rem .15rem;border-top:1px solid var(--en-line)}
+.enrollment-shell #en-command-filters[hidden]{display:none!important}
+.enrollment-shell #en-review,.enrollment-shell #en-new,.enrollment-shell #en-restrictions{scroll-margin-top:calc(var(--en-topbar-offset,0px) + 115px)}
+@media(max-width:650px){.enrollment-shell .en-command-bar{padding:.25rem}.enrollment-shell .en-command{font-size:.8rem;padding:.35rem .5rem}}
+</style>
 <section class="card enrollment-shell" data-brite-pills="off">
 <h1 class="en-heading"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-users"></use></svg> Enrollment Management</h1>
 <p class="muted en-intro">Review applications, invite approved applicants, and manage enrollment restrictions. Approval alone does not create an account.</p>
@@ -393,6 +404,22 @@ require __DIR__ . '/partials/app_header.php';
 <?php if(isset($invitationUrl)): ?><p><strong>One-time invitation link:</strong> <input readonly aria-label="Invitation link" value="<?=$esc($invitationUrl)?>" style="width:100%;box-sizing:border-box" onclick="this.select()"></p><p class="muted">This link is shown only now. Share it privately; never post it publicly.</p><?php endif; ?>
 <?php if($error!==''): ?><p role="alert" class="danger"><?=$esc($error)?></p><?php endif; ?>
 <?php if($ready): ?>
+<nav class="en-command-bar" id="en-command-bar" aria-label="Enrollment actions">
+<div class="en-command-actions">
+<a class="en-command" href="#en-review"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-clipboard"></use></svg> Review <span class="en-command-count"><?=$counts['pending']?></span></a>
+<a class="en-command" href="#en-new" data-en-open="en-new"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-plus"></use></svg> New application</a>
+<?php if($canReview): ?><a class="en-command" href="#en-restrictions" data-en-open="en-restrictions"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-shield"></use></svg> Restrictions <span class="en-command-count"><?=$restrictionActiveTotal?></span></a><?php endif; ?>
+<button class="en-command" type="button" id="en-filter-toggle" aria-controls="en-command-filters" aria-expanded="<?=isset($_GET['q'])||isset($_GET['status'])||isset($_GET['type'])||isset($_GET['invitation'])?'true':'false'?>"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-filter"></use></svg> Filters</button>
+<a class="en-command" href="enrollment.php"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-refresh"></use></svg> Reset</a>
+</div>
+<form method="get" id="en-command-filters" class="en-toolbar" <?=isset($_GET['q'])||isset($_GET['status'])||isset($_GET['type'])||isset($_GET['invitation'])?'':'hidden'?>>
+<label>Search <input type="search" name="q" maxlength="190" value="<?=$esc($search??'')?>" placeholder="Name, email or phone"></label>
+<label>Invitation <select name="invitation"><?php foreach(['all','not_sent','invited','expired','revoked','activated'] as $v): ?><option value="<?=$esc($v)?>" <?=($invitation??'all')===$v?'selected':''?>><?=$esc(ucwords(str_replace('_',' ',$v)))?></option><?php endforeach; ?></select></label>
+<label>Status <select name="status"><?php foreach(['all','pending','approved','rejected'] as $v): ?><option value="<?=$esc($v)?>" <?=($status??'all')===$v?'selected':''?>><?=$esc(ucfirst($v))?></option><?php endforeach; ?></select></label>
+<label>Type <select name="type"><?php foreach(['all','contractor','client'] as $v): ?><option value="<?=$esc($v)?>" <?=($type??'all')===$v?'selected':''?>><?=$esc(ucfirst($v))?></option><?php endforeach; ?></select></label>
+<button class="en-btn" type="submit"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-search"></use></svg> Search</button>
+</form>
+</nav>
 <div class="en-stats" aria-label="Application summary">
 <?php foreach($counts as $label=>$count): ?><div class="en-stat"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-file"></use></svg><strong><?=$esc($count)?></strong><span><?=$esc(ucfirst($label))?></span></div><?php endforeach; ?>
 <?php foreach($invitationCounts as $label=>$count): ?><div class="en-stat"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-mail"></use></svg><strong><?=$esc($count)?></strong><span><?=$esc(ucwords(str_replace('_',' ',$label)))?> invites</span></div><?php endforeach; ?>
@@ -474,15 +501,8 @@ require __DIR__ . '/partials/app_header.php';
 <label class="en-wide">Application notes <textarea name="notes" maxlength="5000" rows="2"></textarea></label>
 <div class="en-wide"><button type="submit" class="en-btn"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-send"></use></svg> Submit application</button></div>
 </form></details>
-<section class="en-panel"><h2 class="en-heading"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-clipboard"></use></svg> Review applications</h2>
-<form method="get" class="en-toolbar">
-<label>Search <input type="search" name="q" maxlength="190" value="<?=$esc($search??'')?>" placeholder="Name, email or phone"></label>
-<label>Invitation <select name="invitation"><?php foreach(['all','not_sent','invited','expired','revoked','activated'] as $v): ?><option value="<?=$esc($v)?>" <?=($invitation??'all')===$v?'selected':''?>><?=$esc(ucwords(str_replace('_',' ',$v)))?></option><?php endforeach; ?></select></label>
-<label>Status <select name="status"><?php foreach(['all','pending','approved','rejected'] as $v): ?><option value="<?=$esc($v)?>" <?=($status??'all')===$v?'selected':''?>><?=$esc(ucfirst($v))?></option><?php endforeach; ?></select></label>
-<label>Type <select name="type"><?php foreach(['all','contractor','client'] as $v): ?><option value="<?=$esc($v)?>" <?=($type??'all')===$v?'selected':''?>><?=$esc(ucfirst($v))?></option><?php endforeach; ?></select></label>
-<button type="submit" class="en-btn"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-filter"></use></svg> Apply filters</button>
-<a href="enrollment.php" class="en-btn"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-refresh"></use></svg> Reset</a>
-</form>
+<section class="en-panel" id="en-review"><h2 class="en-heading"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-clipboard"></use></svg> Review applications</h2>
+
 <p class="muted" style="font-size:.8rem">Showing <?=count($rows)?> of up to 100 matching applications. Select an applicant to see available actions.</p>
 <?php if(!$rows): ?><p>No applications match these filters.</p><?php endif; ?>
 <?php foreach($rows as $item): ?>
@@ -540,4 +560,37 @@ require __DIR__ . '/partials/app_header.php';
 </section>
 <?php endif; ?>
 </section>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+ const bar=document.getElementById('en-command-bar');
+ const topbar=document.querySelector('.brite-topbar');
+ const updateOffset=function(){
+   if(!bar)return;
+   // Respect the app shell's sticky header; never cover its controls.
+   const position=topbar?getComputedStyle(topbar).position:'static';
+   const offset=(position==='sticky'||position==='fixed')?Math.max(0,topbar.getBoundingClientRect().bottom):0;
+   bar.style.setProperty('--en-topbar-offset',offset+'px');
+ };
+ updateOffset();
+ window.addEventListener('resize',updateOffset,{passive:true});
+ window.addEventListener('scroll',updateOffset,{passive:true});
+ const toggle=document.getElementById('en-filter-toggle');
+ const filters=document.getElementById('en-command-filters');
+ if(toggle&&filters)toggle.addEventListener('click',function(){
+   filters.hidden=!filters.hidden;
+   toggle.setAttribute('aria-expanded',String(!filters.hidden));
+   if(!filters.hidden){const input=filters.querySelector('input[name="q"]');if(input)input.focus();}
+ });
+ document.querySelectorAll('[data-en-open]').forEach(function(link){
+   link.addEventListener('click',function(){
+     const target=document.getElementById(link.getAttribute('data-en-open'));
+     if(target)target.open=true;
+   });
+ });
+ if(location.hash==='#en-new'||location.hash==='#en-restrictions'){
+   const target=document.querySelector(location.hash);
+   if(target)target.open=true;
+ }
+});
+</script>
 <?php require __DIR__ . '/partials/app_footer.php'; ?>
