@@ -224,10 +224,11 @@ function showModal(n){
   });actions.append(dismiss);
  }
  const billingEvent=/\b(bill(?:ing)?|invoice|payment|receivable)\b/i.test([n.type,n.title,n.body].join(' '));
+ let invoiceId=null;
  if(billingEvent){
   const invoiceMatch=([n.title,n.body].join(' ')).match(/\binvoice\s*(?:#|number\s*[:#]?\s*)([1-9][0-9]*)\b/i);
   const syntheticBilling=/\b(synthetic|demo|test notification)\b/i.test([n.title,n.body].join(' '));
-  const invoiceId=!syntheticBilling&&invoiceMatch?Number(invoiceMatch[1]):null;
+  invoiceId=!syntheticBilling&&invoiceMatch?Number(invoiceMatch[1]):null;
   const billingLink=node('a','Open billing workspace','activity-primary');
   billingLink.href=base+'/billing.php';
   actions.append(billingLink);
