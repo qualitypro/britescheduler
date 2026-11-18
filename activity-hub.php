@@ -7,6 +7,7 @@ require __DIR__ . '/partials/app_header.php';
 <style>
 .brite-activity-page{max-width:1250px;margin:auto;padding:18px}.brite-activity-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0}.brite-activity-toolbar input,.brite-activity-toolbar select{min-height:40px;padding:8px;border:1px solid #94a3b8;border-radius:8px;background:var(--brite-surface,#fff);color:inherit}.brite-activity-toolbar input{flex:1;min-width:190px}.brite-activity-toolbar button,.brite-activity-page button{min-height:36px;border:1px solid #94a3b8;border-radius:8px;padding:7px 12px;cursor:pointer;background:var(--brite-surface,#fff);color:inherit}.brite-activity-stats{display:flex;gap:10px;flex-wrap:wrap}.brite-activity-stats span{padding:9px 13px;background:var(--brite-surface-muted,#f1f5f9);border-radius:9px;font-weight:650}.brite-activity-record{--accent:#0f766e;border:1px solid #cbd5e1;border-left:5px solid var(--accent);border-radius:10px;padding:11px 14px;margin:8px 0;background:var(--brite-surface,#fff)}.brite-activity-record.marketplace{--accent:#7c3aed}.brite-activity-record.schedule{--accent:#2563eb}.brite-activity-record.warning{--accent:#b45309}.brite-activity-record.unread{background:var(--brite-surface-muted,#f8fafc)}.brite-activity-record header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.brite-activity-record p{margin:5px 0 8px;font-size:.9rem}.brite-activity-record small{color:var(--accent);font-weight:650}.brite-activity-record .actions{display:flex;gap:8px;flex-wrap:wrap}.brite-activity-record a{display:inline-block;padding:8px 10px;border-radius:7px;background:var(--accent);color:white;text-decoration:none;font-size:.85rem}.brite-activity-record button{font-size:.85rem}.brite-activity-record .actions{margin-top:10px}.brite-activity-record .actions .activity-primary{background:var(--accent);color:#fff;border-color:var(--accent)}.brite-activity-record .activity-detail{margin-top:10px;padding:10px 12px;border:1px solid var(--brite-border,#cbd5e1);border-radius:8px;background:var(--brite-surface-muted,#f8fafc)}.brite-activity-record .activity-detail dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0}.brite-activity-record .activity-detail dt{font-weight:650}.brite-activity-record .activity-detail dd{margin:0;overflow-wrap:anywhere}.brite-activity-record .activity-detail p{white-space:pre-wrap;overflow-wrap:anywhere}.brite-activity-record .actions button[disabled]{opacity:.6;cursor:wait}.brite-activity-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0}.brite-activity-page :is(button,input,select,a):focus-visible{outline:3px solid #2563eb;outline-offset:2px}
 .brite-activity-record{cursor:pointer}.brite-activity-record:focus-visible{outline:3px solid #2563eb;outline-offset:2px}.activity-modal{border:0;border-radius:12px;padding:0;width:min(640px,calc(100vw - 28px));max-height:min(85vh,820px);background:var(--brite-surface,#fff);color:inherit;box-shadow:0 20px 60px #0005}.activity-modal::backdrop{background:#0f172a99}.activity-modal-inner{padding:20px;display:grid;gap:12px}.activity-modal-head{display:flex;justify-content:space-between;align-items:start;gap:12px}.activity-modal-head h2{margin:0;font-size:1.15rem}.activity-modal-body{white-space:pre-wrap;overflow-wrap:anywhere}.activity-modal-meta{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 12px;font-size:.85rem}.activity-modal-meta dt{font-weight:650}.activity-modal-meta dd{margin:0;overflow-wrap:anywhere}.activity-modal-actions{display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--brite-border,#cbd5e1);padding-top:14px}.activity-modal-actions a,.activity-modal-actions button{display:inline-flex;align-items:center;min-height:36px;padding:8px 12px;border-radius:7px;border:1px solid #94a3b8;text-decoration:none;color:inherit;background:var(--brite-surface,#fff)}.activity-modal-actions .activity-primary{background:#2563eb;color:#fff;border-color:#2563eb}.activity-modal-status{font-size:.83rem;min-height:1em}.activity-modal button{cursor:pointer}
+.activity-modal .activity-enrollment{display:grid;gap:12px;padding:16px;border:1px solid var(--brite-border,#cbd5e1);border-radius:10px;background:var(--brite-surface-muted,#f8fafc);width:100%;box-sizing:border-box}.activity-enrollment .activity-enrollment-heading{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}.activity-enrollment .activity-enrollment-heading strong{font-size:1.05rem}.activity-enrollment .activity-enrollment-badge{border-radius:20px;padding:4px 10px;background:#dbeafe;color:#1e40af;font-weight:700;font-size:.8rem}.activity-enrollment dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px 12px;margin:0}.activity-enrollment dt{font-weight:700}.activity-enrollment dd{margin:0;overflow-wrap:anywhere}.activity-enrollment .activity-enrollment-note{padding:10px;border-radius:7px;background:var(--brite-surface,#fff);white-space:pre-wrap}.activity-enrollment .activity-enrollment-buttons{display:flex;gap:8px;flex-wrap:wrap}.activity-enrollment .activity-enrollment-buttons button{padding:9px 14px}.activity-enrollment textarea{width:100%;box-sizing:border-box;padding:10px;border-radius:7px;border:1px solid #94a3b8;background:var(--brite-surface,#fff);color:inherit}.activity-modal-actions{align-items:flex-start}.activity-modal-actions>.activity-enrollment{flex-basis:100%}
 </style>
 <main class="brite-activity-page">
 <header><h1>Activity Hub</h1><p>Review activity, open related work, and manage notifications. Dismissing an alert does not complete the underlying task.</p></header>
@@ -65,7 +66,7 @@ function showModal(n){
  const appointment=validId(n.appointment_id);
  const enrollmentId=enrollmentApplicationId(n);
  if(enrollmentId){
-  const workflow=node('div');workflow.style.cssText='width:100%;display:grid;gap:8px';
+  const workflow=node('section',undefined,'activity-enrollment');workflow.setAttribute('aria-label','Enrollment application workflow');
   workflow.append(node('p','Loading enrollment workflow…'));
   actions.append(workflow);
   const url=base+'/api/notification_workflows.php?application_id='+encodeURIComponent(String(enrollmentId));
@@ -74,17 +75,22 @@ function showModal(n){
    if(modalNotification!==n)return;
    workflow.replaceChildren();
    const a=data.application;
-   const status=node('p',a.full_name+' · '+a.applicant_type+' · '+a.status);
-   workflow.append(status);
-   const contact=node('p',a.email+(a.phone?' · '+a.phone:''));
-   workflow.append(contact);
-   if(a.notes)workflow.append(node('p','Applicant notes: '+a.notes));
+   const heading=node('div',undefined,'activity-enrollment-heading');
+   heading.append(node('strong',a.full_name||'Applicant'),node('span',String(a.status||'Unknown').toUpperCase(),'activity-enrollment-badge'));
+   workflow.append(heading);
+   const details=node('dl');
+   const field=(label,value)=>{if(value!==null&&value!==undefined&&String(value).trim()!=='')details.append(node('dt',label),node('dd',value));};
+   field('Application','#'+a.id);field('Type',a.applicant_type);field('Email',a.email);field('Phone',a.phone);
+   field('Submitted',a.created_at);field('Reviewed',a.reviewed_at);
+   workflow.append(details);
+   if(a.notes)workflow.append(node('p','Applicant notes: '+a.notes,'activity-enrollment-note'));
+   if(a.decision_note)workflow.append(node('p','Decision note: '+a.decision_note,'activity-enrollment-note'));
    workflow.append(node('p',data.next_step));
    if(a.blocked)workflow.append(node('p','This applicant is blocked. Approval is unavailable.'));
    if(data.actions.length){
     const note=node('textarea');note.placeholder='Optional review note';note.maxLength=1000;note.rows=2;note.setAttribute('aria-label','Review note');
     workflow.append(note);
-    const buttons=node('div');buttons.className='activity-modal-actions';
+    const buttons=node('div');buttons.className='activity-enrollment-buttons';
     for(const decision of data.actions){
      const button=node('button',decision==='approved'?'Approve application':'Reject application',decision==='approved'?'activity-primary':'');
      button.type='button';if(decision==='approved'&&a.blocked)button.disabled=true;
@@ -104,7 +110,7 @@ function showModal(n){
    }
   }).catch(error=>{if(modalNotification===n)workflow.replaceChildren(node('p','Unable to load enrollment workflow: '+error.message));});
 
-  const review=node('a','Open full enrollment record');
+  const review=node('a','Open enrollment management');
   review.href=base+'/enrollment.php?application_id='+encodeURIComponent(String(enrollmentId));
   actions.append(review);
  }
