@@ -21,6 +21,8 @@ const tableControls=['msgThreadSearch','msgUnreadFilter','msgThreadSort','msgPag
 function renderThreads(){
  const term=$('msgThreadSearch').value.trim().toLocaleLowerCase();
  const filter=$('msgUnreadFilter').value,sort=$('msgThreadSort').value;
+ const dateArrow=$('msgSortDateArrow');dateArrow.textContent=sort==='oldest'?'↑':'↓';
+ $('msgSortDate').setAttribute('aria-label',sort==='oldest'?'Sort by date and time, newest first':'Sort by date and time, oldest first');
  const filtered=threadCache.filter(t=>{
   const unread=Number(t.unread||0)>0;
   return (filter==='all'||(filter==='unread'?unread:!unread))&&
@@ -62,6 +64,7 @@ function renderThreads(){
  $('msgPagePrev').disabled=tablePage<=1;$('msgPageNext').disabled=tablePage>=pages;
 }
 for(const id of tableControls)$(id).addEventListener(id==='msgThreadSearch'?'input':'change',()=>{tablePage=1;renderThreads();});
+$('msgSortDate').addEventListener('click',()=>{$('msgThreadSort').value=$('msgThreadSort').value==='recent'?'oldest':'recent';tablePage=1;renderThreads();});
 $('msgPagePrev').addEventListener('click',()=>{tablePage--;renderThreads();});
 $('msgPageNext').addEventListener('click',()=>{tablePage++;renderThreads();});
 async function load(){
