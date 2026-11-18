@@ -405,6 +405,19 @@ require __DIR__ . '/partials/app_header.php';
 .enrollment-shell #en-review,.enrollment-shell #en-new,.enrollment-shell #en-restrictions{scroll-margin-top:calc(var(--en-topbar-offset,0px) + 115px)}
 @media(max-width:650px){.enrollment-shell .en-command-bar{padding:.25rem}.enrollment-shell .en-command{font-size:.8rem;padding:.35rem .5rem}}
 </style>
+<style>
+.enrollment-shell .en-unified-grid{min-width:760px}
+.enrollment-shell .en-unified-grid td{vertical-align:top}
+.enrollment-shell .en-unified-grid .en-record-details{margin:0}
+.enrollment-shell .en-unified-grid .en-record-details>summary{cursor:pointer;list-style:none;white-space:nowrap}
+.enrollment-shell .en-unified-grid .en-record-details>summary::-webkit-details-marker{display:none}
+.enrollment-shell .en-unified-grid .en-record-panel{width:min(520px,70vw);max-width:520px;white-space:normal;overflow-wrap:anywhere;border:1px solid var(--en-line);border-radius:9px;padding:.7rem;margin-top:.5rem;background:var(--card-bg,var(--surface,#fff))}
+.enrollment-shell .en-unified-grid .en-record-panel form{margin:.55rem 0}
+.enrollment-shell .en-unified-grid .en-record-panel label{display:grid;gap:.25rem}
+.enrollment-shell .en-unified-grid .en-record-panel input{width:100%}
+.enrollment-shell .en-unified-grid .en-record-panel .en-actions{display:flex}
+.enrollment-shell .en-unified-grid .en-record-panel .en-actions button{width:auto}
+</style>
 <section class="card enrollment-shell" data-brite-pills="off">
 <h1 class="en-heading"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-users"></use></svg> Enrollment Management</h1>
 <p class="muted en-intro">Review applications, invite approved applicants, and manage enrollment restrictions. Approval alone does not create an account.</p>
@@ -458,45 +471,13 @@ require __DIR__ . '/partials/app_header.php';
 <button class="en-btn" type="submit"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-filter"></use></svg> Apply</button>
 <a class="en-btn" href="enrollment.php#en-restrictions"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-refresh"></use></svg> Reset</a>
 </form>
-<div class="en-register-scroll" role="region" aria-label="Enrollment restriction records" tabindex="0">
-<table class="en-register-table">
-<thead><tr><th scope="col">Applicant</th><th scope="col">Status</th><th scope="col">Restricted</th><th scope="col">Reason</th><th scope="col">Actions</th></tr></thead>
-<tbody>
-<?php foreach($blockedEmails as $blocked): ?>
-<tr>
-<td><strong><?=$esc($blocked['applicant_name']?:'Unlinked email')?></strong><small><?=$esc($blocked['email'])?></small><small class="muted"><?= (int)$blocked['application_count'] ?> application(s)<?php if($blocked['applicant_type']): ?> · <?=$esc(ucfirst($blocked['applicant_type']))?><?php endif; ?></small></td>
-<td><?php if($blocked['unblocked_at']===null): ?><span class="en-badge is-blocked"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-ban"></use></svg> Active</span><?php else: ?><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-check"></use></svg> Cleared</span><?php endif; ?></td>
-<td><time datetime="<?=$esc(str_replace(' ','T',$blocked['blocked_at']).'Z')?>"><?=$esc($blocked['blocked_at'])?> UTC</time></td>
-<td><span class="en-register-reason"><?=$esc($blocked['reason'])?></span></td>
-<td>
-<details class="en-register-row">
-<summary><svg class="en-icon" aria-hidden="true"><use href="#en-icon-info"></use></svg> Details / actions</summary>
-<div class="en-register-detail"><strong>Restriction #<?=$esc($blocked['id'])?></strong>
-<p><strong>Reason:</strong> <?=$esc($blocked['reason'])?></p>
-<p><strong>Applied by:</strong> <?=$esc($blocked['blocked_by_email']?:'User #'.$blocked['blocked_by'])?></p>
-<?php if($blocked['unblocked_at']!==null): ?><p><strong>Cleared:</strong> <?=$esc($blocked['unblocked_at'])?> UTC · <?=$esc($blocked['unblocked_by_email']?:'User #'.$blocked['unblocked_by'])?></p><?php endif; ?>
-<?php if($blocked['unblocked_at']===null): ?>
-<form method="post">
-<input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>">
-<input type="hidden" name="action" value="unblock">
-<input type="hidden" name="email" value="<?=$esc($blocked['email'])?>">
-<button class="en-btn" type="submit" onclick="return confirm('Remove this restriction? Revoked invitations will not be restored.')"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-unlock"></use></svg> Remove restriction</button>
-</form>
-<?php else: ?><p class="muted">This restriction has been cleared. Use Add email restriction to restrict the address again.</p><?php endif; ?>
-</div></details>
-</td>
-</tr>
-<?php endforeach; ?>
-<?php if(!$blockedEmails): ?><tr><td colspan="5" class="en-empty">No restrictions match these filters.</td></tr><?php endif; ?>
-</tbody></table></div>
-<div class="en-register-footer">
-<span class="muted">Showing <?=$restrictionTotal?($restrictionPage-1)*15+1:0?>–<?=min($restrictionTotal,$restrictionPage*15)?> of <?=$restrictionTotal?> records</span>
+<p class="muted" style="margin:.6rem 0">Restriction records are managed in the unified enrollment grid below. Use the register filters above to narrow restriction-only records; application-linked restrictions appear alongside their applications.</p>
+<div class="en-register-footer"><span class="muted">Restriction register: <?=$restrictionTotal?> matching records, page <?=$restrictionPage?> of <?=$restrictionPages?></span>
 <div class="en-register-pages">
-<?php $restrictionUrl=static function(int $page) use($restrictionSearch,$restrictionState,$restrictionSort): string { return 'enrollment.php?'.http_build_query(['restriction_q'=>$restrictionSearch,'restriction_state'=>$restrictionState,'restriction_sort'=>$restrictionSort,'restriction_page'=>$page]).'#en-restrictions'; }; ?>
-<?php if($restrictionPage>1): ?><a class="en-btn" href="<?=$esc($restrictionUrl($restrictionPage-1))?>"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-refresh"></use></svg> Previous</a><?php endif; ?>
-<span>Page <?=$restrictionPage?> of <?=$restrictionPages?></span>
-<?php if($restrictionPage<$restrictionPages): ?><a class="en-btn" href="<?=$esc($restrictionUrl($restrictionPage+1))?>">Next <svg class="en-icon" aria-hidden="true"><use href="#en-icon-file"></use></svg></a><?php endif; ?>
-</div></div>
+<?php $restrictionUrl=static function(int $page) use($restrictionSearch,$restrictionState,$restrictionSort): string { return 'enrollment.php?'.http_build_query(['restriction_q'=>$restrictionSearch,'restriction_state'=>$restrictionState,'restriction_sort'=>$restrictionSort,'restriction_page'=>$page]).'#en-review'; }; ?>
+<?php if($restrictionPage>1): ?><a class="en-btn" href="<?=$esc($restrictionUrl($restrictionPage-1))?>">Previous</a><?php endif; ?>
+<?php if($restrictionPage<$restrictionPages): ?><a class="en-btn" href="<?=$esc($restrictionUrl($restrictionPage+1))?>">Next</a><?php endif; ?>
+</div></div></div>
 </details>
 <?php endif; ?>
 <details class="en-panel" id="en-new"><summary><svg class="en-icon" aria-hidden="true"><use href="#en-icon-plus"></use></svg> New application</summary>
@@ -513,9 +494,18 @@ require __DIR__ . '/partials/app_header.php';
 <section class="en-panel" id="en-review"><h2 class="en-heading"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-clipboard"></use></svg> Review applications</h2>
 
 <p class="muted" style="font-size:.8rem">Showing <?=count($rows)?> of up to 100 matching applications. <?=($visibility??'attention')==='attention'?'Default view hides activated enrollments unless blocked.':(($visibility??'attention')==='active'?'Showing activated enrollments without restrictions.':'Showing all enrollment records.')?> Select an applicant to see available actions.</p>
-<?php if(!$rows): ?><p>No applications match these filters.</p><?php endif; ?>
+<div class="en-register-scroll" role="region" aria-label="Unified enrollment records" tabindex="0">
+<table class="en-register-table en-unified-grid">
+<thead><tr><th scope="col">Applicant / Email</th><th scope="col">Application</th><th scope="col">Invitation</th><th scope="col">Restriction</th><th scope="col">Manage</th></tr></thead><tbody>
 <?php foreach($rows as $item): ?>
-<article class="en-card" aria-label="Enrollment application #<?=$esc($item['id'])?>">
+<tr>
+<td><strong><?=$esc($item['full_name'])?></strong><small><a href="mailto:<?=$esc($item['email'])?>"><?=$esc($item['email'])?></a></small><small class="muted">#<?=$esc($item['id'])?> · <?=$esc(ucfirst($item['applicant_type']))?></small></td>
+<td><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-file"></use></svg> <?=$esc(ucfirst($item['status']))?></span></td>
+<td><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-mail"></use></svg> <?=$esc(ucfirst($item['invitation_state']?:'Not sent'))?></span></td>
+<td><?php if($item['block_reason']!==null): ?><span class="en-badge is-blocked"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-ban"></use></svg> Blocked</span><?php else: ?><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-check"></use></svg> Clear</span><?php endif; ?></td>
+<td><details class="en-record-details"><summary class="en-btn"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-clipboard"></use></svg> Manage</summary>
+<div class="en-record-panel" aria-label="Manage enrollment #<?=$esc($item['id'])?>">
+<div class="en-card-head"><strong><svg class="en-icon" aria-hidden="true"><use href="#en-icon-user"></use></svg> <?=$esc($item['full_name'])?></strong><small class="muted">Application #<?=$esc($item['id'])?></small></div>
 <div class="en-card-head"><strong><svg class="en-icon" aria-hidden="true"><use href="#en-icon-user"></use></svg> <?=$esc($item['full_name'])?></strong><small class="muted">#<?=$esc($item['id'])?></small></div>
 <div class="en-badges"><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-users"></use></svg> <?=$esc(ucfirst($item['applicant_type']))?></span><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-file"></use></svg> <?=$esc(ucfirst($item['status']))?></span><?php if($item['invitation_state']): ?><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-mail"></use></svg> <?=$esc(ucfirst($item['invitation_state']))?></span><?php endif; ?><?php if($item['block_reason']!==null): ?><span class="en-badge is-blocked"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-ban"></use></svg> Blocked</span><?php endif; ?></div>
 <?php if($item['block_reason']!==null): ?><p role="status" class="danger" style="margin:8px 0"><strong>Enrollment blocked</strong> — <?=$esc($item['block_reason'])?>. Approval and invitations are unavailable until unblocked.</p><?php endif; ?>
@@ -564,8 +554,40 @@ require __DIR__ . '/partials/app_header.php';
 <div class="en-actions"><button type="submit" class="en-btn" name="decision" value="approved" <?=$item['block_reason']!==null?'disabled title="Unblock this email before approving"':''?> onclick="return confirm('Approve this application? This does not create an account.')"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-check"></use></svg> Approve application</button><button type="submit" class="en-btn" name="decision" value="rejected" onclick="return confirm('Reject this application? This decision cannot be reversed here.')"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-x"></use></svg> Reject application</button></div>
 </form>
 <?php endif; ?>
-</article>
+</div></details></td></tr>
 <?php endforeach; ?>
+<?php if($canReview): ?>
+<?php foreach($blockedEmails as $blocked): ?>
+<?php
+// Standalone restrictions without an application appear in the same grid.
+$hasApplication=false;
+foreach($rows as $linked) { if(strcasecmp((string)$linked['email'],(string)$blocked['email'])===0) {$hasApplication=true;break;} }
+if($hasApplication) continue;
+?>
+<tr>
+<td><strong><?=$esc($blocked['applicant_name']?:'Unlinked email')?></strong><small><?=$esc($blocked['email'])?></small></td>
+<td><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-file"></use></svg> <?=((int)$blocked['application_count']>0)?'Application outside current filter':'No application'?></span></td>
+<td>—</td>
+<td><span class="en-badge <?=$blocked['unblocked_at']===null?'is-blocked':''?>"><?=$blocked['unblocked_at']===null?'Blocked':'Cleared'?></span></td>
+<td><details class="en-record-details"><summary class="en-btn"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-shield"></use></svg> Manage</summary>
+<div class="en-record-panel"><strong>Restriction #<?=$esc($blocked['id'])?></strong>
+<p><strong>Email:</strong> <?=$esc($blocked['email'])?></p>
+<p><strong>Reason:</strong> <?=$esc($blocked['reason'])?></p>
+<p><strong>Applied:</strong> <?=$esc($blocked['blocked_at'])?> UTC</p>
+<p><strong>Applied by:</strong> <?=$esc($blocked['blocked_by_email']?:'User #'.$blocked['blocked_by'])?></p>
+<?php if($blocked['unblocked_at']===null): ?>
+<form method="post">
+<input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>">
+<input type="hidden" name="action" value="unblock">
+<input type="hidden" name="email" value="<?=$esc($blocked['email'])?>">
+<button type="submit" onclick="return confirm('Remove this enrollment restriction? Revoked invitations will not be restored.')"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-unlock"></use></svg> Remove restriction</button>
+</form>
+<?php else: ?><p class="muted">Cleared <?=$esc($blocked['unblocked_at'])?> UTC.</p><?php endif; ?>
+</div></details></td></tr>
+<?php endforeach; ?>
+<?php endif; ?>
+<?php if(!$rows && !$blockedEmails): ?><tr><td colspan="5" class="en-empty">No enrollment records match these filters.</td></tr><?php endif; ?>
+</tbody></table></div>
 </section>
 <?php endif; ?>
 </section>
