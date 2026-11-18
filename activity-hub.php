@@ -57,7 +57,7 @@ function showModal(n){
  modalNotification=n;
  el('activityModalTitle').textContent=n.title||'Notification';
  el('activityModalBody').textContent=n.body||'No additional description provided.';
- el('activityModalState').textContent=(n.read_at===null?'Outstanding':'Dismissed')+' · '+(isBookingRequest(n)?'Booking request':category(n));
+ el('activityModalState').textContent=(n.read_at===null?'Unread':'Read')+' · '+(isBookingRequest(n)?'Booking request':category(n));
  const meta=el('activityModalMeta');meta.replaceChildren();
  const add=(label,value)=>{if(value===null||value===undefined||value==='')return;meta.append(node('dt',label),node('dd',value));};
  add('Notification',n.id);add('Appointment',n.appointment_id);add('Client',n.client_name);add('Contractor',n.contractor_name);
@@ -143,20 +143,22 @@ function showModal(n){
   const dismiss=node('button','Dismiss notification');dismiss.type='button';
   dismiss.addEventListener('click',async()=>{
    dismiss.disabled=true;el('activityModalStatus').textContent='Saving…';
-   try{await dismissNotification(n);el('activityModalState').textContent='Dismissed';dismiss.remove();el('activityModalStatus').textContent='Notification dismissed. The underlying task was not changed.';}
+   try{await dismissNotification(n);el('activityModalState').textContent='Read';dismiss.remove();el('activityModalStatus').textContent='Notification dismissed. The underlying task was not changed.';}
    catch(error){dismiss.disabled=false;el('activityModalStatus').textContent=error.message;}
   });actions.append(dismiss);
  }
  const billingEvent=/\\b(bill(?:ing)?|invoice|payment|receivable)\\b/i.test([n.type,n.title,n.body].join(' '));
  if(billingEvent){
   const invoiceMatch=([n.title,n.body].join(' ')).match(/\\binvoice\\s*(?:#|number\\s*[:#]?\\s*)([1-9][0-9]*)\\b/i);
-  const invoiceId=invoiceMatch?Number(invoiceMatch[1]):null;
+  const syntheticBilling=/\b(synthetic|demo|test notification)\b/i.test([n.title,n.body].join(' '));
+  const invoiceId=!syntheticBilling&&invoiceMatch?Number(invoiceMatch[1]):null;
   const billingLink=node('a','Open billing workspace','activity-primary');
   billingLink.href=base+'/billing.php';
   actions.append(billingLink);
   if(invoiceId){
    const invoiceLink=node('a','Open invoice #'+invoiceId);
    invoiceLink.href=base+'/invoice.php?id='+encodeURIComponent(String(invoiceId));
+   invoiceLink.hidden=true;
    actions.append(invoiceLink);
    const panel=node('section',undefined,'activity-enrollment');
    panel.append(node('p','Loading invoice status…'));actions.append(panel);
@@ -166,6 +168,7 @@ function showModal(n){
      if(!response.ok||!result.invoice)throw Error(result.error||'Invoice unavailable');
      if(modalNotification!==n)return;
      const invoice=result.invoice;
+     invoiceLink.hidden=false;
      panel.replaceChildren();
      const heading=node('div',undefined,'activity-enrollment-heading');
      heading.append(node('strong','Invoice '+(invoice.invoice_number||'#'+invoiceId)),node('span',String(invoice.status||'Unknown'),'activity-enrollment-badge'));
@@ -188,10 +191,10 @@ function showModal(n){
   info.append(heading);
   const fields=node('dl');
   const field=(label,value)=>{if(value!==null&&value!==undefined&&String(value).trim()!=='')fields.append(node('dt',label),node('dd',value));};
-  field('Event type',type);field('Notification','#'+n.id);field('State',n.read_at===null?'Outstanding':'Dismissed');
-  field('Created',n.created_at);field('Description',n.body);
+  field('Event type',type);field('Notification','#'+n.id);field('Notification status',n.read_at===null?'Unread':'Read');
+  field('Created',n.created_at);field('Description',n.body);if(billingEvent&&!invoiceId)field('Related invoice','None verified');
   info.append(fields);
-  info.append(node('p',synthetic?'This notification was generated for demonstration or testing. It has no real business record or transaction controls.':'This event has no verified related record. Its details are available here; business actions require a linked record.'));
+  info.append(node('p',synthetic?'This is a demo / test notification. No invoice or payment is associated with it. Use Open billing workspace to review real billing records.':'This event has no verified related record. Its details are available here; business actions require a linked record.'));
   actions.append(info);
  }
  el('activityModalStatus').textContent='';
@@ -222,7 +225,7 @@ el('activityNext').disabled=!hasMore;
 message.textContent=filtered.length?'':(items.length?'No matches in this batch. Try another filter or the next batch.':'No notifications in this batch.');
 for(const n of filtered){
 const unreadItem=n.read_at===null,cat=category(n),article=node('article',undefined,'brite-activity-record '+cat+(unreadItem?' unread':''));
-const header=node('header'),title=node('strong',n.title||'Notification'),meta=node('small',cat[0].toUpperCase()+cat.slice(1)+' · '+(unreadItem?'Outstanding':'Dismissed'));
+const header=node('header'),title=node('strong',n.title||'Notification'),meta=node('small',cat[0].toUpperCase()+cat.slice(1)+' · '+(unreadItem?'Unread':'Read'));
 const icon=node('span',undefined,'brite-list-flat-icon');icon.setAttribute('role','img');icon.setAttribute('aria-label',cat+' activity');
 const paths={marketplace:'<path d="M4 7h16v14H4zM8 7V4h8v3"/>',schedule:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/>',warning:'<path d="M12 3 2 21h20zM12 9v5M12 18h.01"/>',general:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8"/>'};
 icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">'+(paths[cat]||paths.general)+'</svg>';
