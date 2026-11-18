@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/app/bootstrap.php';
+require_once __DIR__ . '/app/EnrollmentBlocks.php';
 $user = Auth::requireUser();
 $tenant = Auth::tenant();
 $role = (string)$tenant['role'];
@@ -19,9 +20,10 @@ $ready = true;
 try {
     $db->query('SELECT id FROM enrollment_applications LIMIT 0');
     $db->query('SELECT id FROM enrollment_invitations LIMIT 0');
+    $db->query('SELECT id FROM enrollment_blocks LIMIT 0');
 } catch (PDOException $e) {
     $ready = false;
-    $error = 'Enrollment database setup required. Apply migrations 039_enrollment_management.sql and 040_enrollment_invitations.sql.';
+    $error = 'Enrollment database setup required. Apply migrations 039, 040 and 041_enrollment_blocks.sql.';
 }
 if ($ready && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     try {
@@ -47,6 +49,7 @@ if ($ready && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $lock=$db->prepare('SELECT id FROM tenants WHERE id=? FOR UPDATE');
                 $lock->execute([$tenantId]);
                 if(!$lock->fetch()) throw new DomainException('Tenant unavailable');
+            EnrollmentBlocks::assertAllowed($db,$tenantId,$email);
             $q=$db->prepare("SELECT id FROM enrollment_applications WHERE tenant_id=? AND applicant_type=? AND email=? AND status IN ('pending','approved') LIMIT 1");
             $q->execute([$tenantId,$type,$email]);
             if ($q->fetch()) throw new DomainException('An active application already exists for this email and type');
@@ -61,6 +64,34 @@ if ($ready && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 throw $e;
             }
             $notice = 'Application submitted for review.';
+        } elseif (($action==='block' || $action==='unblock') && $canReview) {
+            $email=strtolower(trim((string)($_POST['email']??'')));
+            $reason=trim((string)($_POST['reason']??''));
+            if (!filter_var($email,FILTER_VALIDATE_EMAIL) || strlen($email)>190) throw new DomainException('Valid email required');
+            if ($action==='block' && ($reason==='' || strlen($reason)>1000)) throw new DomainException('Reason required (up to 1000 characters)');
+            $db->beginTransaction();
+            try {
+                $lock=$db->prepare('SELECT id FROM tenants WHERE id=? FOR UPDATE');
+                $lock->execute([$tenantId]);
+                if (!$lock->fetch()) throw new DomainException('Tenant unavailable');
+                if ($action==='block') {
+                    $q=$db->prepare('INSERT INTO enrollment_blocks (tenant_id,email,reason,blocked_by) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE reason=VALUES(reason),blocked_by=VALUES(blocked_by),blocked_at=UTC_TIMESTAMP(),unblocked_by=NULL,unblocked_at=NULL');
+                    $q->execute([$tenantId,$email,$reason,$userId]);
+                    $q=$db->prepare('UPDATE enrollment_invitations i JOIN enrollment_applications a ON a.id=i.application_id AND a.tenant_id=i.tenant_id SET i.revoked_at=UTC_TIMESTAMP() WHERE i.tenant_id=? AND a.email=? AND i.accepted_at IS NULL AND i.revoked_at IS NULL');
+                    $q->execute([$tenantId,$email]);
+                } else {
+                    $q=$db->prepare('UPDATE enrollment_blocks SET unblocked_at=UTC_TIMESTAMP(),unblocked_by=? WHERE tenant_id=? AND email=? AND unblocked_at IS NULL');
+                    $q->execute([$userId,$tenantId,$email]);
+                    if ($q->rowCount()!==1) throw new DomainException('No active block');
+                }
+                $audit=$db->prepare('INSERT INTO audit_log (tenant_id,user_id,action,entity_type,entity_id,metadata) VALUES (?,?,?,?,?,?)');
+                $audit->execute([$tenantId,$userId,'enrollment.'.$action,'enrollment_block',0,json_encode(['email'=>$email,'reason'=>$action==='block'?$reason:null],JSON_THROW_ON_ERROR)]);
+                $db->commit();
+                $notice=$action==='block'?'Applicant blocked; unused invitations revoked. Existing accounts remain unchanged.':'Applicant unblocked.';
+            } catch(Throwable $e) {
+                if ($db->inTransaction()) $db->rollBack();
+                throw $e;
+            }
         } elseif ($action === 'revoke' && $canReview) {
             $id=filter_var($_POST['application_id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
             if(!$id) throw new DomainException('Invalid application');
@@ -94,6 +125,7 @@ if ($ready && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $q=$db->prepare('SELECT id FROM users WHERE email=? LIMIT 1');
                 $q->execute([$application['email']]);
                 if ($q->fetch()) throw new DomainException('An account already uses this email; manual membership review required');
+                EnrollmentBlocks::assertAllowed($db,$tenantId,(string)$application['email']);
                 $q=$db->prepare('UPDATE enrollment_invitations SET revoked_at=UTC_TIMESTAMP() WHERE tenant_id=? AND application_id=? AND accepted_at IS NULL AND revoked_at IS NULL');
                 $q->execute([$tenantId,$id]);
                 $rawToken=bin2hex(random_bytes(32));
@@ -171,6 +203,13 @@ HTML;
             // creates an authenticated user or grants tenant membership.
             $db->beginTransaction();
             try {
+                if ($decision==='approved') {
+                    $check=$db->prepare("SELECT email FROM enrollment_applications WHERE id=? AND tenant_id=? AND status='pending' FOR UPDATE");
+                    $check->execute([$id,$tenantId]);
+                    $reviewEmail=$check->fetchColumn();
+                    if (!$reviewEmail) throw new DomainException('Application unavailable');
+                    EnrollmentBlocks::assertAllowed($db,$tenantId,(string)$reviewEmail);
+                }
                 $q=$db->prepare("UPDATE enrollment_applications SET status=?, reviewed_by=?, reviewed_at=NOW(), decision_note=? WHERE id=? AND tenant_id=? AND status='pending'");
                 $q->execute([$decision,$userId,$note ?: null,$id,$tenantId]);
                 if ($q->rowCount() !== 1) throw new DomainException('Application already reviewed or unavailable');
@@ -196,9 +235,13 @@ HTML;
     }
 }
 $rows=[];
+$blockedEmails=[];
 $invitationCounts=['not_sent'=>0,'invited'=>0,'expired'=>0,'revoked'=>0,'activated'=>0];
 $counts=['pending'=>0,'approved'=>0,'rejected'=>0];
 if ($ready) {
+    $q=$db->prepare('SELECT email,reason,blocked_at FROM enrollment_blocks WHERE tenant_id=? AND unblocked_at IS NULL ORDER BY blocked_at DESC LIMIT 100');
+    $q->execute([$tenantId]);
+    $blockedEmails=$q->fetchAll(PDO::FETCH_ASSOC);
     $q=$db->prepare('SELECT status,COUNT(*) AS total FROM enrollment_applications WHERE tenant_id=? GROUP BY status');
     $q->execute([$tenantId]);
     foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $r) $counts[$r['status']] = (int)$r['total'];
@@ -255,6 +298,30 @@ require __DIR__ . '/partials/app_header.php';
 <div class="grid" style="margin:12px 0">
 <?php foreach($invitationCounts as $label=>$count): ?><div class="card"><strong class="metric"><?=$esc($count)?></strong><div><?=$esc(ucwords(str_replace('_',' ',$label)))?> invitations</div></div><?php endforeach; ?>
 </div>
+<?php if($canReview): ?>
+<section class="card" style="margin:14px 0">
+<h2>Blocked applicants</h2>
+<p class="muted">Tenant-only email blocks. Blocking revokes unused invitations, not existing memberships.</p>
+<form method="post" style="display:flex;gap:9px;flex-wrap:wrap;align-items:end">
+<input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>">
+<input type="hidden" name="action" value="block">
+<label>Email <input name="email" type="email" maxlength="190" required></label>
+<label>Reason <input name="reason" maxlength="1000" required></label>
+<button type="submit" onclick="return confirm('Block this email and revoke unused invitations?')">Block applicant</button>
+</form>
+<?php if(!$blockedEmails): ?><p class="muted">No blocked applicants.</p><?php endif; ?>
+<?php foreach($blockedEmails as $blocked): ?>
+<div class="row" style="gap:12px;align-items:center;flex-wrap:wrap;margin:10px 0">
+<div><strong><?=$esc($blocked['email'])?></strong><div class="muted"><?=$esc($blocked['reason'])?> · <?=$esc($blocked['blocked_at'])?></div></div>
+<form method="post">
+<input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>">
+<input type="hidden" name="action" value="unblock">
+<input type="hidden" name="email" value="<?=$esc($blocked['email'])?>">
+<button type="submit" onclick="return confirm('Unblock this email?')">Unblock</button>
+</form></div>
+<?php endforeach; ?>
+</section>
+<?php endif; ?>
 <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px">
 <section class="card"><h2>New application</h2>
 <form method="post" style="display:grid;gap:9px">
