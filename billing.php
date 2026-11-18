@@ -49,8 +49,12 @@ require __DIR__.'/partials/app_header.php';
 
 </div>
 
-<div class="card"
-     style="margin-top:18px">
+<nav aria-label="Billing views" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">
+<button type="button" id="billingInvoicesTab" aria-pressed="true">Invoices</button>
+<button type="button" id="billingPaymentsTab" aria-pressed="false">Payment History</button>
+</nav>
+<div class="card" id="billingInvoicesView"
+     style="margin-top:12px">
 
     <h2>Invoices</h2>
 
@@ -168,8 +172,8 @@ require __DIR__.'/partials/app_header.php';
 
 </div>
 
-<div class="card"
-     style="margin-top:18px">
+<div class="card" id="billingPaymentsView"
+     style="margin-top:12px" hidden>
 
     <h2>Payment History</h2>
 
@@ -200,6 +204,23 @@ require __DIR__.'/partials/app_header.php';
 
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-pagination.js'))?>"></script>
 <script>
+
+// Only one billing table and its associated pagination are visible at a time.
+const billingViews={
+ invoices:document.getElementById('billingInvoicesView'),
+ payments:document.getElementById('billingPaymentsView')
+};
+function selectBillingView(view){
+ for(const [name,element] of Object.entries(billingViews)){
+  element.hidden=name!==view;
+  element.style.display=name===view?'':'none';
+ }
+ document.getElementById('billingInvoicesTab').setAttribute('aria-pressed',String(view==='invoices'));
+ document.getElementById('billingPaymentsTab').setAttribute('aria-pressed',String(view==='payments'));
+}
+document.getElementById('billingInvoicesTab').addEventListener('click',()=>selectBillingView('invoices'));
+document.getElementById('billingPaymentsTab').addEventListener('click',()=>selectBillingView('payments'));
+selectBillingView(location.hash==='#payments'?'payments':'invoices');
 
 const billingError =
     document.getElementById('billingError');
