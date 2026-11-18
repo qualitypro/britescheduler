@@ -92,6 +92,20 @@ function renderEventHistory(card,key){
  }
  details.append(list);panel.append(details);card.append(panel);
 }
+// Activity Hub is a self-contained inspection workspace. Links within its
+// records open the notification dialog instead of navigating away.
+function keepInActivityHub(link,n){
+ link.addEventListener('click',event=>{
+  event.preventDefault();
+  event.stopPropagation();
+  if(modal.open&&modalNotification===n){
+   el('activityModalStatus').textContent='Related record details are displayed above. Activity Hub remains open.';
+   const section=el('activityModalActions').querySelector('.activity-enrollment,.activity-progress');
+   if(section)section.scrollIntoView({block:'nearest',behavior:'smooth'});
+  }else showModal(n);
+ });
+ return link;
+}
 function showModal(n){
  modalNotification=n;
  el('activityModalTitle').textContent=n.title||'Notification';
@@ -190,7 +204,7 @@ function showModal(n){
 
   const review=node('a','Open enrollment record');
   review.href=base+'/enrollment.php?application_id='+encodeURIComponent(String(enrollmentId));
-  actions.append(review);
+  actions.append(keepInActivityHub(review,n));
  }
  if(appointment){
   const panel=node('section',undefined,'activity-enrollment');
@@ -212,9 +226,9 @@ function showModal(n){
     panel.append(node('p','Use Scheduling to complete available appointment actions according to your role and the current appointment state.'));
    }).catch(error=>{if(modalNotification===n)panel.replaceChildren(node('p','Appointment details unavailable: '+error.message));});
   const a=node('a',isBookingRequest(n)?'Review booking':'Open appointment','activity-primary');
-  a.href=base+'/scheduling.php?appointment_id='+encodeURIComponent(String(appointment));actions.append(a);
+  a.href=base+'/scheduling.php?appointment_id='+encodeURIComponent(String(appointment));actions.append(keepInActivityHub(a,n));
   if(category(n)==='marketplace'){
-   const m=node('a','Review marketplace');m.href=base+'/bidding.php?appointment_id='+encodeURIComponent(String(appointment));actions.append(m);
+   const m=node('a','Review marketplace');m.href=base+'/bidding.php?appointment_id='+encodeURIComponent(String(appointment));actions.append(keepInActivityHub(m,n));
   }
  }
  if(!n.dismissed_at){
@@ -233,12 +247,12 @@ function showModal(n){
   invoiceId=!syntheticBilling&&invoiceMatch?Number(invoiceMatch[1]):null;
   const billingLink=node('a','Open billing workspace','activity-primary');
   billingLink.href=base+'/billing.php';
-  actions.append(billingLink);
+  actions.append(keepInActivityHub(billingLink,n));
   if(invoiceId){
    const invoiceLink=node('a','Open invoice #'+invoiceId);
    invoiceLink.href=base+'/invoice.php?id='+encodeURIComponent(String(invoiceId));
    invoiceLink.hidden=true;
-   actions.append(invoiceLink);
+   actions.append(keepInActivityHub(invoiceLink,n));
    const panel=node('section',undefined,'activity-enrollment');
    panel.append(node('p','Loading invoice status…'));actions.append(panel);
    fetch(base+'/api/invoices.php?id='+encodeURIComponent(String(invoiceId)),{credentials:'same-origin',cache:'no-store'})
@@ -312,7 +326,7 @@ function renderWorkflowCards(){
   }
   details.append(list);
   const actions=node('div',undefined,'actions');
-  const link=node('a','Open enrollment record');link.href=base+'/enrollment.php?application_id='+encodeURIComponent(String(id));actions.append(link);
+  const link=node('a','Open enrollment record');link.href=base+'/enrollment.php?application_id='+encodeURIComponent(String(id));actions.append(keepInActivityHub(link,events[0]));
   card.append(heading,summary,bar,details,actions);visible.append(card);
   fetch(base+'/api/activity_workflow_progress.php?workflow_type=enrollment&record_id='+encodeURIComponent(String(id)),{credentials:'same-origin',cache:'no-store'}).then(async response=>{
    const data=await response.json();if(!response.ok||!data.ok)throw Error(data.error||'Unavailable');
@@ -385,12 +399,12 @@ const isBilling=/\b(bill(?:ing)?|invoice|payment|receivable)\b/i.test([n.type,n.
 if(isBilling){
  const billing=node('a','Open billing workspace');
  billing.href=base+'/billing.php';
- actions.append(billing);
+ actions.append(keepInActivityHub(billing,n));
 }
 const appointmentId=Number(n.appointment_id);
 if(Number.isSafeInteger(appointmentId)&&appointmentId>0){
-const link=node('a',isBookingRequest(n)?'Open booking':'Open appointment');link.className='activity-primary';link.href=base+'/scheduling.php?appointment_id='+encodeURIComponent(String(appointmentId));actions.append(link);
-if(cat==='marketplace'){const market=node('a','Marketplace');market.href=base+'/bidding.php?appointment_id='+encodeURIComponent(String(appointmentId));actions.append(market);}
+const link=node('a',isBookingRequest(n)?'Open booking':'Open appointment');link.className='activity-primary';link.href=base+'/scheduling.php?appointment_id='+encodeURIComponent(String(appointmentId));actions.append(keepInActivityHub(link,n));
+if(cat==='marketplace'){const market=node('a','Marketplace');market.href=base+'/bidding.php?appointment_id='+encodeURIComponent(String(appointmentId));actions.append(keepInActivityHub(market,n));}
 }
 if(activeEvents.length){
 const dismiss=node('button',activeEvents.length>1?'Dismiss '+activeEvents.length+' notifications':'Dismiss');dismiss.type='button';
