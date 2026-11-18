@@ -421,9 +421,7 @@ require __DIR__ . '/partials/app_header.php';
 <?php if(isset($invitationUrl)): ?><p><strong>One-time invitation link:</strong> <input readonly aria-label="Invitation link" value="<?=$esc($invitationUrl)?>" style="width:100%;box-sizing:border-box" onclick="this.select()"></p><p class="muted">This link is shown only now. Share it privately; never post it publicly.</p><?php endif; ?>
 <?php if($error!==''): ?><p role="alert" class="danger"><?=$esc($error)?></p><?php endif; ?>
 <?php if($ready): ?>
-<div class="en-stats" aria-label="Application summary">
-<?php foreach($counts as $label=>$count): ?><div class="en-stat"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-file"></use></svg><strong><?=$esc($count)?></strong><span><?=$esc(ucfirst($label))?></span></div><?php endforeach; ?>
-<?php foreach($invitationCounts as $label=>$count): ?><div class="en-stat"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-mail"></use></svg><strong><?=$esc($count)?></strong><span><?=$esc(ucwords(str_replace('_',' ',$label)))?> invites</span></div><?php endforeach; ?>
+<?php endforeach; ?>
 </div>
 <?php if($canReview): ?>
 <details class="en-panel en-register" id="en-restrictions">
@@ -578,6 +576,9 @@ if($hasApplication) continue;
 <?php if(!$rows && !$blockedEmails): ?><tr><td colspan="5" class="en-empty">No enrollment records match these filters.</td></tr><?php endif; ?>
 </tbody></table></div>
 </section>
+<div class="en-stats" aria-label="Application summary">
+<?php foreach($counts as $label=>$count): ?><div class="en-stat"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-file"></use></svg><strong><?=$esc($count)?></strong><span><?=$esc(ucfirst($label))?></span></div><?php endforeach; ?>
+<?php foreach($invitationCounts as $label=>$count): ?><div class="en-stat"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-mail"></use></svg><strong><?=$esc($count)?></strong><span><?=$esc(ucwords(str_replace('_',' ',$label)))?> invites</span></div>
 <?php endif; ?>
 </section>
 
