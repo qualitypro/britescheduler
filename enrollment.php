@@ -401,7 +401,9 @@ if (($_SERVER['REQUEST_METHOD']??'GET')==='POST') {
 @media(max-width:650px){.enrollment-shell .en-workspace-layout{grid-template-columns:1fr}.enrollment-shell .en-vertical-tabs{border-right:0;border-bottom:1px solid var(--en-line,#cbd5e1);padding:0 0 8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}}
 </style>
 <style>
-/* CRM-aligned compact enrollment workspace; visual-only, no workflow changes. */
+/* CRM-aligned compact enrollment workspace and contextual action guidance. */
+.enrollment-shell .en-next-step{display:flex;align-items:flex-start;gap:6px;padding:7px 9px;border-left:3px solid var(--en-accent,#2563eb);background:rgba(37,99,235,.055);border-radius:4px;font-size:11.5px;line-height:1.4}
+.enrollment-shell .en-next-step .en-icon{margin-top:2px}
 .enrollment-shell{padding:12px!important;font-size:12px;line-height:1.4;min-width:0;max-width:100%}
 .enrollment-shell .en-heading{gap:6px;margin:0 0 5px;line-height:1.3}
 .enrollment-shell h1.en-heading{font-size:1.3rem}
@@ -514,8 +516,22 @@ if (($_SERVER['REQUEST_METHOD']??'GET')==='POST') {
 <td><details class="en-record-details"><summary class="en-btn"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-clipboard"></use></svg> Manage</summary>
 <div class="en-record-panel" aria-label="Manage enrollment #<?=$esc($item['id'])?>">
 <div class="en-card-head"><strong><svg class="en-icon" aria-hidden="true"><use href="#en-icon-user"></use></svg> <?=$esc($item['full_name'])?></strong><small class="muted">Application #<?=$esc($item['id'])?></small></div>
-<div class="en-card-head"><strong><svg class="en-icon" aria-hidden="true"><use href="#en-icon-user"></use></svg> <?=$esc($item['full_name'])?></strong><small class="muted">#<?=$esc($item['id'])?></small></div>
+
 <div class="en-badges"><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-users"></use></svg> <?=$esc(ucfirst($item['applicant_type']))?></span><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-file"></use></svg> <?=$esc(ucfirst($item['status']))?></span><?php if($item['invitation_state']): ?><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-mail"></use></svg> <?=$esc(ucfirst($item['invitation_state']))?></span><?php endif; ?><?php if($item['block_reason']!==null): ?><span class="en-badge is-blocked"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-ban"></use></svg> Blocked</span><?php endif; ?></div>
+<?php
+$enNextStep=$item['block_reason']!==null
+    ? 'Blocked — remove the restriction before approving or inviting.'
+    : ($item['status']==='pending'
+        ? 'Awaiting review — approve or reject this application.'
+        : ($item['status']==='rejected'
+            ? 'Rejected — no further enrollment action is available.'
+            : (in_array($item['invitation_state'],['activated'],true)
+                ? 'Activated — this invitation has already been accepted.'
+                : ($item['invitation_state']==='invited'
+                    ? 'Invitation pending — wait for activation, replace the invitation, or revoke it.'
+                    : 'Approved — send an activation invitation to continue onboarding.'))));
+?>
+<p class="en-next-step"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-info"></use></svg> <?=$esc($enNextStep)?></p>
 <?php if($item['block_reason']!==null): ?><p role="status" class="danger" style="margin:8px 0"><strong>Enrollment blocked</strong> — <?=$esc($item['block_reason'])?>. Approval and invitations are unavailable until unblocked.</p><?php endif; ?>
 <div class="en-card-meta"><span><svg class="en-icon" aria-hidden="true"><use href="#en-icon-mail"></use></svg> <a href="mailto:<?=$esc($item['email'])?>"><?=$esc($item['email'])?></a></span><?php if($item['phone']): ?><span><svg class="en-icon" aria-hidden="true"><use href="#en-icon-phone"></use></svg> <?=$esc($item['phone'])?></span><?php endif; ?></div>
 <div class="muted en-card-meta"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-clock"></use></svg> Submitted <?=$esc($item['created_at'])?><?php if($item['reviewed_at']): ?> · Reviewed <?=$esc($item['reviewed_at'])?><?php endif; ?></div>
@@ -545,7 +561,7 @@ if (($_SERVER['REQUEST_METHOD']??'GET')==='POST') {
 <button type="submit" onclick="return confirm('Revoke the current activation invitation?')"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-lock"></use></svg> Revoke active invitation</button>
 </form>
 <?php endif; ?>
-<?php if($canReview && $item['block_reason']===null && $item['status']==='approved'): ?>
+<?php if($canReview && $item['block_reason']===null && $item['status']==='approved' && $item['invitation_state']!=='activated'): ?>
 <form method="post" style="margin-top:8px">
 <input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>">
 <input type="hidden" name="action" value="invite">
