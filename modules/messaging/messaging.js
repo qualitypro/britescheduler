@@ -5,6 +5,17 @@ const base=(window.BRITE_BASE||'')+'/modules/messaging/api.php';
 let current=null,currentTitle='',busy=false,refreshing=false,selectionToken=0,composing=false;
 const status=message=>{$('msgStatus').textContent=message;};
 let threadCache=[],tablePage=1;
+async function call(action,data,params={}){
+ const post=data instanceof FormData;
+ const url=new URL(base,location.href);
+ if(!post){url.searchParams.set('action',action);for(const [key,value] of Object.entries(params))url.searchParams.set(key,String(value));}
+ else data.set('action',action);
+ const r=await fetch(url.toString(),{method:post?'POST':'GET',credentials:'same-origin',headers:{Accept:'application/json',...(post?{'X-CSRF-Token':window.BRITE_CSRF}:{})},...(post?{body:data}:{})});
+ let result;try{result=await r.json();}catch{throw Error('Server returned an invalid response');}
+ if(!r.ok)throw Error(result.error||'Request failed');
+ return result;
+}
+
 const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=String(text);return n;};
 const tableControls=['msgThreadSearch','msgUnreadFilter','msgThreadSort','msgPageSize'];
 function renderThreads(){
