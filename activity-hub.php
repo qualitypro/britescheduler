@@ -65,7 +65,46 @@ function showModal(n){
  const appointment=validId(n.appointment_id);
  const enrollmentId=enrollmentApplicationId(n);
  if(enrollmentId){
-  const review=node('a','Review application','activity-primary');
+  const workflow=node('div');workflow.style.cssText='width:100%;display:grid;gap:8px';
+  workflow.append(node('p','Loading enrollment workflow…'));
+  actions.append(workflow);
+  const url=base+'/api/notification_workflows.php?application_id='+encodeURIComponent(String(enrollmentId));
+  fetch(url,{credentials:'same-origin',cache:'no-store'}).then(async res=>{
+   const data=await res.json();if(!res.ok||!data.ok)throw Error(data.error||'Workflow unavailable');
+   if(modalNotification!==n)return;
+   workflow.replaceChildren();
+   const a=data.application;
+   const status=node('p',a.full_name+' · '+a.applicant_type+' · '+a.status);
+   workflow.append(status);
+   const contact=node('p',a.email+(a.phone?' · '+a.phone:''));
+   workflow.append(contact);
+   if(a.notes)workflow.append(node('p','Applicant notes: '+a.notes));
+   workflow.append(node('p',data.next_step));
+   if(a.blocked)workflow.append(node('p','This applicant is blocked. Approval is unavailable.'));
+   if(data.actions.length){
+    const note=node('textarea');note.placeholder='Optional review note';note.maxLength=1000;note.rows=2;note.setAttribute('aria-label','Review note');
+    workflow.append(note);
+    const buttons=node('div');buttons.className='activity-modal-actions';
+    for(const decision of data.actions){
+     const button=node('button',decision==='approved'?'Approve application':'Reject application',decision==='approved'?'activity-primary':'');
+     button.type='button';if(decision==='approved'&&a.blocked)button.disabled=true;
+     button.addEventListener('click',async()=>{
+      if(!window.confirm(decision==='approved'?'Approve this application? An activation invitation is still required.':'Reject this application? This decision cannot be reversed here.'))return;
+      buttons.querySelectorAll('button').forEach(b=>b.disabled=true);
+      el('activityModalStatus').textContent='Saving decision…';
+      try{
+       const response=await fetch(base+'/api/notification_workflows.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':window.BRITE_CSRF||''},body:JSON.stringify({application_id:enrollmentId,decision,decision_note:note.value})});
+       const result=await response.json();if(!response.ok||!result.ok)throw Error(result.error||'Review failed');
+       el('activityModalStatus').textContent='Decision saved. '+result.next_step;
+       showModal(n);
+      }catch(error){el('activityModalStatus').textContent=error.message;buttons.querySelectorAll('button').forEach(b=>b.disabled=decision==='approved'&&a.blocked);}
+     });buttons.append(button);
+    }
+    workflow.append(buttons);
+   }
+  }).catch(error=>{if(modalNotification===n)workflow.replaceChildren(node('p','Unable to load enrollment workflow: '+error.message));});
+
+  const review=node('a','Open full enrollment record');
   review.href=base+'/enrollment.php?application_id='+encodeURIComponent(String(enrollmentId));
   actions.append(review);
  }
