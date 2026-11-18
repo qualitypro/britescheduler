@@ -379,6 +379,27 @@ require __DIR__ . '/partials/app_header.php';
 .enrollment-shell .en-grid-filter-panel>summary{cursor:pointer;font-weight:600}
 .enrollment-shell .en-grid-filter-panel .en-toolbar{margin:.5rem 0 0}
 </style>
+<?php
+$enTab=(string)($_GET['tab']??'records');
+if (!in_array($enTab,['records','new','block'],true)) $enTab='records';
+if (!$canReview && $enTab==='block') $enTab='records';
+if (($_SERVER['REQUEST_METHOD']??'GET')==='POST') {
+    $enAction=(string)($_POST['action']??'');
+    if ($enAction==='submit') $enTab='new';
+    elseif ($enAction==='block') $enTab='block';
+    else $enTab='records';
+}
+?>
+<style>
+.enrollment-shell .en-workspace-layout{display:grid;grid-template-columns:174px minmax(0,1fr);gap:12px;align-items:start;min-width:0}
+.enrollment-shell .en-vertical-tabs{display:flex;flex-direction:column;gap:3px;border-right:1px solid var(--en-line,#cbd5e1);padding-right:8px;min-width:0}
+.enrollment-shell .en-vertical-tabs a{display:flex;align-items:center;gap:8px;padding:9px 8px;border-left:3px solid transparent;border-radius:6px;color:inherit;text-decoration:none;font-size:.85rem;font-weight:600;overflow-wrap:anywhere}
+.enrollment-shell .en-vertical-tabs a[aria-current="page"]{border-left-color:#2563eb;background:rgba(37,99,235,.09)}
+.enrollment-shell .en-vertical-tabs a:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+.enrollment-shell .en-workspace-content{min-width:0}
+.enrollment-shell .en-workspace-content>.en-panel{margin-top:0}
+@media(max-width:650px){.enrollment-shell .en-workspace-layout{grid-template-columns:1fr}.enrollment-shell .en-vertical-tabs{border-right:0;border-bottom:1px solid var(--en-line,#cbd5e1);padding:0 0 8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}}
+</style>
 <section class="card enrollment-shell" data-brite-pills="off">
 <h1 class="en-heading"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-users"></use></svg> Enrollment Management</h1>
 <p class="muted en-intro">Review applications, invite approved applicants, and manage enrollment restrictions. Approval alone does not create an account.</p>
@@ -386,9 +407,16 @@ require __DIR__ . '/partials/app_header.php';
 <?php if(isset($invitationUrl)): ?><p><strong>One-time invitation link:</strong> <input readonly aria-label="Invitation link" value="<?=$esc($invitationUrl)?>" style="width:100%;box-sizing:border-box" onclick="this.select()"></p><p class="muted">This link is shown only now. Share it privately; never post it publicly.</p><?php endif; ?>
 <?php if($error!==''): ?><p role="alert" class="danger"><?=$esc($error)?></p><?php endif; ?>
 <?php if($ready): ?>
-<?php if($canReview): ?>
-<details class="en-panel en-register" id="en-restrictions">
-<summary><svg class="en-icon" aria-hidden="true"><use href="#en-icon-ban"></use></svg> Block an email address<?php if($restrictionActiveTotal>0): ?> <span class="muted">(<?=$restrictionActiveTotal?> currently blocked)</span><?php endif; ?></summary>
+<div class="en-workspace-layout">
+<nav class="en-vertical-tabs" aria-label="Enrollment activities">
+<a href="enrollment.php?tab=records#en-review" <?=$enTab==='records'?'aria-current="page"':''?>><svg class="en-icon" aria-hidden="true"><use href="#en-icon-clipboard"></use></svg> Enrollment records</a>
+<a href="enrollment.php?tab=new#en-new" <?=$enTab==='new'?'aria-current="page"':''?>><svg class="en-icon" aria-hidden="true"><use href="#en-icon-plus"></use></svg> New application</a>
+<?php if($canReview): ?><a href="enrollment.php?tab=block#en-restrictions" <?=$enTab==='block'?'aria-current="page"':''?>><svg class="en-icon" aria-hidden="true"><use href="#en-icon-ban"></use></svg> Block email<?php if($restrictionActiveTotal>0): ?> (<?=$restrictionActiveTotal?>)<?php endif; ?></a><?php endif; ?>
+</nav>
+<div class="en-workspace-content">
+<?php if($enTab==='block' && $canReview): ?>
+<section class="en-panel en-register" id="en-restrictions">
+<h2 class="en-heading"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-ban"></use></svg> Block an email address</h2>
 <p class="muted">Use this only when you need to prevent someone from applying or receiving an activation invitation. Existing accounts are not suspended. To review or remove a block, use <strong>Manage</strong> in the enrollment table below.</p>
 <form method="post" class="en-toolbar" style="margin-top:.6rem">
 <input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>">
@@ -397,9 +425,10 @@ require __DIR__ . '/partials/app_header.php';
 <label style="flex:2 1 220px">Why block this address? <input name="reason" maxlength="1000" required placeholder="Reason for blocking enrollment"></label>
 <button class="en-btn" type="submit" onclick="return confirm('Block this email and revoke unused invitations?')"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-ban"></use></svg> Block email</button>
 </form>
-</details>
+</section>
 <?php endif; ?>
-<details class="en-panel" id="en-new"><summary><svg class="en-icon" aria-hidden="true"><use href="#en-icon-plus"></use></svg> New application</summary>
+<?php if($enTab==='new'): ?>
+<section class="en-panel" id="en-new"><h2 class="en-heading"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-plus"></use></svg> New application</h2>
 <form method="post" class="en-form-grid" style="margin-top:.6rem">
 <input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>">
 <input type="hidden" name="action" value="submit">
@@ -409,10 +438,13 @@ require __DIR__ . '/partials/app_header.php';
 <label>Phone <input name="phone" maxlength="40"></label>
 <label class="en-wide">Application notes <textarea name="notes" maxlength="5000" rows="2"></textarea></label>
 <div class="en-wide"><button type="submit" class="en-btn"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-send"></use></svg> Submit application</button></div>
-</form></details>
-<section class="en-panel" id="en-review"><div class="en-grid-header"><h2 class="en-heading"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-clipboard"></use></svg> Enrollment records</h2><a class="en-btn" href="enrollment.php#en-review"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-refresh"></use></svg> Reset filters</a></div>
+</form></section>
+<?php endif; ?>
+<?php if($enTab==='records'): ?>
+<section class="en-panel" id="en-review"><div class="en-grid-header"><h2 class="en-heading"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-clipboard"></use></svg> Enrollment records</h2><a class="en-btn" href="enrollment.php?tab=records#en-review"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-refresh"></use></svg> Reset filters</a></div>
 <details class="en-grid-filter-panel" <?=isset($_GET['q'])||isset($_GET['status'])||isset($_GET['type'])||isset($_GET['invitation'])||isset($_GET['visibility'])?'open':''?>><summary><svg class="en-icon" aria-hidden="true"><use href="#en-icon-filter"></use></svg> Search and filter enrollment records</summary>
 <form method="get" id="en-grid-filters" class="en-toolbar">
+<input type="hidden" name="tab" value="records">
 <label>Search <input type="search" name="q" maxlength="190" value="<?=$esc($search??'')?>" placeholder="Name, email or phone"></label>
 <label>Show <select name="visibility"><option value="attention" <?=$visibility==='attention'?'selected':''?>>Needs attention (default)</option><option value="all" <?=$visibility==='all'?'selected':''?>>All applications</option><option value="active" <?=$visibility==='active'?'selected':''?>>Activated only</option></select></label>
 <label>Invitation <select name="invitation"><?php foreach(['all','not_sent','invited','expired','revoked','activated'] as $v): ?><option value="<?=$esc($v)?>" <?=($invitation??'all')===$v?'selected':''?>><?=$esc(ucwords(str_replace('_',' ',$v)))?></option><?php endforeach; ?></select></label>
@@ -521,6 +553,9 @@ if($hasApplication) continue;
 <div class="en-stats" aria-label="Application summary">
 <?php foreach($counts as $label=>$count): ?><div class="en-stat"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-file"></use></svg><strong><?=$esc($count)?></strong><span><?=$esc(ucfirst($label))?></span></div><?php endforeach; ?>
 <?php foreach($invitationCounts as $label=>$count): ?><div class="en-stat"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-mail"></use></svg><strong><?=$esc($count)?></strong><span><?=$esc(ucwords(str_replace('_',' ',$label)))?> invites</span></div><?php endforeach; ?>
+</div>
+<?php endif; ?>
+</div>
 </div>
 <?php endif; ?>
 </section>
