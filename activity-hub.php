@@ -47,6 +47,11 @@ async function dismissNotification(n){
  n.read_at=n.read_at||new Date().toISOString();unread=Math.max(0,unread-1);
  render();
 }
+function enrollmentApplicationId(n){
+ if(String(n.type||'')!=='enrollment.submitted')return null;
+ const match=String(n.body||'').match(/(?:contractor|client) application #([1-9][0-9]*) submitted for review\./i);
+ return match?validId(match[1]):null;
+}
 function showModal(n){
  modalNotification=n;
  el('activityModalTitle').textContent=n.title||'Notification';
@@ -58,6 +63,12 @@ function showModal(n){
  add('Created',n.created_at);add('Updated',n.updated_at);
  const actions=el('activityModalActions');actions.replaceChildren();
  const appointment=validId(n.appointment_id);
+ const enrollmentId=enrollmentApplicationId(n);
+ if(enrollmentId){
+  const review=node('a','Review application','activity-primary');
+  review.href=base+'/enrollment.php?application_id='+encodeURIComponent(String(enrollmentId));
+  actions.append(review);
+ }
  if(appointment){
   const a=node('a',isBookingRequest(n)?'Review booking':'Open appointment','activity-primary');
   a.href=base+'/scheduling.php?appointment_id='+encodeURIComponent(String(appointment));actions.append(a);
@@ -73,7 +84,7 @@ function showModal(n){
    catch(error){dismiss.disabled=false;el('activityModalStatus').textContent=error.message;}
   });actions.append(dismiss);
  }
- if(!appointment){const info=node('p','No linked appointment is available for this notification.');actions.append(info);}
+ if(!appointment&&!enrollmentId){const info=node('p','No linked workflow record is available for this notification.');actions.append(info);}
  el('activityModalStatus').textContent='';
  if(!modal.open)modal.showModal();
 }
