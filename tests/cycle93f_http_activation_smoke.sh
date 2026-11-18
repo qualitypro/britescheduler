@@ -14,13 +14,18 @@ PORT="${PORT:-18793}"
 TMP="$(mktemp -d)"
 cleanup(){ [[ -n "${SERVER_PID:-}" ]] && kill "$SERVER_PID" 2>/dev/null || true; rm -rf "$TMP"; }
 trap cleanup EXIT
+trap 'echo "FAIL HTTP smoke at line $LINENO (exit $?)" >&2; if [[ -f "$TMP/server.log" ]]; then tail -35 "$TMP/server.log" >&2; fi' ERR
 export DB_NAME DB_USER DB_PASS="${DB_PASS:-}" DB_HOST="${DB_HOST:-127.0.0.1}" DB_PORT="${DB_PORT:-3306}"
-"$MYSQL_BIN" -u "$DB_USER" "${DB_PASS:+-p$DB_PASS}" "$DB_NAME" -e "SELECT id FROM enrollment_applications LIMIT 1" >/dev/null
+MYSQL_ARGS=(-u "$DB_USER" -h "$DB_HOST" -P "$DB_PORT")
+if [[ -n "$DB_PASS" ]]; then MYSQL_ARGS+=("-p$DB_PASS"); fi
+echo "Using disposable database: $DB_NAME"
+
+"${MYSQL_ARGS[@]}" "$DB_NAME" -e "SELECT id FROM enrollment_applications LIMIT 1" >/dev/null
 TOKEN="$("$PHP_BIN" -r 'echo bin2hex(random_bytes(32));')"
 HASH="$("$PHP_BIN" -r 'echo hash("sha256",$argv[1]);' "$TOKEN")"
 EMAIL="http93f_${PORT}_$(date +%s)@example.invalid"
 # SQL identifiers and token are constrained to known-safe values.
-"$MYSQL_BIN" -u "$DB_USER" "${DB_PASS:+-p$DB_PASS}" "$DB_NAME" <<SQL
+"${MYSQL_ARGS[@]}" "$DB_NAME" <<SQL
 INSERT INTO enrollment_applications (tenant_id,applicant_type,full_name,email,status,submitted_by)
 VALUES (1,'client','HTTP Test','$EMAIL','approved',1);
 SET @app=LAST_INSERT_ID();
@@ -45,6 +50,6 @@ echo "PASS activation over HTTP"
 curl -fsS "http://127.0.0.1:$PORT/enrollment-activate.php?token=$TOKEN" -o "$TMP/reuse"
 grep -q 'Invitation invalid, expired, or already used' "$TMP/reuse"
 echo "PASS consumed invitation rejected"
-"$MYSQL_BIN" -u "$DB_USER" "${DB_PASS:+-p$DB_PASS}" "$DB_NAME" -N -e "SELECT COUNT(*) FROM tenant_memberships m JOIN users u ON u.id=m.user_id WHERE u.email='$EMAIL' AND m.tenant_id=1 AND m.role='client'" | grep -qx 1
+"${MYSQL_ARGS[@]}" "$DB_NAME" -N -e "SELECT COUNT(*) FROM tenant_memberships m JOIN users u ON u.id=m.user_id WHERE u.email='$EMAIL' AND m.tenant_id=1 AND m.role='client'" | grep -qx 1
 echo "PASS membership created for correct tenant"
 echo "PASS isolated HTTP activation smoke"
