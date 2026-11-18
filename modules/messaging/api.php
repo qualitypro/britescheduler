@@ -64,7 +64,7 @@ if($method==='GET'&&$action==='thread'){
  $thread=filter_var($_GET['thread_id']??null,FILTER_VALIDATE_INT);
  if(!$thread||$thread<1)json_response(['error'=>'Invalid conversation'],422);
  threadAccess($db,$tid,$uid,$thread);
- $q=$db->prepare('SELECT m.id,m.sender_id,m.body,m.created_at,DATE_FORMAT(m.created_at,'%b %e, %Y %l:%i %p') created_at_display,u.first_name,u.last_name, (m.sender_id=?) mine FROM module_messages m JOIN users u ON u.id=m.sender_id WHERE m.tenant_id=? AND m.thread_id=? ORDER BY m.id DESC LIMIT 100');
+ $q=$db->prepare("SELECT m.id,m.sender_id,m.body,m.created_at,DATE_FORMAT(m.created_at,'%b %e, %Y %l:%i %p') created_at_display,u.first_name,u.last_name, (m.sender_id=?) mine FROM module_messages m JOIN users u ON u.id=m.sender_id WHERE m.tenant_id=? AND m.thread_id=? ORDER BY m.id DESC LIMIT 100");
  $q->execute([$uid,$tid,$thread]);$messages=array_reverse($q->fetchAll());
  $last=$messages?(int)end($messages)['id']:0;
  if($last){$q=$db->prepare('UPDATE module_message_participants SET last_read_message_id=GREATEST(COALESCE(last_read_message_id,0),?) WHERE tenant_id=? AND thread_id=? AND user_id=?');$q->execute([$last,$tid,$thread,$uid]);}
