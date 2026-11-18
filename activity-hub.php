@@ -5,10 +5,10 @@ $pageTitle = 'Activity Hub';
 require __DIR__ . '/partials/app_header.php';
 ?>
 <style>
-.brite-activity-page{max-width:1250px;margin:auto;padding:18px}.brite-activity-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0}.brite-activity-toolbar input,.brite-activity-toolbar select{min-height:40px;padding:8px;border:1px solid #94a3b8;border-radius:8px;background:var(--brite-surface,#fff);color:inherit}.brite-activity-toolbar input{flex:1;min-width:190px}.brite-activity-toolbar button,.brite-activity-page button{min-height:36px;border:1px solid #94a3b8;border-radius:8px;padding:7px 12px;cursor:pointer;background:var(--brite-surface,#fff);color:inherit}.brite-activity-stats{display:flex;gap:10px;flex-wrap:wrap}.brite-activity-stats span{padding:9px 13px;background:var(--brite-surface-muted,#f1f5f9);border-radius:9px;font-weight:650}.brite-activity-record{--accent:#0f766e;border:1px solid #cbd5e1;border-left:5px solid var(--accent);border-radius:10px;padding:11px 14px;margin:8px 0;background:var(--brite-surface,#fff)}.brite-activity-record.marketplace{--accent:#7c3aed}.brite-activity-record.schedule{--accent:#2563eb}.brite-activity-record.warning{--accent:#b45309}.brite-activity-record.unread{background:var(--brite-surface-muted,#f8fafc)}.brite-activity-record header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.brite-activity-record p{margin:5px 0 8px;font-size:.9rem}.brite-activity-record small{color:var(--accent);font-weight:650}.brite-activity-record .actions{display:flex;gap:8px;flex-wrap:wrap}.brite-activity-record a{display:inline-block;padding:8px 10px;border-radius:7px;background:var(--accent);color:white;text-decoration:none;font-size:.85rem}.brite-activity-record button{font-size:.85rem}.brite-activity-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0}.brite-activity-page :is(button,input,select,a):focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+.brite-activity-page{max-width:1250px;margin:auto;padding:18px}.brite-activity-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0}.brite-activity-toolbar input,.brite-activity-toolbar select{min-height:40px;padding:8px;border:1px solid #94a3b8;border-radius:8px;background:var(--brite-surface,#fff);color:inherit}.brite-activity-toolbar input{flex:1;min-width:190px}.brite-activity-toolbar button,.brite-activity-page button{min-height:36px;border:1px solid #94a3b8;border-radius:8px;padding:7px 12px;cursor:pointer;background:var(--brite-surface,#fff);color:inherit}.brite-activity-stats{display:flex;gap:10px;flex-wrap:wrap}.brite-activity-stats span{padding:9px 13px;background:var(--brite-surface-muted,#f1f5f9);border-radius:9px;font-weight:650}.brite-activity-record{--accent:#0f766e;border:1px solid #cbd5e1;border-left:5px solid var(--accent);border-radius:10px;padding:11px 14px;margin:8px 0;background:var(--brite-surface,#fff)}.brite-activity-record.marketplace{--accent:#7c3aed}.brite-activity-record.schedule{--accent:#2563eb}.brite-activity-record.warning{--accent:#b45309}.brite-activity-record.unread{background:var(--brite-surface-muted,#f8fafc)}.brite-activity-record header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.brite-activity-record p{margin:5px 0 8px;font-size:.9rem}.brite-activity-record small{color:var(--accent);font-weight:650}.brite-activity-record .actions{display:flex;gap:8px;flex-wrap:wrap}.brite-activity-record a{display:inline-block;padding:8px 10px;border-radius:7px;background:var(--accent);color:white;text-decoration:none;font-size:.85rem}.brite-activity-record button{font-size:.85rem}.brite-activity-record .actions{margin-top:10px}.brite-activity-record .actions .activity-primary{background:var(--accent);color:#fff;border-color:var(--accent)}.brite-activity-record .activity-detail{margin-top:10px;padding:10px 12px;border:1px solid var(--brite-border,#cbd5e1);border-radius:8px;background:var(--brite-surface-muted,#f8fafc)}.brite-activity-record .activity-detail dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0}.brite-activity-record .activity-detail dt{font-weight:650}.brite-activity-record .activity-detail dd{margin:0;overflow-wrap:anywhere}.brite-activity-record .activity-detail p{white-space:pre-wrap;overflow-wrap:anywhere}.brite-activity-record .actions button[disabled]{opacity:.6;cursor:wait}.brite-activity-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0}.brite-activity-page :is(button,input,select,a):focus-visible{outline:3px solid #2563eb;outline-offset:2px}
 </style>
 <main class="brite-activity-page">
-<header><h1>Activity Hub</h1><p>Find, review and dismiss notifications. Dismissal does not resolve the underlying booking or task.</p></header>
+<header><h1>Activity Hub</h1><p>Review activity, open related work, and manage notifications. Dismissing an alert does not complete the underlying task.</p></header>
 <div class="brite-activity-stats" aria-live="polite"><span id="activityOutstanding">Outstanding: —</span><span id="activityLoaded">Showing: —</span></div>
 <div class="brite-activity-toolbar" role="search" aria-label="Filter activity">
 <input id="activitySearch" type="search" placeholder="Search titles, messages, or IDs" aria-label="Search notifications">
@@ -69,9 +69,24 @@ const date=node('small',[n.created_at?'Created on: '+readable(n.created_at):'',n
 const people=[n.client_name?'Client: '+n.client_name:null,n.contractor_name?'Contractor: '+n.contractor_name:null].filter(Boolean);
 const peopleLine=people.length?node('p',people.join(' · ')):null;
 const actions=node('div',undefined,'actions');
+const detail=node('div',undefined,'activity-detail');detail.hidden=true;
+const details=node('dl');
+const addDetail=(label,value)=>{if(value===null||value===undefined||value==='')return;details.append(node('dt',label),node('dd',value));};
+addDetail('Category',isBookingRequest(n)?'Booking request':cat[0].toUpperCase()+cat.slice(1));
+addDetail('Notification ID',n.id);
+addDetail('Appointment ID',n.appointment_id);
+addDetail('Client',n.client_name);
+addDetail('Contractor',n.contractor_name);
+addDetail('Created',readable(n.created_at));
+addDetail('Updated',readable(n.updated_at));
+detail.append(details);
+if(n.body){detail.append(node('p',n.body));}
+const inspect=node('button','Details');inspect.type='button';inspect.setAttribute('aria-expanded','false');
+inspect.addEventListener('click',()=>{detail.hidden=!detail.hidden;inspect.setAttribute('aria-expanded',String(!detail.hidden));inspect.textContent=detail.hidden?'Details':'Hide details';});
+actions.append(inspect);
 const appointmentId=Number(n.appointment_id);
 if(Number.isSafeInteger(appointmentId)&&appointmentId>0){
-const link=node('a','Review booking');link.href=base+'/scheduling.php?appointment_id='+encodeURIComponent(String(appointmentId));actions.append(link);
+const link=node('a',isBookingRequest(n)?'Open booking':'Open appointment');link.className='activity-primary';link.href=base+'/scheduling.php?appointment_id='+encodeURIComponent(String(appointmentId));actions.append(link);
 if(cat==='marketplace'){const market=node('a','Marketplace');market.href=base+'/bidding.php?appointment_id='+encodeURIComponent(String(appointmentId));actions.append(market);}
 }
 if(unreadItem){
@@ -87,7 +102,7 @@ n.read_at=new Date().toISOString();unread=Math.max(0,unread-1);render();
 }
 article.append(header,body);
 if(peopleLine)article.append(peopleLine);
-article.append(date,actions);records.append(article);
+article.append(date,actions,detail);records.append(article);
 }
 }
 document.querySelectorAll('#activitySort [data-sort]').forEach(button=>button.addEventListener('click',()=>{
