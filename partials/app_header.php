@@ -270,8 +270,15 @@ if($briteActiveModules):
 <?php endif; ?>
 
 
-<?php if(in_array($tenant['role'],['owner','admin','accounting'],true)): ?>
+<?php if(in_array($tenant['role'],['owner','admin','scheduler','accounting'],true)): ?>
 <div class="brite-nav-group-label">Administration</div>
+<a href="<?=htmlspecialchars(app_url('/enrollment.php'),ENT_QUOTES,'UTF-8')?>">
+<span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l4 4v14H4V3h4Z"/><path d="M14 3v5h6M8 12h8M8 16h5"/><circle cx="17" cy="16" r="3"/><path d="m15.8 16 1 1 1.8-2"/></svg></span>
+Enrollment
+</a>
+<?php endif; ?>
+
+<?php if(in_array($tenant['role'],['owner','admin','accounting'],true)): ?>
 <a href="<?=htmlspecialchars(app_url('/billing.php'))?>">
 <span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg></span>
 Billing
