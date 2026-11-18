@@ -272,6 +272,9 @@ if ($ready) {
     $type=(string)($_GET['type']??'all');
     if (!in_array($type,['all','contractor','client'],true)) $type='all';
     $sql="SELECT a.id,a.applicant_type,a.full_name,a.email,a.phone,a.notes,a.status,a.decision_note,a.created_at,a.reviewed_at,
+      (SELECT m.status FROM tenant_memberships m JOIN users u ON u.id=m.user_id
+       WHERE m.tenant_id=a.tenant_id AND u.email=a.email AND m.role=a.applicant_type
+       ORDER BY CASE m.status WHEN 'active' THEN 0 WHEN 'invited' THEN 1 ELSE 2 END,m.user_id DESC LIMIT 1) AS membership_state,
       (SELECT b.reason FROM enrollment_blocks b WHERE b.tenant_id=a.tenant_id AND b.email=a.email AND b.unblocked_at IS NULL LIMIT 1) AS block_reason,
       (SELECT CASE WHEN i.accepted_at IS NOT NULL THEN 'activated'
                    WHEN i.revoked_at IS NOT NULL THEN 'revoked'
@@ -503,7 +506,7 @@ if (($_SERVER['REQUEST_METHOD']??'GET')==='POST') {
 </form>
 </details>
 
-<p class="muted" style="font-size:.8rem">Showing <?=count($rows)?> matching applications plus restriction-only records. <?=($visibility??'attention')==='attention'?'Default view hides activated enrollments unless blocked.':(($visibility??'attention')==='active'?'Showing activated enrollments without restrictions.':'Showing all enrollment records.')?> Select an applicant to see available actions.</p>
+<p class="muted" style="font-size:.8rem">Showing <?=count($rows)?> matching applications plus restriction-only records. <?=($visibility??'attention')==='attention'?'Default view hides activated enrollments unless blocked.':(($visibility??'attention')==='active'?'Showing activated enrollments without restrictions.':'Showing all enrollment records.')?> Select an applicant to see available actions and tenant membership status.</p>
 <div class="en-register-scroll" role="region" aria-label="Unified enrollment records" tabindex="0">
 <table class="en-register-table en-unified-grid">
 <thead><tr><th scope="col">Applicant / Email</th><th scope="col">Application</th><th scope="col">Invitation</th><th scope="col">Restriction</th><th scope="col">Manage</th></tr></thead><tbody>
@@ -517,7 +520,7 @@ if (($_SERVER['REQUEST_METHOD']??'GET')==='POST') {
 <div class="en-record-panel" aria-label="Manage enrollment #<?=$esc($item['id'])?>">
 <div class="en-card-head"><strong><svg class="en-icon" aria-hidden="true"><use href="#en-icon-user"></use></svg> <?=$esc($item['full_name'])?></strong><small class="muted">Application #<?=$esc($item['id'])?></small></div>
 
-<div class="en-badges"><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-users"></use></svg> <?=$esc(ucfirst($item['applicant_type']))?></span><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-file"></use></svg> <?=$esc(ucfirst($item['status']))?></span><?php if($item['invitation_state']): ?><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-mail"></use></svg> <?=$esc(ucfirst($item['invitation_state']))?></span><?php endif; ?><?php if($item['block_reason']!==null): ?><span class="en-badge is-blocked"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-ban"></use></svg> Blocked</span><?php endif; ?></div>
+<div class="en-badges"><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-users"></use></svg> <?=$esc(ucfirst($item['applicant_type']))?></span><?php if($item['membership_state']!==null): ?><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-check"></use></svg> Membership: <?=$esc(ucfirst($item['membership_state']))?></span><?php endif; ?><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-file"></use></svg> <?=$esc(ucfirst($item['status']))?></span><?php if($item['invitation_state']): ?><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-mail"></use></svg> <?=$esc(ucfirst($item['invitation_state']))?></span><?php endif; ?><?php if($item['block_reason']!==null): ?><span class="en-badge is-blocked"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-ban"></use></svg> Blocked</span><?php endif; ?></div>
 <?php
 $enNextStep=$item['block_reason']!==null
     ? 'Blocked — remove the restriction before approving or inviting.'
@@ -525,11 +528,15 @@ $enNextStep=$item['block_reason']!==null
         ? 'Awaiting review — approve or reject this application.'
         : ($item['status']==='rejected'
             ? 'Rejected — no further enrollment action is available.'
-            : (in_array($item['invitation_state'],['activated'],true)
-                ? 'Activated — this invitation has already been accepted.'
+            : ($item['membership_state']==='active'
+                ? 'Active member — this applicant already has an active tenant membership.'
+                : ($item['membership_state']==='disabled'
+                    ? 'Membership disabled — review access in tenant membership management.'
+                    : ($item['invitation_state']==='activated'
+                ? 'Invitation accepted — verify the tenant membership before taking further action.'
                 : ($item['invitation_state']==='invited'
                     ? 'Invitation pending — wait for activation, replace the invitation, or revoke it.'
-                    : 'Approved — send an activation invitation to continue onboarding.'))));
+                    : 'Approved — send an activation invitation to continue onboarding.'))))));
 ?>
 <p class="en-next-step"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-info"></use></svg> <?=$esc($enNextStep)?></p>
 <?php if($item['block_reason']!==null): ?><p role="status" class="danger" style="margin:8px 0"><strong>Enrollment blocked</strong> — <?=$esc($item['block_reason'])?>. Approval and invitations are unavailable until unblocked.</p><?php endif; ?>
@@ -561,7 +568,7 @@ $enNextStep=$item['block_reason']!==null
 <button type="submit" onclick="return confirm('Revoke the current activation invitation?')"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-lock"></use></svg> Revoke active invitation</button>
 </form>
 <?php endif; ?>
-<?php if($canReview && $item['block_reason']===null && $item['status']==='approved' && $item['invitation_state']!=='activated'): ?>
+<?php if($canReview && $item['block_reason']===null && $item['status']==='approved' && $item['invitation_state']!=='activated' && $item['membership_state']===null): ?>
 <form method="post" style="margin-top:8px">
 <input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>">
 <input type="hidden" name="action" value="invite">
