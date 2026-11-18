@@ -639,34 +639,65 @@ if($hasApplication) continue;
 <?php endif; ?>
 </section>
 
+<style>
+.en-profile-modal{border:0;padding:0;width:min(760px,calc(100vw - 24px));max-height:88vh;border-radius:14px;background:var(--brite-surface,#fff);color:inherit;box-shadow:0 24px 70px #0005}
+.en-profile-modal::backdrop{background:#0f172a99}
+.en-profile-modal-shell{padding:18px;overflow:auto;max-height:calc(88vh - 36px)}
+.en-profile-modal-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.en-profile-modal-header h2{margin:0;font-size:1.15rem}
+.en-profile-modal .en-record-panel{max-width:none;width:auto;margin:0;box-sizing:border-box}
+.en-profile-modal button:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+</style>
+<dialog id="enProfileModal" class="en-profile-modal" aria-labelledby="enProfileModalTitle">
+<div class="en-profile-modal-shell"><header class="en-profile-modal-header"><h2 id="enProfileModalTitle">Enrollment profile</h2><button type="button" id="enProfileModalClose" class="en-btn">Close</button></header><div id="enProfileModalContent"></div></div>
+</dialog>
 <script>
 (function(){
   const table=document.querySelector('.en-unified-grid');
   if(!table)return;
+  const modal=document.getElementById('enProfileModal');
+  const content=document.getElementById('enProfileModalContent');
+  let originalRow=null,activePanel=null,previousFocus=null;
+  function closeProfile(){if(modal.open)modal.close();}
+  function openProfile(id){
+    const row=document.getElementById('en-detail-app-'+id);
+    if(!row)return false;
+    const panel=row.querySelector('.en-record-panel');
+    if(!panel)return false;
+    if(activePanel&&originalRow){originalRow.querySelector('td').append(activePanel);originalRow.hidden=true;}
+    previousFocus=document.activeElement;
+    originalRow=row;activePanel=panel;
+    content.replaceChildren(panel);
+    row.hidden=false;
+    document.getElementById('enProfileModalTitle').textContent='Enrollment application #'+id;
+    if(!modal.open)modal.showModal();
+    document.getElementById('enProfileModalClose').focus();
+    return true;
+  }
+  modal.addEventListener('close',function(){
+    if(activePanel&&originalRow){originalRow.querySelector('td').append(activePanel);originalRow.hidden=true;}
+    activePanel=null;originalRow=null;
+    if(previousFocus&&previousFocus.isConnected)previousFocus.focus();
+  });
+  document.getElementById('enProfileModalClose').addEventListener('click',closeProfile);
+  modal.addEventListener('click',event=>{if(event.target===modal)closeProfile();});
   table.addEventListener('click',function(event){
     const button=event.target.closest('.en-manage-toggle');
     if(!button||!table.contains(button))return;
+    const id=button.getAttribute('aria-controls').replace(/^en-detail-app-/,'');
+    if(/^[1-9][0-9]*$/.test(id)){openProfile(id);return;}
     const target=document.getElementById(button.getAttribute('aria-controls'));
     if(!target)return;
     const expand=button.getAttribute('aria-expanded')!=='true';
-    table.querySelectorAll('.en-manage-toggle[aria-expanded="true"]').forEach(function(other){
-      other.setAttribute('aria-expanded','false');
-      const row=document.getElementById(other.getAttribute('aria-controls'));
-      if(row)row.hidden=true;
-    });
-    target.hidden=!expand;
-    button.setAttribute('aria-expanded',expand?'true':'false');
+    target.hidden=!expand;button.setAttribute('aria-expanded',String(expand));
   });
   const requested=new URLSearchParams(window.location.search).get('application_id');
   if(requested&&/^[1-9][0-9]*$/.test(requested)){
-    const row=document.getElementById('en-detail-app-'+requested);
-    const toggle=table.querySelector('.en-manage-toggle[aria-controls="en-detail-app-'+requested+'"]');
-    if(row&&toggle){
-      row.hidden=false;
-      toggle.setAttribute('aria-expanded','true');
-      toggle.scrollIntoView({block:'center',behavior:'instant'});
-      row.querySelector('.en-record-panel')?.setAttribute('tabindex','-1');
-      row.querySelector('.en-record-panel')?.focus({preventScroll:true});
+    if(!openProfile(requested)){
+      const status=document.createElement('p');
+      status.setAttribute('role','status');
+      status.textContent='Application #'+requested+' is not in the current results. Change the Enrollment filters to find it.';
+      table.parentElement.before(status);
     }
   }
 })();
