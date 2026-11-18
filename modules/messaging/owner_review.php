@@ -25,7 +25,7 @@ if($action==='thread'){
  $q=$db->prepare('SELECT subject FROM module_message_threads WHERE tenant_id=? AND id=?');
  $q->execute([$tid,$thread]);$subject=$q->fetchColumn();
  if($subject===false)json_response(['error'=>'Conversation unavailable'],404);
- $q=$db->prepare('SELECT msg.id,msg.sender_id,msg.body,msg.created_at,DATE_FORMAT(msg.created_at,'%b %e, %Y %l:%i %p') created_at_display,u.first_name,u.last_name FROM module_messages msg JOIN users u ON u.id=msg.sender_id WHERE msg.tenant_id=? AND msg.thread_id=? ORDER BY msg.id DESC LIMIT 200');
+ $q=$db->prepare("SELECT msg.id,msg.sender_id,msg.body,msg.created_at,DATE_FORMAT(msg.created_at,'%b %e, %Y %l:%i %p') created_at_display,u.first_name,u.last_name FROM module_messages msg JOIN users u ON u.id=msg.sender_id WHERE msg.tenant_id=? AND msg.thread_id=? ORDER BY msg.id DESC LIMIT 200");
  $q->execute([$tid,$thread]);$messages=array_reverse($q->fetchAll());
  try{
   $q=$db->prepare('INSERT INTO module_message_owner_audit(tenant_id,owner_user_id,thread_id) VALUES(?,?,?)');
