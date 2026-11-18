@@ -218,6 +218,15 @@
         });
         actions.appendChild(detailButton);
 
+        if (type === 'enrollment.submitted') {
+            const match = String(notification.body || '').match(/(?:contractor|client) application #([1-9][0-9]*) submitted for review\\./i);
+            if (match) {
+                const workflow = makeElement('a', '', 'Review application workflow');
+                workflow.href = base + '/activity-hub.php?notification_id=' + encodeURIComponent(String(notification.id));
+                actions.appendChild(workflow);
+            }
+        }
+
         if (unread) {
             const button = makeElement(
                 'button',
