@@ -17,7 +17,7 @@ function render(){
  if(!filtered.length)list.append(node('p','No matching conversations.'));
  for(const t of filtered){
   const button=node('button');button.type='button';button.className='msg-review-item';
-  button.append(node('strong',t.participants||'Participants unavailable'),node('span',t.subject),node('small',t.message_count+' messages · '+t.updated_at));
+  button.append(node('strong',t.participants||'Participants unavailable'),node('span',t.subject),node('small',t.message_count+' messages · '+(t.updated_at_display||t.updated_at)));
   button.addEventListener('click',()=>open(t));list.append(button);
  }
 }
@@ -30,7 +30,7 @@ async function open(t){
   for(const m of r.messages){
    const bubble=node('article');bubble.className='msg-bubble';bubble.style.alignSelf='stretch';bubble.style.maxWidth='100%';
    const body=node('p',m.body);body.style.whiteSpace='pre-wrap';
-   bubble.append(node('strong',[m.first_name,m.last_name].filter(Boolean).join(' ')),body,node('small',m.created_at));
+   bubble.append(node('strong',[m.first_name,m.last_name].filter(Boolean).join(' ')),body,node('small',m.created_at_display||m.created_at));
    list.append(bubble);
   }
  }catch(e){$('msgReviewHeading').textContent='Unable to open conversation';$('msgReviewMessages').replaceChildren(node('p',e.message));}
