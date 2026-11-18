@@ -94,3 +94,103 @@
     gap: 9px;
   }
 }
+
+/* Cycle 98A — enterprise density refinement, preserving compact value pills.
+   Apply only to standard workspaces; do not resize dialogs or specialist widgets. */
+@media (min-width: 901px) {
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-directory {
+    width: 100%;
+    max-width: none;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-directory-header {
+    margin-bottom: 4px;
+    align-items: center;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-directory-header p {
+    font-size: .74rem;
+    margin: 1px 0;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-directory-create {
+    margin: 4px 0;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-directory-create > summary {
+    padding: 4px 7px;
+    font-size: .82rem;
+    line-height: 1.3;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-directory-list {
+    border-radius: 8px;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-directory-summary {
+    min-height: 34px;
+    padding: 5px 9px;
+    font-size: .8rem;
+    line-height: 1.25;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-directory-summary-main {
+    gap: 1px;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-directory-summary-main small,
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-record-timestamps {
+    font-size: .7rem;
+    line-height: 1.25;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-directory-record[open] > .brite-directory-form {
+    padding: 7px 9px 8px;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-directory-record[open] .brite-directory-fields {
+    gap: 6px 9px;
+    align-items: start;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-directory-record[open] .brite-directory-field label {
+    display: block;
+    margin: 0 0 2px;
+    font-size: .72rem;
+    font-weight: 600;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-directory-record[open] .brite-directory-actions {
+    margin-top: 6px;
+    gap: 5px;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-directory-record[open] .brite-directory-actions button {
+    min-height: 28px;
+    padding: 3px 8px;
+    font-size: .77rem;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-list-page-top .brite-pagination,
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-list-page-bottom .brite-pagination {
+    padding: 3px 0;
+    gap: 6px;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-list-page-top .brite-pagination button,
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-list-page-bottom .brite-pagination button {
+    min-height: 28px;
+    padding: 3px 7px;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-tab-workspace {
+    gap: 7px;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-tab-toolbar {
+    padding: 5px 8px;
+    border-radius: 8px;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-tab-button {
+    min-height: 29px;
+    padding: 4px 9px;
+    gap: 5px;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-dashboard-metrics {
+    gap: 7px;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-dashboard-metric {
+    padding: 8px 10px;
+    gap: 5px;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content .brite-dashboard-panel {
+    padding: 10px;
+  }
+}
+/* Keep keyboard focus visible even in dense workspaces. */
+.brite-app .brite-content :is(.brite-directory-summary,.brite-tab-button,button,input,select,textarea):focus-visible {
+  outline-offset: 2px;
+}
