@@ -15,7 +15,15 @@ if [[ "$(sql "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=
   echo "Preparing disposable UI dependency: migration 014"
   "$MYSQL_BIN" "${ARGS[@]}" "$DB_NAME" < migrations/014_user_preferences.sql
 fi
-STAMP="$(date +%s)_$$"
+for migration in 026_tenant_modules.sql 027_module_role_permissions.sql; do
+  table=tenant_modules
+  [[ "$migration" == 027_module_role_permissions.sql ]] && table=tenant_module_roles
+  if [[ "$(sql "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='$table'")" == 0 ]]; then
+    echo "Preparing disposable UI dependency: $migration"
+    "$MYSQL_BIN" "${ARGS[@]}" "$DB_NAME" < "migrations/$migration"
+  fi
+done
+STAMP="$(date +%s)_$"
 sql "INSERT INTO users (email,password_hash,first_name,last_name) VALUES
 ('scheduler_$STAMP@example.invalid','test','Test','Scheduler'),
 ('client_$STAMP@example.invalid','test','Test','Client'),
