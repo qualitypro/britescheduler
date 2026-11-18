@@ -237,7 +237,7 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
   <div class="msg-review-detail"><h3 id="msgReviewHeading">Select a conversation</h3><div id="msgReviewMessages" class="msg-history"><p>Select a conversation to inspect the exchange.</p></div></div>
  </section>
 
- <script defer src="<?=htmlspecialchars(app_url('/modules/messaging/owner-review.js?v=98l'),ENT_QUOTES,'UTF-8')?>"></script>
+ <script defer src="<?=htmlspecialchars(app_url('/modules/messaging/owner-review.js?v=98m'),ENT_QUOTES,'UTF-8')?>"></script>
  <?php endif; ?>
  <section class="msg-preferences msg-tabpanel msg-pane" id="msgPreferences" role="tabpanel" aria-labelledby="msgTabPreferences" hidden>
   <h2>Notification preferences</h2>
