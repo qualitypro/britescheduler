@@ -51,15 +51,24 @@ if ($ready && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             }
             // A decision approves the application for onboarding; it never silently
             // creates an authenticated user or grants tenant membership.
-            $q=$db->prepare("UPDATE enrollment_applications SET status=?, reviewed_by=?, reviewed_at=NOW(), decision_note=? WHERE id=? AND tenant_id=? AND status='pending'");
-            $q->execute([$decision,$userId,$note ?: null,$id,$tenantId]);
-            if ($q->rowCount() !== 1) throw new DomainException('Application already reviewed or unavailable');
+            $db->beginTransaction();
+            try {
+                $q=$db->prepare("UPDATE enrollment_applications SET status=?, reviewed_by=?, reviewed_at=NOW(), decision_note=? WHERE id=? AND tenant_id=? AND status='pending'");
+                $q->execute([$decision,$userId,$note ?: null,$id,$tenantId]);
+                if ($q->rowCount() !== 1) throw new DomainException('Application already reviewed or unavailable');
+                $audit=$db->prepare('INSERT INTO audit_log (tenant_id,user_id,action,entity_type,entity_id,metadata) VALUES (?,?,?,?,?,?)');
+                $audit->execute([$tenantId,$userId,'enrollment.review','enrollment_application',$id,json_encode(['decision'=>$decision],JSON_THROW_ON_ERROR)]);
+                $db->commit();
+            } catch (Throwable $e) {
+                if ($db->inTransaction()) $db->rollBack();
+                throw $e;
+            }
             $notice = 'Application marked ' . $decision . '. Account onboarding remains a separate step.';
         } else {
             throw new DomainException('Action not permitted');
         }
     } catch (DomainException $e) {
-        http_response_code(422);
+        http_response_code($e->getMessage() === 'Invalid request token' ? 403 : 422);
         $error = $e->getMessage();
     } catch (PDOException $e) {
         http_response_code(500);
