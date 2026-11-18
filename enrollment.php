@@ -44,6 +44,9 @@ if ($ready && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             if ($q->fetch()) throw new DomainException('An active application already exists for this email and type');
             $q=$db->prepare('INSERT INTO enrollment_applications (tenant_id,applicant_type,full_name,email,phone,notes,submitted_by) VALUES (?,?,?,?,?,?,?)');
             $q->execute([$tenantId,$type,$name,$email,$phone ?: null,$notes ?: null,$userId]);
+            $applicationId=(int)$db->lastInsertId();
+            $notify=$db->prepare("INSERT INTO notifications (tenant_id,user_id,type,title,body) SELECT ?,m.user_id,'enrollment.submitted','New enrollment application',? FROM tenant_memberships m WHERE m.tenant_id=? AND m.role IN ('owner','admin') AND m.status='active'");
+            $notify->execute([$tenantId,ucfirst($type).' application #'.$applicationId.' submitted for review.',$tenantId]);
             $notice = 'Application submitted for review.';
         } elseif ($action === 'invite' && $canReview) {
             $id = filter_var($_POST['application_id'] ?? null, FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]]);
@@ -89,6 +92,8 @@ if ($ready && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 if ($q->rowCount() !== 1) throw new DomainException('Application already reviewed or unavailable');
                 $audit=$db->prepare('INSERT INTO audit_log (tenant_id,user_id,action,entity_type,entity_id,metadata) VALUES (?,?,?,?,?,?)');
                 $audit->execute([$tenantId,$userId,'enrollment.review','enrollment_application',$id,json_encode(['decision'=>$decision],JSON_THROW_ON_ERROR)]);
+                $notify=$db->prepare("INSERT INTO notifications (tenant_id,user_id,type,title,body) SELECT ?,m.user_id,'enrollment.reviewed','Enrollment decision recorded',? FROM tenant_memberships m WHERE m.tenant_id=? AND m.role IN ('owner','admin') AND m.status='active'");
+                $notify->execute([$tenantId,'Application #'.$id.' marked '.$decision.'.',$tenantId]);
                 $db->commit();
             } catch (Throwable $e) {
                 if ($db->inTransaction()) $db->rollBack();
@@ -116,11 +121,19 @@ if ($ready) {
     if (!in_array($status,['all','pending','approved','rejected'],true)) $status='all';
     $type=(string)($_GET['type']??'all');
     if (!in_array($type,['all','contractor','client'],true)) $type='all';
-    $sql='SELECT id,applicant_type,full_name,email,phone,notes,status,decision_note,created_at,reviewed_at FROM enrollment_applications WHERE tenant_id=?';
+    $sql="SELECT a.id,a.applicant_type,a.full_name,a.email,a.phone,a.notes,a.status,a.decision_note,a.created_at,a.reviewed_at,
+      (SELECT CASE WHEN i.accepted_at IS NOT NULL THEN 'activated'
+                   WHEN i.revoked_at IS NOT NULL THEN 'revoked'
+                   WHEN i.expires_at<=UTC_TIMESTAMP() THEN 'expired'
+                   ELSE 'invited' END
+       FROM enrollment_invitations i WHERE i.application_id=a.id AND i.tenant_id=a.tenant_id
+       ORDER BY i.id DESC LIMIT 1) AS invitation_state
+       FROM enrollment_applications a WHERE a.tenant_id=?";
+
     $params=[$tenantId];
-    if ($status!=='all') {$sql.=' AND status=?';$params[]=$status;}
-    if ($type!=='all') {$sql.=' AND applicant_type=?';$params[]=$type;}
-    $sql.=' ORDER BY created_at DESC,id DESC LIMIT 100';
+    if ($status!=='all') {$sql.=' AND a.status=?';$params[]=$status;}
+    if ($type!=='all') {$sql.=' AND a.applicant_type=?';$params[]=$type;}
+    $sql.=' ORDER BY a.created_at DESC,a.id DESC LIMIT 100';
     $q=$db->prepare($sql);$q->execute($params);$rows=$q->fetchAll(PDO::FETCH_ASSOC);
 }
 $pageTitle='Enrollment Management';
@@ -159,7 +172,7 @@ require __DIR__ . '/partials/app_header.php';
 <?php foreach($rows as $item): ?>
 <article style="border-top:1px solid #cbd5e1;padding:12px 0;overflow-wrap:anywhere">
 <strong><?=$esc($item['full_name'])?></strong>
-<span class="muted"> · <?=$esc(ucfirst($item['applicant_type']))?> · <?=$esc(ucfirst($item['status']))?></span>
+<span class="muted"> · <?=$esc(ucfirst($item['applicant_type']))?> · <?=$esc(ucfirst($item['status']))?><?php if($item['invitation_state']): ?> · <?= $esc(ucfirst($item['invitation_state'])) ?><?php endif; ?></span>
 <div><a href="mailto:<?=$esc($item['email'])?>"><?=$esc($item['email'])?></a><?php if($item['phone']): ?> · <?=$esc($item['phone'])?><?php endif; ?></div>
 <small class="muted">Submitted <?=$esc($item['created_at'])?></small>
 <?php if($item['notes']): ?><p><?=$esc($item['notes'])?></p><?php endif; ?>
