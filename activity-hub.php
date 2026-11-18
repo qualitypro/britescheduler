@@ -218,6 +218,13 @@ const res=await fetch(base+'/api/user_notifications.php?all=1&offset='+offset,{c
 if(!res.ok)throw Error('HTTP '+res.status);
 const data=await res.json();if(!data.ok||!Array.isArray(data.notifications))throw Error('Invalid response');
 items=data.notifications;unread=Number(data.unread_count)||0;hasMore=items.length===limit;render();
+const target=new URLSearchParams(window.location.search).get('notification_id');
+if(target&&/^[1-9][0-9]*$/.test(target)){
+ const found=items.find(n=>String(n.id)===target);
+ if(found){showModal(found);history.replaceState(null,'',window.location.pathname);}
+ else if(hasMore){offset+=limit;await load();}
+ else{message.textContent='Notification #'+target+' was not found in your activity history.';}
+}
 }catch(err){message.textContent='Unable to load notifications: '+err.message;}
 }
 for(const id of ['activitySearch','activityStatus','activityType'])el(id).addEventListener(id==='activitySearch'?'input':'change',render);
