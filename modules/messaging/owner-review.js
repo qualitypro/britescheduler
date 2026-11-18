@@ -3,7 +3,7 @@
 const root=document.getElementById('msgOwnerReview');if(!root)return;
 const $=id=>document.getElementById(id),base=(window.BRITE_BASE||'')+'/modules/messaging/owner_review.php';
 const node=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=String(text??'');return e;};
-let threads=[],page=1,total=0,pages=1,selected=null,requestToken=0,loadToken=0,searchTimer=null;
+let threads=[],page=1,total=0,pages=1,selected=null,requestToken=0,loadToken=0,searchTimer=null,beforeId=null,activeThread=null;
 async function get(action,params={}){
  const url=new URL(base,location.href);url.searchParams.set('action',action);
  for(const [key,value] of Object.entries(params))url.searchParams.set(key,String(value));
@@ -33,36 +33,60 @@ function render(){
  $('msgReviewPageInfo').textContent='Page '+page+' of '+pages;
  $('msgReviewPrev').disabled=page<=1;$('msgReviewNext').disabled=page>=pages;
 }
+function showMessages(messages,prepend=false){
+ const list=$('msgReviewMessages'),fragment=document.createDocumentFragment();
+ for(const m of messages){
+  const bubble=node('article');bubble.className='msg-bubble';bubble.style.alignSelf='stretch';bubble.style.maxWidth='100%';
+  const body=node('p',m.body);body.style.whiteSpace='pre-wrap';
+  bubble.append(node('strong',[m.first_name,m.last_name].filter(Boolean).join(' ')),body,node('small',m.created_at_display||m.created_at));
+  fragment.append(bubble);
+ }
+ if(prepend)list.prepend(fragment);else list.replaceChildren(fragment);
+ if(!list.children.length)list.append(node('p','No messages.'));
+}
+async function older(){
+ if(!activeThread||!beforeId)return;
+ const token=requestToken,threadId=activeThread.id;
+ const button=$('msgReviewOlder');button.disabled=true;button.textContent='Loading…';
+ try{
+  const r=await get('thread',{thread_id:threadId,before_id:beforeId});
+  if(token!==requestToken)return;
+  showMessages(r.messages,true);beforeId=r.next_before_id;
+  button.hidden=!r.has_more;
+ }catch(e){if(token===requestToken)$('msgReviewContext').textContent='Unable to load older messages: '+e.message;}
+ finally{button.disabled=false;button.textContent='Load older messages';}
+}
 async function open(t){
- const token=++requestToken;selected=t.id;render();
+ const token=++requestToken;selected=t.id;activeThread=t;beforeId=null;render();
+ $('msgReviewDetail').hidden=false;
  $('msgReviewHeading').textContent='Loading conversation…';
+ $('msgReviewContext').textContent=t.participants||'';
+ $('msgReviewOlder').hidden=true;
+ $('msgReviewMessages').replaceChildren();
  try{
   const r=await get('thread',{thread_id:t.id});if(token!==requestToken)return;
-  $('msgReviewHeading').textContent=(t.participants||'Conversation')+' — '+r.subject;
-  const list=$('msgReviewMessages');list.replaceChildren();
-  if(!r.messages.length)list.append(node('p','No messages.'));
-  for(const m of r.messages){
-   const bubble=node('article');bubble.className='msg-bubble';bubble.style.alignSelf='stretch';bubble.style.maxWidth='100%';
-   const body=node('p',m.body);body.style.whiteSpace='pre-wrap';
-   bubble.append(node('strong',[m.first_name,m.last_name].filter(Boolean).join(' ')),body,node('small',m.created_at_display||m.created_at));
-   list.append(bubble);
-  }
+  $('msgReviewHeading').textContent=r.subject||'(No subject)';
+  showMessages(r.messages);
+  beforeId=r.next_before_id;$('msgReviewOlder').hidden=!r.has_more;
  }catch(e){if(token!==requestToken)return;$('msgReviewHeading').textContent='Unable to open conversation';$('msgReviewMessages').replaceChildren(node('p',e.message));}
 }
 async function load(){
  const token=++loadToken;
  $('msgReviewCount').textContent='Loading conversations…';
- const r=await get('list',{page,page_size:$('msgReviewPageSize').value,sort:$('msgReviewSort').value,search:$('msgReviewSearch').value.trim()});
+ const r=await get('list',{page,page_size:$('msgReviewPageSize').value,sort:$('msgReviewSort').value,search:$('msgReviewSearch').value.trim(),role:$('msgReviewRole').value,period:$('msgReviewPeriod').value});
  if(token!==loadToken)return;
  threads=Array.isArray(r.threads)?r.threads:[];total=Number(r.total)||0;
  page=Number(r.page)||1;pages=Number(r.pages)||1;render();
 }
 function reload(){load().catch(e=>{$('msgReviewCount').textContent='Unable to load conversations: '+e.message;});}
 $('msgReviewSearch').addEventListener('input',()=>{page=1;clearTimeout(searchTimer);searchTimer=setTimeout(reload,250);});
-for(const id of ['msgReviewSort','msgReviewPageSize'])$(id).addEventListener('change',()=>{page=1;reload();});
+for(const id of ['msgReviewSort','msgReviewPageSize','msgReviewRole','msgReviewPeriod'])$(id).addEventListener('change',()=>{page=1;reload();});
 $('msgReviewSortDate').addEventListener('click',()=>{$('msgReviewSort').value=$('msgReviewSort').value==='recent'?'oldest':'recent';page=1;reload();});
 $('msgReviewPrev').addEventListener('click',()=>{if(page>1){page--;reload();}});
 $('msgReviewNext').addEventListener('click',()=>{if(page<pages){page++;reload();}});
 $('msgReviewRefresh').addEventListener('click',reload);
+$('msgReviewReset').addEventListener('click',()=>{$('msgReviewSearch').value='';$('msgReviewRole').value='all';$('msgReviewPeriod').value='all';$('msgReviewSort').value='recent';page=1;reload();});
+$('msgReviewClose').addEventListener('click',()=>{++requestToken;selected=null;activeThread=null;beforeId=null;$('msgReviewDetail').hidden=true;render();});
+$('msgReviewOlder').addEventListener('click',older);
 reload();
 })();
