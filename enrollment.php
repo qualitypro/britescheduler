@@ -404,6 +404,13 @@ if (($_SERVER['REQUEST_METHOD']??'GET')==='POST') {
 @media(max-width:650px){.enrollment-shell .en-workspace-layout{grid-template-columns:1fr}.enrollment-shell .en-vertical-tabs{border-right:0;border-bottom:1px solid var(--en-line,#cbd5e1);padding:0 0 8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}}
 </style>
 <style>
+/* Full-width record expansion, never constrained to the Manage column. */
+.enrollment-shell .en-unified-grid .en-detail-row[hidden]{display:none}
+.enrollment-shell .en-unified-grid .en-detail-row>td{padding:0 8px 10px;white-space:normal}
+.enrollment-shell .en-unified-grid .en-detail-row .en-record-panel{width:100%;max-width:none;box-sizing:border-box;margin:0;padding:12px;border-left:3px solid var(--en-accent);border-radius:6px}
+.enrollment-shell .en-unified-grid .en-manage-toggle[aria-expanded="true"]{background:var(--en-accent);color:#fff}
+.enrollment-shell .en-unified-grid .en-detail-row .en-card-meta{margin:7px 0}
+@media(max-width:650px){.enrollment-shell .en-unified-grid .en-detail-row .en-record-panel{width:100%;max-width:none;padding:10px}}
 /* CRM-aligned compact enrollment workspace and contextual action guidance. */
 .enrollment-shell .en-next-step{display:flex;align-items:flex-start;gap:6px;padding:7px 9px;border-left:3px solid var(--en-accent,#2563eb);background:rgba(37,99,235,.055);border-radius:4px;font-size:11.5px;line-height:1.4}
 .enrollment-shell .en-next-step .en-icon{margin-top:2px}
@@ -516,7 +523,8 @@ if (($_SERVER['REQUEST_METHOD']??'GET')==='POST') {
 <td><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-file"></use></svg> <?=$esc(ucfirst($item['status']))?></span></td>
 <td><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-mail"></use></svg> <?=$esc(ucfirst($item['invitation_state']?:'Not sent'))?></span></td>
 <td><?php if($item['block_reason']!==null): ?><span class="en-badge is-blocked"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-ban"></use></svg> Blocked</span><?php else: ?><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-check"></use></svg> Clear</span><?php endif; ?></td>
-<td><details class="en-record-details"><summary class="en-btn"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-clipboard"></use></svg> Manage</summary>
+<td><button type="button" class="en-btn en-manage-toggle" aria-expanded="false" aria-controls="en-detail-app-<?=$esc($item['id'])?>"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-clipboard"></use></svg> Manage</button></td></tr>
+<tr class="en-detail-row" id="en-detail-app-<?=$esc($item['id'])?>" hidden><td colspan="5">
 <div class="en-record-panel" aria-label="Manage enrollment #<?=$esc($item['id'])?>">
 <div class="en-card-head"><strong><svg class="en-icon" aria-hidden="true"><use href="#en-icon-user"></use></svg> <?=$esc($item['full_name'])?></strong><small class="muted">Application #<?=$esc($item['id'])?></small></div>
 
@@ -585,7 +593,7 @@ $enNextStep=$item['block_reason']!==null
 <div class="en-actions"><button type="submit" class="en-btn" name="decision" value="approved" <?=$item['block_reason']!==null?'disabled title="Unblock this email before approving"':''?> onclick="return confirm('Approve this application? This does not create an account.')"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-check"></use></svg> Approve application</button><button type="submit" class="en-btn" name="decision" value="rejected" onclick="return confirm('Reject this application? This decision cannot be reversed here.')"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-x"></use></svg> Reject application</button></div>
 </form>
 <?php endif; ?>
-</div></details></td></tr>
+</div></td></tr>
 <?php endforeach; ?>
 <?php if($canReview): ?>
 <?php foreach($blockedEmails as $blocked): ?>
@@ -600,7 +608,8 @@ if($hasApplication) continue;
 <td><span class="en-badge"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-file"></use></svg> <?=((int)$blocked['application_count']>0)?'Application outside current filter':'No application'?></span></td>
 <td>—</td>
 <td><span class="en-badge <?=$blocked['unblocked_at']===null?'is-blocked':''?>"><?=$blocked['unblocked_at']===null?'Blocked':'Cleared'?></span></td>
-<td><details class="en-record-details"><summary class="en-btn"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-shield"></use></svg> Manage</summary>
+<td><button type="button" class="en-btn en-manage-toggle" aria-expanded="false" aria-controls="en-detail-block-<?=$esc($blocked['id'])?>"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-shield"></use></svg> Manage</button></td></tr>
+<tr class="en-detail-row" id="en-detail-block-<?=$esc($blocked['id'])?>" hidden><td colspan="5">
 <div class="en-record-panel"><strong>Restriction #<?=$esc($blocked['id'])?></strong>
 <p><strong>Email:</strong> <?=$esc($blocked['email'])?></p>
 <p><strong>Reason:</strong> <?=$esc($blocked['reason'])?></p>
@@ -614,7 +623,7 @@ if($hasApplication) continue;
 <button type="submit" onclick="return confirm('Remove this enrollment restriction? Revoked invitations will not be restored.')"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-unlock"></use></svg> Remove restriction</button>
 </form>
 <?php else: ?><p class="muted">Cleared <?=$esc($blocked['unblocked_at'])?> UTC.</p><?php endif; ?>
-</div></details></td></tr>
+</div></td></tr>
 <?php endforeach; ?>
 <?php endif; ?>
 <?php if(!$rows && !$blockedEmails): ?><tr><td colspan="5" class="en-empty">No enrollment records match these filters.</td></tr><?php endif; ?>
@@ -630,4 +639,24 @@ if($hasApplication) continue;
 <?php endif; ?>
 </section>
 
+<script>
+(function(){
+  const table=document.querySelector('.en-unified-grid');
+  if(!table)return;
+  table.addEventListener('click',function(event){
+    const button=event.target.closest('.en-manage-toggle');
+    if(!button||!table.contains(button))return;
+    const target=document.getElementById(button.getAttribute('aria-controls'));
+    if(!target)return;
+    const expand=button.getAttribute('aria-expanded')!=='true';
+    table.querySelectorAll('.en-manage-toggle[aria-expanded="true"]').forEach(function(other){
+      other.setAttribute('aria-expanded','false');
+      const row=document.getElementById(other.getAttribute('aria-controls'));
+      if(row)row.hidden=true;
+    });
+    target.hidden=!expand;
+    button.setAttribute('aria-expanded',expand?'true':'false');
+  });
+})();
+</script>
 <?php require __DIR__ . '/partials/app_footer.php'; ?>
