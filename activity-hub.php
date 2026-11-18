@@ -14,7 +14,7 @@ require __DIR__ . '/partials/app_header.php';
 <div class="brite-activity-stats" aria-live="polite"><span id="activityOutstanding">Outstanding: —</span><span id="activityLoaded">Showing: —</span></div>
 <div class="brite-activity-toolbar" role="search" aria-label="Filter activity">
 <input id="activitySearch" type="search" placeholder="Search titles, messages, or IDs" aria-label="Search notifications">
-<select id="activityStatus" aria-label="Notification status"><option value="all">All statuses</option><option value="outstanding">Outstanding</option><option value="dismissed">Dismissed</option></select>
+<select id="activityStatus" aria-label="Notification status"><option value="outstanding" selected>Unread / active</option><option value="all">All notifications</option><option value="dismissed">Read / dismissed</option></select>
 <select id="activityType" aria-label="Notification category"><option value="all">All categories</option><option value="booking_requests">Booking requests</option><option value="marketplace">Marketplace</option><option value="schedule">Scheduling</option><option value="warning">Attention</option><option value="general">General</option></select>
 <button id="activityRefresh" type="button">Refresh</button>
 </div>
@@ -45,7 +45,7 @@ modal.addEventListener('close',()=>{modalNotification=null;});
 async function dismissNotification(n){
  const res=await fetch(base+'/api/user_notification_read.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':window.BRITE_CSRF||''},body:JSON.stringify({notification_id:n.id})});
  const data=await res.json();if(!res.ok||data.ok!==true)throw Error(data.error||'Unable to dismiss notification');
- n.read_at=n.read_at||new Date().toISOString();unread=Math.max(0,unread-1);
+ if(n.read_at===null){n.read_at=new Date().toISOString();unread=Math.max(0,unread-1);}
  render();
 }
 function enrollmentApplicationId(n){
@@ -143,7 +143,7 @@ function showModal(n){
   const dismiss=node('button','Dismiss notification');dismiss.type='button';
   dismiss.addEventListener('click',async()=>{
    dismiss.disabled=true;el('activityModalStatus').textContent='Saving…';
-   try{await dismissNotification(n);el('activityModalState').textContent='Read';dismiss.remove();el('activityModalStatus').textContent='Notification dismissed. The underlying task was not changed.';}
+   try{await dismissNotification(n);closeModal();message.textContent='Notification #'+n.id+' dismissed. It remains available under Read / dismissed or All notifications.';}
    catch(error){dismiss.disabled=false;el('activityModalStatus').textContent=error.message;}
   });actions.append(dismiss);
  }
@@ -213,11 +213,11 @@ const q=el('activitySearch').value.trim().toLowerCase(),st=el('activityStatus').
 const filtered=items.filter(n=>(st==='all'||(st==='outstanding')===(n.read_at===null))&&(ty==='all'||(ty==='booking_requests'?isBookingRequest(n):category(n)===ty))&&(!q||[n.title,n.body,n.id,n.appointment_id].some(x=>String(x??'').toLowerCase().includes(q))));
 filtered.sort((a,b)=>{
  const field=activitySortField;
- const val=n=>field==='type'?category(n):field==='status'?(n.read_at===null?'Outstanding':'Dismissed'):n[field];
+ const val=n=>field==='type'?category(n):field==='status'?(n.read_at===null?'Unread':'Read'):n[field];
  const result=activityCollator.compare(String(val(a)??''),String(val(b)??''));
  return activitySortDirection*result;
 });
-el('activityOutstanding').textContent='Outstanding: '+unread;
+el('activityOutstanding').textContent='Unread: '+unread;
 el('activityLoaded').textContent='Showing: '+filtered.length+' of '+items.length+' loaded';
 el('activityPageLabel').textContent='History batch '+(Math.floor(offset/limit)+1);
 el('activityPrev').disabled=offset===0;
@@ -261,7 +261,7 @@ if(cat==='marketplace'){const market=node('a','Marketplace');market.href=base+'/
 }
 if(unreadItem){
 const dismiss=node('button','Dismiss');dismiss.type='button';
-dismiss.addEventListener('click',async()=>{dismiss.disabled=true;try{await dismissNotification(n);}catch(err){dismiss.disabled=false;message.textContent=err.message;}});actions.append(dismiss);
+dismiss.addEventListener('click',async()=>{dismiss.disabled=true;try{await dismissNotification(n);message.textContent='Notification #'+n.id+' dismissed. View it under Read / dismissed or All notifications.';}catch(err){dismiss.disabled=false;message.textContent='Unable to dismiss notification #'+n.id+': '+err.message;}});actions.append(dismiss);
 }
 article.append(header,body);
 if(peopleLine)article.append(peopleLine);
