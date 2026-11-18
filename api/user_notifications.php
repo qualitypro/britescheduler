@@ -42,6 +42,7 @@ try {
         WHERE tenant_id = ?
           AND user_id = ?
           AND read_at IS NULL
+          AND dismissed_at IS NULL
     ");
 
     $count->execute([$tenantId, $userId]);
@@ -80,6 +81,7 @@ try {
             n.title,
             n.body,
             n.read_at,
+            n.dismissed_at,
             n.created_at,
             NULLIF(TRIM(CONCAT_WS(' ', cl.first_name, cl.last_name)), '') AS client_name,
             (
