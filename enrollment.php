@@ -447,7 +447,7 @@ require __DIR__ . '/partials/app_header.php';
 <?php foreach($invitationCounts as $label=>$count): ?><div class="en-stat"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-mail"></use></svg><strong><?=$esc($count)?></strong><span><?=$esc(ucwords(str_replace('_',' ',$label)))?> invites</span></div><?php endforeach; ?>
 </div>
 <?php if($canReview): ?>
-<details class="en-panel en-register" id="en-restrictions" open>
+<details class="en-panel en-register" id="en-restrictions">
 <summary><svg class="en-icon" aria-hidden="true"><use href="#en-icon-shield"></use></svg> Enrollment restriction register (<?=$restrictionActiveTotal?> active)</summary>
 <p class="muted">Tenant-specific restrictions prevent new applications, approval and invitations. Blocking revokes unused invitations, but does not suspend existing memberships.</p>
 <div class="en-stats" aria-label="Restriction totals">
@@ -477,7 +477,7 @@ require __DIR__ . '/partials/app_header.php';
 <?php $restrictionUrl=static function(int $page) use($restrictionSearch,$restrictionState,$restrictionSort): string { return 'enrollment.php?'.http_build_query(['restriction_q'=>$restrictionSearch,'restriction_state'=>$restrictionState,'restriction_sort'=>$restrictionSort,'restriction_page'=>$page]).'#en-review'; }; ?>
 <?php if($restrictionPage>1): ?><a class="en-btn" href="<?=$esc($restrictionUrl($restrictionPage-1))?>">Previous</a><?php endif; ?>
 <?php if($restrictionPage<$restrictionPages): ?><a class="en-btn" href="<?=$esc($restrictionUrl($restrictionPage+1))?>">Next</a><?php endif; ?>
-</div></div></div>
+</div></div>
 </details>
 <?php endif; ?>
 <details class="en-panel" id="en-new"><summary><svg class="en-icon" aria-hidden="true"><use href="#en-icon-plus"></use></svg> New application</summary>
@@ -493,7 +493,7 @@ require __DIR__ . '/partials/app_header.php';
 </form></details>
 <section class="en-panel" id="en-review"><h2 class="en-heading"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-clipboard"></use></svg> Review applications</h2>
 
-<p class="muted" style="font-size:.8rem">Showing <?=count($rows)?> of up to 100 matching applications. <?=($visibility??'attention')==='attention'?'Default view hides activated enrollments unless blocked.':(($visibility??'attention')==='active'?'Showing activated enrollments without restrictions.':'Showing all enrollment records.')?> Select an applicant to see available actions.</p>
+<p class="muted" style="font-size:.8rem">Showing <?=count($rows)?> matching applications plus restriction-only records. <?=($visibility??'attention')==='attention'?'Default view hides activated enrollments unless blocked.':(($visibility??'attention')==='active'?'Showing activated enrollments without restrictions.':'Showing all enrollment records.')?> Select an applicant to see available actions.</p>
 <div class="en-register-scroll" role="region" aria-label="Unified enrollment records" tabindex="0">
 <table class="en-register-table en-unified-grid">
 <thead><tr><th scope="col">Applicant / Email</th><th scope="col">Application</th><th scope="col">Invitation</th><th scope="col">Restriction</th><th scope="col">Manage</th></tr></thead><tbody>
