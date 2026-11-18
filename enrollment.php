@@ -245,51 +245,16 @@ $invitationCounts=['not_sent'=>0,'invited'=>0,'expired'=>0,'revoked'=>0,'activat
 $counts=['pending'=>0,'approved'=>0,'rejected'=>0];
 if ($ready) {
     // Restriction register: tenant-scoped, server-paginated, and sortable by allowlisted columns.
-    $restrictionSearch=trim((string)($_GET['restriction_q']??''));
-    if (strlen($restrictionSearch)>190) $restrictionSearch=substr($restrictionSearch,0,190);
-    $restrictionState=(string)($_GET['restriction_state']??'active');
-    if (!in_array($restrictionState,['active','cleared','all'],true)) $restrictionState='active';
-    $restrictionSort=(string)($_GET['restriction_sort']??'newest');
-    $restrictionSortSql=[
-        'newest'=>'b.blocked_at DESC,b.id DESC',
-        'oldest'=>'b.blocked_at ASC,b.id ASC',
-        'email'=>'b.email ASC,b.id DESC',
-        'name'=>'applicant_name ASC,b.email ASC',
-    ];
-    if (!isset($restrictionSortSql[$restrictionSort])) $restrictionSort='newest';
-    $restrictionPage=max(1,min(100000,(int)($_GET['restriction_page']??1)));
-    $restrictionPageSize=15;
-    $restrictionWhere='b.tenant_id=?';
-    $restrictionParams=[$tenantId];
-    if ($restrictionState==='active') $restrictionWhere.=' AND b.unblocked_at IS NULL';
-    elseif ($restrictionState==='cleared') $restrictionWhere.=' AND b.unblocked_at IS NOT NULL';
-    if ($restrictionSearch!=='') {
-        $restrictionWhere.=" AND (b.email LIKE ? ESCAPE '!' OR b.reason LIKE ? ESCAPE '!' OR EXISTS (SELECT 1 FROM enrollment_applications ax WHERE ax.tenant_id=b.tenant_id AND ax.email=b.email AND ax.full_name LIKE ? ESCAPE '!'))";
-        $restrictionPattern='%'.str_replace(['!','%','_'],['!!','!%','!_'],$restrictionSearch).'%';
-        array_push($restrictionParams,$restrictionPattern,$restrictionPattern,$restrictionPattern);
-    }
-    $q=$db->prepare('SELECT COUNT(*) FROM enrollment_blocks b WHERE '.$restrictionWhere);
-    $q->execute($restrictionParams);
-    $restrictionTotal=(int)$q->fetchColumn();
-    $restrictionPages=max(1,(int)ceil($restrictionTotal/$restrictionPageSize));
-    $restrictionPage=min($restrictionPage,$restrictionPages);
-    $restrictionOffset=($restrictionPage-1)*$restrictionPageSize;
-    $restrictionQuery="SELECT b.id,b.email,b.reason,b.blocked_at,b.unblocked_at,b.blocked_by,b.unblocked_by,
+    $q=$db->prepare("SELECT b.id,b.email,b.reason,b.blocked_at,b.unblocked_at,b.blocked_by,b.unblocked_by,
       (SELECT ax.full_name FROM enrollment_applications ax WHERE ax.tenant_id=b.tenant_id AND ax.email=b.email ORDER BY ax.id DESC LIMIT 1) AS applicant_name,
       (SELECT ax.applicant_type FROM enrollment_applications ax WHERE ax.tenant_id=b.tenant_id AND ax.email=b.email ORDER BY ax.id DESC LIMIT 1) AS applicant_type,
       (SELECT COUNT(*) FROM enrollment_applications ax WHERE ax.tenant_id=b.tenant_id AND ax.email=b.email) AS application_count,
       (SELECT u.email FROM users u WHERE u.id=b.blocked_by) AS blocked_by_email,
       (SELECT u.email FROM users u WHERE u.id=b.unblocked_by) AS unblocked_by_email
-      FROM enrollment_blocks b WHERE ".$restrictionWhere.' ORDER BY '.$restrictionSortSql[$restrictionSort].' LIMIT '.$restrictionPageSize.' OFFSET '.$restrictionOffset;
-    $q=$db->prepare($restrictionQuery);
-    $q->execute($restrictionParams);
+      FROM enrollment_blocks b WHERE b.tenant_id=? AND b.unblocked_at IS NULL ORDER BY b.blocked_at DESC,b.id DESC");
+    $q->execute([$tenantId]);
     $blockedEmails=$q->fetchAll(PDO::FETCH_ASSOC);
-    $q=$db->prepare('SELECT COUNT(*) FROM enrollment_blocks WHERE tenant_id=? AND unblocked_at IS NULL');
-    $q->execute([$tenantId]);
-    $restrictionActiveTotal=(int)$q->fetchColumn();
-    $q=$db->prepare('SELECT COUNT(*) FROM enrollment_blocks WHERE tenant_id=? AND unblocked_at IS NOT NULL');
-    $q->execute([$tenantId]);
-    $restrictionClearedTotal=(int)$q->fetchColumn();
+    $restrictionActiveTotal=count($blockedEmails);
     $q=$db->prepare('SELECT status,COUNT(*) AS total FROM enrollment_applications WHERE tenant_id=? GROUP BY status');
     $q->execute([$tenantId]);
     foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $r) $counts[$r['status']] = (int)$r['total'];
@@ -423,36 +388,15 @@ require __DIR__ . '/partials/app_header.php';
 <?php if($ready): ?>
 <?php if($canReview): ?>
 <details class="en-panel en-register" id="en-restrictions">
-<summary><svg class="en-icon" aria-hidden="true"><use href="#en-icon-shield"></use></svg> Enrollment restriction register (<?=$restrictionActiveTotal?> active)</summary>
-<p class="muted">Tenant-specific restrictions prevent new applications, approval and invitations. Blocking revokes unused invitations, but does not suspend existing memberships.</p>
-<div class="en-stats" aria-label="Restriction totals">
-<div class="en-stat"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-ban"></use></svg> <strong><?=$restrictionActiveTotal?></strong> Active</div>
-<div class="en-stat"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-unlock"></use></svg> <strong><?=$restrictionClearedTotal?></strong> Cleared</div>
-<div class="en-stat"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-file"></use></svg> <strong><?=$restrictionTotal?></strong> Matching</div>
-</div>
-<details class="en-register-add"><summary><svg class="en-icon" aria-hidden="true"><use href="#en-icon-plus"></use></svg> Add email restriction</summary>
-<form method="post" class="en-toolbar">
+<summary><svg class="en-icon" aria-hidden="true"><use href="#en-icon-ban"></use></svg> Block an email address<?php if($restrictionActiveTotal>0): ?> <span class="muted">(<?=$restrictionActiveTotal?> currently blocked)</span><?php endif; ?></summary>
+<p class="muted">Use this only when you need to prevent someone from applying or receiving an activation invitation. Existing accounts are not suspended. To review or remove a block, use <strong>Manage</strong> in the enrollment table below.</p>
+<form method="post" class="en-toolbar" style="margin-top:.6rem">
 <input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>">
 <input type="hidden" name="action" value="block">
 <label>Email address <input name="email" type="email" maxlength="190" autocomplete="off" required placeholder="applicant@example.com"></label>
-<label style="flex:2 1 220px">Reason <input name="reason" maxlength="1000" required placeholder="Reason for restricting enrollment"></label>
-<button class="en-btn" type="submit" onclick="return confirm('Restrict enrollment for this email and revoke unused invitations?')"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-ban"></use></svg> Apply restriction</button>
+<label style="flex:2 1 220px">Why block this address? <input name="reason" maxlength="1000" required placeholder="Reason for blocking enrollment"></label>
+<button class="en-btn" type="submit" onclick="return confirm('Block this email and revoke unused invitations?')"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-ban"></use></svg> Block email</button>
 </form>
-</details>
-<form method="get" class="en-toolbar" aria-label="Filter enrollment restrictions">
-<label style="flex:2 1 210px">Search <input name="restriction_q" type="search" maxlength="190" value="<?=$esc($restrictionSearch)?>" placeholder="Name, email or reason"></label>
-<label>State <select name="restriction_state"><option value="active" <?=$restrictionState==='active'?'selected':''?>>Active</option><option value="cleared" <?=$restrictionState==='cleared'?'selected':''?>>Cleared</option><option value="all" <?=$restrictionState==='all'?'selected':''?>>All</option></select></label>
-<label>Sort <select name="restriction_sort"><option value="newest" <?=$restrictionSort==='newest'?'selected':''?>>Newest first</option><option value="oldest" <?=$restrictionSort==='oldest'?'selected':''?>>Oldest first</option><option value="email" <?=$restrictionSort==='email'?'selected':''?>>Email A–Z</option><option value="name" <?=$restrictionSort==='name'?'selected':''?>>Applicant A–Z</option></select></label>
-<button class="en-btn" type="submit"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-filter"></use></svg> Apply</button>
-<a class="en-btn" href="enrollment.php#en-restrictions"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-refresh"></use></svg> Reset</a>
-</form>
-<p class="muted" style="margin:.6rem 0">Restriction records are managed in the unified enrollment grid below. Use the register filters above to narrow restriction-only records; application-linked restrictions appear alongside their applications.</p>
-<div class="en-register-footer"><span class="muted">Restriction register: <?=$restrictionTotal?> matching records, page <?=$restrictionPage?> of <?=$restrictionPages?></span>
-<div class="en-register-pages">
-<?php $restrictionUrl=static function(int $page) use($restrictionSearch,$restrictionState,$restrictionSort): string { return 'enrollment.php?'.http_build_query(['restriction_q'=>$restrictionSearch,'restriction_state'=>$restrictionState,'restriction_sort'=>$restrictionSort,'restriction_page'=>$page]).'#en-review'; }; ?>
-<?php if($restrictionPage>1): ?><a class="en-btn" href="<?=$esc($restrictionUrl($restrictionPage-1))?>">Previous</a><?php endif; ?>
-<?php if($restrictionPage<$restrictionPages): ?><a class="en-btn" href="<?=$esc($restrictionUrl($restrictionPage+1))?>">Next</a><?php endif; ?>
-</div></div>
 </details>
 <?php endif; ?>
 <details class="en-panel" id="en-new"><summary><svg class="en-icon" aria-hidden="true"><use href="#en-icon-plus"></use></svg> New application</summary>
