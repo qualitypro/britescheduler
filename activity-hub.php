@@ -265,6 +265,8 @@ function renderWorkflowCards(){
  
  for(const [id,events] of [...groups.entries()].sort((a,b)=>b[0]-a[0])){
   const visible=records.querySelector('[data-enrollment-id="'+id+'"]');if(!visible)continue;
+   // Never attach more than one step timeline to a notification row.
+   if(visible.querySelector('.activity-workflow-card'))continue;
    const card=node('section',undefined,'activity-workflow-card');
   const heading=node('h3','Enrollment #'+id);
   const summary=node('p','Loading current progress…');
@@ -300,12 +302,19 @@ filtered.sort((a,b)=>{
  return activitySortDirection*result;
 });
 el('activityOutstanding').textContent='Unread: '+unread;
-el('activityLoaded').textContent='Showing: '+filtered.length+' of '+items.length+' loaded';
+el('activityLoaded').textContent='Showing: '+filtered.length+' matching notifications (enrollment events grouped) of '+items.length+' loaded';
 el('activityPageLabel').textContent='History batch '+(Math.floor(offset/limit)+1);
 el('activityPrev').disabled=offset===0;
 el('activityNext').disabled=!hasMore;
 message.textContent=filtered.length?'':(items.length?'No matches in this batch. Try another filter or the next batch.':'No notifications in this batch.');
+// One visible notification row per enrollment workflow; retain all related alerts in its progress details.
+const seenEnrollments=new Set();
 for(const n of filtered){
+const workflowId=enrollmentApplicationId(n);
+if(workflowId){
+ if(seenEnrollments.has(workflowId))continue;
+ seenEnrollments.add(workflowId);
+}
 const unreadItem=n.read_at===null,cat=category(n),article=node('article',undefined,'brite-activity-record '+cat+(unreadItem?' unread':''));
 const enrollmentId=enrollmentApplicationId(n);if(enrollmentId)article.dataset.enrollmentId=String(enrollmentId);
 const header=node('header'),title=node('strong',n.title||'Notification'),meta=node('small',cat[0].toUpperCase()+cat.slice(1)+' · '+(unreadItem?'Unread':'Read'));
