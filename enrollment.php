@@ -102,8 +102,25 @@ if ($ready && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $audit=$db->prepare('INSERT INTO audit_log (tenant_id,user_id,action,entity_type,entity_id,metadata) VALUES (?,?,?,?,?,?)');
                 $audit->execute([$tenantId,$userId,'enrollment.invite','enrollment_application',$id,json_encode(['expires_hours'=>48],JSON_THROW_ON_ERROR)]);
                 $db->commit();
-                $notice = 'Invitation generated. Copy the private activation link below. It expires in 48 hours.';
                 $invitationUrl = app_url('/enrollment-activate.php') . '?token=' . rawurlencode($rawToken);
+                $notice = 'Invitation generated. Copy the private activation link below. It expires in 48 hours.';
+                if ((getenv('MAIL_TRANSPORT') ?: '') === 'mailpit') {
+                    try {
+                        require_once __DIR__ . '/app/LocalMail.php';
+                        $activationText = "You have been invited to activate your Brite Scheduler account.\n\n"
+                            . "Activation link (valid for 48 hours):\n" . $invitationUrl . "\n\n"
+                            . "If you did not expect this invitation, you may ignore this message.\n";
+                        $activationHtml = '<p>You have been invited to activate your Brite Scheduler account.</p>'
+                            . '<p><a href="' . $esc($invitationUrl) . '">Activate your account</a> (valid for 48 hours)</p>'
+                            . '<p>If you did not expect this invitation, you may ignore this message.</p>';
+                        LocalMail::send((string)$application['email'], 'Your Brite Scheduler activation invitation', $activationText, $activationHtml);
+                        $notice = 'Invitation generated and accepted by the local Mailpit SMTP server. Verify it in the local inbox.';
+                    } catch (Throwable $mailError) {
+                        // Keep the invitation usable even when local SMTP capture is offline.
+                        // Never log or expose the token or SMTP exception.
+                        $notice = 'Invitation generated, but local Mailpit delivery failed. Copy the private activation link below instead.';
+                    }
+                }
             } catch (Throwable $e) {
                 if ($db->inTransaction()) $db->rollBack();
                 throw $e;
