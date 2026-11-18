@@ -16,6 +16,8 @@ if($action==='list'){
  $search=trim((string)($_GET['search']??''));
  if(mb_strlen($search)>150)$search=mb_substr($search,0,150);
  $sort=(string)($_GET['sort']??'recent');
+ $role=(string)($_GET['role']??'all');
+ $period=(string)($_GET['period']??'all');
  $orders=[
   'recent'=>'t.updated_at DESC,t.id DESC',
   'oldest'=>'t.updated_at ASC,t.id ASC',
@@ -27,9 +29,17 @@ if($action==='list'){
  $where='t.tenant_id=?';
  $args=[$tid];
  if($search!==''){
-  $where.=" AND (t.subject LIKE ? OR EXISTS (SELECT 1 FROM module_message_participants sp JOIN users su ON su.id=sp.user_id WHERE sp.thread_id=t.id AND sp.tenant_id=t.tenant_id AND CONCAT_WS(' ',su.first_name,su.last_name) LIKE ?))";
+  $where.=" AND (t.subject LIKE ? OR EXISTS (SELECT 1 FROM module_message_participants sp JOIN users su ON su.id=sp.user_id WHERE sp.thread_id=t.id AND sp.tenant_id=t.tenant_id AND CONCAT_WS(' ',su.first_name,su.last_name) LIKE ?) OR EXISTS (SELECT 1 FROM module_messages sm WHERE sm.tenant_id=t.tenant_id AND sm.thread_id=t.id AND sm.body LIKE ?))";
   $pattern='%'.str_replace(['\\','%','_'],['\\\\','\\%','\\_'],$search).'%';
-  $args[]=$pattern;$args[]=$pattern;
+  $args[]=$pattern;$args[]=$pattern;$args[]=$pattern;
+ }
+ if(in_array($role,['client','contractor','owner','admin','scheduler','accounting'],true)){
+  $where.=' AND EXISTS (SELECT 1 FROM module_message_participants rp JOIN tenant_memberships rm ON rm.tenant_id=rp.tenant_id AND rm.user_id=rp.user_id WHERE rp.tenant_id=t.tenant_id AND rp.thread_id=t.id AND rm.role=?)';
+  $args[]=$role;
+ }
+ $periodDays=['7d'=>7,'30d'=>30,'90d'=>90];
+ if(isset($periodDays[$period])){
+  $where.=' AND t.updated_at >= DATE_SUB(NOW(), INTERVAL '.(int)$periodDays[$period].' DAY)';
  }
  $count=$db->prepare('SELECT COUNT(*) FROM module_message_threads t WHERE '.$where);
  $count->execute($args);$total=(int)$count->fetchColumn();
@@ -50,8 +60,15 @@ if($action==='thread'){
  $q=$db->prepare('SELECT subject FROM module_message_threads WHERE tenant_id=? AND id=?');
  $q->execute([$tid,$thread]);$subject=$q->fetchColumn();
  if($subject===false)json_response(['error'=>'Conversation unavailable'],404);
- $q=$db->prepare("SELECT msg.id,msg.sender_id,msg.body,msg.created_at,DATE_FORMAT(msg.created_at,'%b %e, %Y %l:%i %p') created_at_display,u.first_name,u.last_name FROM module_messages msg JOIN users u ON u.id=msg.sender_id WHERE msg.tenant_id=? AND msg.thread_id=? ORDER BY msg.id DESC LIMIT 200");
- $q->execute([$tid,$thread]);$messages=array_reverse($q->fetchAll());
+ $before=max(0,(int)($_GET['before_id']??0));
+ $whereMsg='msg.tenant_id=? AND msg.thread_id=?';
+ $messageArgs=[$tid,$thread];
+ if($before>0){$whereMsg.=' AND msg.id<?';$messageArgs[]=$before;}
+ $q=$db->prepare("SELECT msg.id,msg.sender_id,msg.body,msg.created_at,DATE_FORMAT(msg.created_at,'%b %e, %Y %l:%i %p') created_at_display,u.first_name,u.last_name FROM module_messages msg JOIN users u ON u.id=msg.sender_id WHERE ".$whereMsg." ORDER BY msg.id DESC LIMIT 51");
+ $q->execute($messageArgs);$messages=$q->fetchAll();
+ $hasMore=count($messages)>50;if($hasMore)array_pop($messages);
+ $nextBefore=$hasMore?(int)end($messages)['id']:null;
+ $messages=array_reverse($messages);
  try{
   $q=$db->prepare('INSERT INTO module_message_owner_audit(tenant_id,owner_user_id,thread_id) VALUES(?,?,?)');
   $q->execute([$tid,$uid,$thread]);
@@ -60,6 +77,6 @@ if($action==='thread'){
   json_response(['error'=>'Unable to record review'],500);
  }
  // Read-only owner review never changes participant read receipts.
- json_response(['ok'=>true,'subject'=>$subject,'messages'=>$messages]);
+ json_response(['ok'=>true,'subject'=>$subject,'messages'=>$messages,'has_more'=>$hasMore,'next_before_id'=>$nextBefore]);
 }
 json_response(['error'=>'Unsupported action'],404);
