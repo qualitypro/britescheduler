@@ -51,7 +51,7 @@ function renderThreads(){
   subjectButton.append(title,preview);
   subjectButton.addEventListener('click',()=>openThread(t.id,t.subject).catch(e=>status('Unable to open: '+e.message)));
   subject.append(subjectButton);
-  const timestamp=el('time',t.updated_at||'');timestamp.className='msg-table-date';date.append(timestamp);
+  const timestamp=el('time',t.updated_at_display||t.updated_at||'');timestamp.className='msg-table-date';date.append(timestamp);
   if(Number(t.unread||0)){const badge=el('span',String(t.unread));badge.className='msg-table-unread';badge.setAttribute('aria-label',t.unread+' unread messages');unread.append(badge);}
   else unread.append(el('span','—'));
   row.append(participant,subject,date,unread);list.append(row);
@@ -85,7 +85,7 @@ async function openThread(id,subject,{silent=false}={}){
   const card=el('article');card.className='msg-bubble'+(m.mine?' msg-mine':'');
   const who=el('strong',m.mine?'You':[m.first_name,m.last_name].filter(Boolean).join(' '));
   const body=el('p',m.body);body.style.whiteSpace='pre-wrap';
-  const when=el('small',m.created_at||'');
+  const when=el('small',m.created_at_display||m.created_at||'');
   card.append(who,body,when);container.append(card);
  }
  $('msgReply').hidden=false;
