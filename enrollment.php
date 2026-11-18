@@ -107,12 +107,47 @@ if ($ready && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 if ((getenv('MAIL_TRANSPORT') ?: '') === 'mailpit') {
                     try {
                         require_once __DIR__ . '/app/LocalMail.php';
-                        $activationText = "You have been invited to activate your Brite Scheduler account.\n\n"
-                            . "Activation link (valid for 48 hours):\n" . $invitationUrl . "\n\n"
-                            . "If you did not expect this invitation, you may ignore this message.\n";
-                        $activationHtml = '<p>You have been invited to activate your Brite Scheduler account.</p>'
-                            . '<p><a href="' . $esc($invitationUrl) . '">Activate your account</a> (valid for 48 hours)</p>'
-                            . '<p>If you did not expect this invitation, you may ignore this message.</p>';
+                        $activationText = "Welcome to Brite Scheduler!\n\n"
+                            . "You're invited to join Brite Scheduler. We're glad to have you here.\n\n"
+                            . "GET STARTED\n"
+                            . "1. Open your secure activation link below.\n"
+                            . "2. Create your password.\n"
+                            . "3. Sign in and explore your workspace.\n\n"
+                            . "Activate your account:\n" . $invitationUrl . "\n\n"
+                            . "This invitation expires in 48 hours. If you weren't expecting it, simply ignore this email.\n\n"
+                            . "See you soon,\nThe Brite Scheduler Team\n";
+                        $safeActivationUrl = $esc($invitationUrl);
+                        $activationHtml = <<<'HTML'
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Welcome to Brite Scheduler</title></head>
+<body style="margin:0;padding:0;background:#f3f6fb;font-family:Arial,Helvetica,sans-serif;color:#243247;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">You're invited! Activate your Brite Scheduler account in a few easy steps.</div>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f3f6fb;">
+    <tr><td align="center" style="padding:36px 16px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;background:#ffffff;border:1px solid #e3e9f2;border-radius:14px;overflow:hidden;">
+        <tr><td style="background:#123c63;padding:25px 34px;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:.2px;">Brite <span style="color:#91d9f4;">Scheduler</span></td></tr>
+        <tr><td style="padding:38px 34px 30px;">
+          <div style="color:#2873a8;font-size:12px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;">You're invited</div>
+          <h1 style="font-size:28px;line-height:1.25;color:#142b45;margin:12px 0 18px;">Welcome aboard!</h1>
+          <p style="font-size:16px;line-height:1.7;margin:0 0 22px;color:#42536b;">You've been invited to join Brite Scheduler. We're excited to help you get connected and make the most of your workspace.</p>
+          <p style="font-size:15px;font-weight:700;margin:0 0 12px;color:#243247;">Getting started is easy:</p>
+          <p style="font-size:15px;line-height:1.8;margin:0 0 28px;color:#42536b;">1. Activate your account using the button below.<br>2. Create a secure password.<br>3. Sign in and explore your workspace.</p>
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#1666a5" style="border-radius:8px;"><a href="__ACTIVATION_URL__" style="display:inline-block;padding:16px 27px;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;border-radius:8px;">Activate My Account</a></td></tr></table>
+          <p style="font-size:13px;line-height:1.6;color:#68788e;margin:22px 0 0;">For your security, this invitation expires in <strong>48 hours</strong>.</p>
+          <hr style="border:0;border-top:1px solid #e5eaf2;margin:28px 0 20px;">
+          <p style="font-size:13px;line-height:1.6;color:#68788e;margin:0 0 8px;">Button not working? Copy and paste this secure link into your browser:</p>
+          <p style="font-size:12px;line-height:1.7;overflow-wrap:anywhere;word-break:break-word;margin:0;"><a href="__ACTIVATION_URL__" style="color:#1666a5;text-decoration:underline;">__ACTIVATION_URL__</a></p>
+          <p style="font-size:14px;line-height:1.6;color:#42536b;margin:28px 0 0;">See you soon,<br><strong>The Brite Scheduler Team</strong></p>
+        </td></tr>
+      </table>
+      <p style="max-width:520px;font-size:12px;line-height:1.6;color:#748399;margin:20px auto 0;">If you weren't expecting this invitation, you can safely ignore this email. No account will be activated unless you use the link.</p>
+    </td></tr>
+  </table>
+</body>
+</html>
+HTML;
+                        $activationHtml = str_replace('__ACTIVATION_URL__', $safeActivationUrl, $activationHtml);
                         LocalMail::send((string)$application['email'], 'Your Brite Scheduler activation invitation', $activationText, $activationHtml);
                         $notice = 'Invitation generated and accepted by the local Mailpit SMTP server. Verify it in the local inbox.';
                     } catch (Throwable $mailError) {
