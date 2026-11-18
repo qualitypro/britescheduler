@@ -42,6 +42,34 @@ if ($ready && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $q=$db->prepare('INSERT INTO enrollment_applications (tenant_id,applicant_type,full_name,email,phone,notes,submitted_by) VALUES (?,?,?,?,?,?,?)');
             $q->execute([$tenantId,$type,$name,$email,$phone ?: null,$notes ?: null,$userId]);
             $notice = 'Application submitted for review.';
+        } elseif ($action === 'invite' && $canReview) {
+            $id = filter_var($_POST['application_id'] ?? null, FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]]);
+            if (!$id) throw new DomainException('Invalid application');
+            $db->beginTransaction();
+            try {
+                $q=$db->prepare("SELECT applicant_type,email,status FROM enrollment_applications WHERE id=? AND tenant_id=? FOR UPDATE");
+                $q->execute([$id,$tenantId]);
+                $application=$q->fetch(PDO::FETCH_ASSOC);
+                if (!$application || $application['status'] !== 'approved') {
+                    throw new DomainException('Only approved applications can be invited');
+                }
+                $q=$db->prepare('SELECT id FROM users WHERE email=? LIMIT 1');
+                $q->execute([$application['email']]);
+                if ($q->fetch()) throw new DomainException('An account already uses this email; manual membership review required');
+                $q=$db->prepare('UPDATE enrollment_invitations SET revoked_at=UTC_TIMESTAMP() WHERE tenant_id=? AND application_id=? AND accepted_at IS NULL AND revoked_at IS NULL');
+                $q->execute([$tenantId,$id]);
+                $rawToken=bin2hex(random_bytes(32));
+                $q=$db->prepare('INSERT INTO enrollment_invitations (tenant_id,application_id,token_hash,expires_at,created_by) VALUES (?,?,?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 48 HOUR),?)');
+                $q->execute([$tenantId,$id,hash('sha256',$rawToken),$userId]);
+                $audit=$db->prepare('INSERT INTO audit_log (tenant_id,user_id,action,entity_type,entity_id,metadata) VALUES (?,?,?,?,?,?)');
+                $audit->execute([$tenantId,$userId,'enrollment.invite','enrollment_application',$id,json_encode(['expires_hours'=>48],JSON_THROW_ON_ERROR)]);
+                $db->commit();
+                $notice = 'Invitation generated. Copy the private activation link below. It expires in 48 hours.';
+                $invitationUrl = app_url('/enrollment-activate.php') . '?token=' . rawurlencode($rawToken);
+            } catch (Throwable $e) {
+                if ($db->inTransaction()) $db->rollBack();
+                throw $e;
+            }
         } elseif ($action === 'review' && $canReview) {
             $id = filter_var($_POST['application_id'] ?? null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
             $decision = (string)($_POST['decision'] ?? '');
@@ -99,6 +127,7 @@ require __DIR__ . '/partials/app_header.php';
 <h1>Enrollment Management</h1>
 <p class="muted">Manage contractor and client applications for your business. Approval records a review decision; account creation and invitations remain separate.</p>
 <?php if($notice!==''): ?><p role="status" style="color:#166534"><?=$esc($notice)?></p><?php endif; ?>
+<?php if(isset($invitationUrl)): ?><p><strong>One-time invitation link:</strong> <input readonly aria-label="Invitation link" value="<?=$esc($invitationUrl)?>" style="width:100%;box-sizing:border-box" onclick="this.select()"></p><p class="muted">This link is shown only now. Share it privately; never post it publicly.</p><?php endif; ?>
 <?php if($error!==''): ?><p role="alert" class="danger"><?=$esc($error)?></p><?php endif; ?>
 <?php if($ready): ?>
 <div class="grid" style="margin:12px 0">
@@ -132,6 +161,14 @@ require __DIR__ . '/partials/app_header.php';
 <small class="muted">Submitted <?=$esc($item['created_at'])?></small>
 <?php if($item['notes']): ?><p><?=$esc($item['notes'])?></p><?php endif; ?>
 <?php if($item['decision_note']): ?><p><strong>Review note:</strong> <?=$esc($item['decision_note'])?></p><?php endif; ?>
+<?php if($canReview && $item['status']==='approved'): ?>
+<form method="post" style="margin-top:8px">
+<input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>">
+<input type="hidden" name="action" value="invite">
+<input type="hidden" name="application_id" value="<?=$esc($item['id'])?>">
+<button type="submit">Generate activation invitation</button>
+</form>
+<?php endif; ?>
 <?php if($canReview && $item['status']==='pending'): ?>
 <form method="post" style="display:grid;gap:8px;margin-top:8px">
 <input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>">
