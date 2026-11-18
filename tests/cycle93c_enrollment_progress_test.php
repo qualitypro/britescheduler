@@ -10,7 +10,7 @@ $checks=[
  'Invitation progress states'=>array_reduce(['activated','revoked','expired','invited'],fn($ok,$v)=>$ok&&str_contains($page,"'".$v."'"),true),
  'Submission notifications tenant scoped'=>str_contains($page,"m.tenant_id=? AND m.role IN ('owner','admin')"),
  'Review notification recorded'=>str_contains($page,"'enrollment.reviewed'"),
- 'No invitation token in notification'=>!str_contains($page,"$"."rawToken.' submitted")&&!str_contains($page,"$"."invitationUrl,$tenantId"),
+ 'No invitation token in notification'=>!str_contains($page,"$"."rawToken.' submitted")&&!str_contains($page,'$invitationUrl,$tenantId'),
  'Activation token hash stored'=>str_contains($schema,'token_hash CHAR(64)'),
  'Activation consumes invitation'=>str_contains($activate,'accepted_at=UTC_TIMESTAMP()'),
  'Activation creates membership'=>str_contains($activate,'INSERT INTO tenant_memberships'),
