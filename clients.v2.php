@@ -5,7 +5,7 @@ Auth::requireRole('owner','admin','scheduler','accounting');
 $pageTitle='Clients';
 require __DIR__.'/partials/app_header.php';
 ?>
-<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-directory-accordion.css'),ENT_QUOTES,'UTF-8')?>">
+<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-directory-accordion.css?v=97d'),ENT_QUOTES,'UTF-8')?>">
 <main class="brite-directory" data-directory="clients">
   <div class="brite-directory-header"><div><h1>Clients</h1><p class="muted">Select a record to review and edit its details.</p></div><button type="button" data-directory-refresh>Refresh</button></div>
   <details class="brite-directory-create"><summary>Add client</summary>
