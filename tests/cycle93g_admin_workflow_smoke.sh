@@ -11,6 +11,10 @@ ARGS=(-u root -h "${DB_HOST:-127.0.0.1}" -P "${DB_PORT:-3306}")
 sql(){ "$MYSQL_BIN" "${ARGS[@]}" "$DB_NAME" -N -B -e "$1"; }
 export DB_NAME DB_USER DB_PASS="${DB_PASS:-}" DB_HOST="${DB_HOST:-127.0.0.1}" DB_PORT="${DB_PORT:-3306}"
 sql 'SELECT id FROM enrollment_applications LIMIT 1' >/dev/null
+if [[ "$(sql "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='user_preferences'")" == 0 ]]; then
+  echo "Preparing disposable UI dependency: migration 014"
+  "$MYSQL_BIN" "${ARGS[@]}" "$DB_NAME" < migrations/014_user_preferences.sql
+fi
 STAMP="$(date +%s)_$$"
 sql "INSERT INTO users (email,password_hash,first_name,last_name) VALUES
 ('scheduler_$STAMP@example.invalid','test','Test','Scheduler'),
@@ -25,7 +29,13 @@ OTHER="$(sql "SELECT id FROM users WHERE email='other_$STAMP@example.invalid'")"
 OWNER="$(sql "SELECT user_id FROM tenant_memberships WHERE tenant_id=1 AND role='owner' LIMIT 1")"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
-request(){ "$PHP_BIN" tests/cycle93g_enrollment_request_driver.php "$@" >"$TMP/response" 2>"$TMP/error"; }
+request(){
+  if ! "$PHP_BIN" tests/cycle93g_enrollment_request_driver.php "$@" >"$TMP/response" 2>"$TMP/error"; then
+    echo "FAIL request: method=$3 action=$4" >&2
+    tail -35 "$TMP/error" >&2
+    exit 1
+  fi
+}
 assert(){ grep -q "$1" "$TMP/response" || { echo "FAIL $2"; tail -25 "$TMP/error"; exit 1; }; echo "PASS $2"; }
 request "$CLIENT" 1 GET none
 assert 'Access denied' 'client blocked from enrollment administration'
