@@ -31,7 +31,8 @@ done
 grep -q 'X-CSRF-Token' "$TMP/page"
 csrf(){ sed -n 's/.*X-CSRF-Token.*:"\([a-f0-9]\{64\}\)".*/\1/p' "$1" | head -1; }
 login(){
-  local role="$1" email="$2" password="$3" expected="$4" cookie="$TMP/$role.cookie" token
+  local role="$1" email="$2" password="$3" expected="$4"
+  local cookie="$TMP/$role.cookie" token
   curl -fsS "$BASE/sign-in.v2.php" -c "$cookie" -o "$TMP/$role.page"
   token="$(csrf "$TMP/$role.page")"
   [[ "$token" =~ ^[a-f0-9]{64}$ ]] || { echo "FAIL $role CSRF extraction"; exit 1; }
