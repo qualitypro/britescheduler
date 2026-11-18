@@ -115,6 +115,24 @@ function showModal(n){
   actions.append(review);
  }
  if(appointment){
+  const panel=node('section',undefined,'activity-enrollment');
+  panel.setAttribute('aria-label','Linked appointment details');
+  panel.append(node('p','Loading appointment status and details…'));
+  actions.append(panel);
+  fetch(base+'/api/notification_appointment_detail.php?appointment_id='+encodeURIComponent(String(appointment)),{credentials:'same-origin',cache:'no-store'})
+   .then(async response=>{
+    const result=await response.json();
+    if(!response.ok||!result.ok)throw Error(result.error||'Appointment unavailable');
+    if(modalNotification!==n)return;
+    panel.replaceChildren();
+    const heading=node('div',undefined,'activity-enrollment-heading');
+    heading.append(node('strong','Appointment #'+result.record_id),node('span',result.status,'activity-enrollment-badge'));
+    panel.append(heading);
+    const details=node('dl');
+    for(const field of result.fields||[])details.append(node('dt',field.label),node('dd',field.value));
+    panel.append(details);
+    panel.append(node('p','Use Scheduling to complete available appointment actions according to your role and the current appointment state.'));
+   }).catch(error=>{if(modalNotification===n)panel.replaceChildren(node('p','Appointment details unavailable: '+error.message));});
   const a=node('a',isBookingRequest(n)?'Review booking':'Open appointment','activity-primary');
   a.href=base+'/scheduling.php?appointment_id='+encodeURIComponent(String(appointment));actions.append(a);
   if(category(n)==='marketplace'){
