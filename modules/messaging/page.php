@@ -183,6 +183,7 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
 @media(max-width:850px){.msg-module-layout{grid-template-columns:132px minmax(0,1fr)}.msg-module-body .msg-inbox-table-layout,.msg-module-body .msg-workspace{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:650px){.msg-module-layout{grid-template-columns:minmax(0,1fr)}.msg-conversation-table th:nth-child(3),.msg-conversation-table td:nth-child(3){display:table-cell}.msg-conversation-table th:nth-child(1){width:25%}.msg-conversation-table th:nth-child(2){width:45%}.msg-conversation-table th:nth-child(3){width:22%}.msg-conversation-table th:nth-child(4){width:8%}.msg-conversation-table th,.msg-conversation-table .msg-cell-select{font-size:.7rem!important;padding:5px 3px!important}}
 .msg-conversation-table .msg-date-sort{display:inline-flex;align-items:center;gap:4px;padding:2px 3px;border:0;background:transparent;color:inherit;font:inherit;font-weight:700;cursor:pointer;text-align:left}.msg-conversation-table .msg-date-sort:hover{text-decoration:underline}.msg-conversation-table .msg-date-sort:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+.msg-module-body .msg-review-table th:nth-child(1){width:34%}.msg-module-body .msg-review-table th:nth-child(2){width:38%}.msg-module-body .msg-review-table th:nth-child(3){width:20%}.msg-module-body .msg-review-table th:nth-child(4){width:8%}.msg-review-detail{margin-top:12px;padding-top:10px;border-top:1px solid var(--brite-border,#cbd5e1)}.msg-review-detail h3{margin:0 0 8px}.msg-review-table td:last-child{text-align:center;padding:7px 4px!important}.msg-review-table tr[aria-selected="true"]{background:rgba(37,99,235,.09)}
 </style>
 <section class="card msg-module" data-brite-pills="off" style="display:grid;gap:8px">
  <div><h1 style="margin:0 0 4px">Messages</h1><p class="muted" style="margin:0;font-size:.85rem">Private conversations within your organization. Clients and contractors can contact the tenant owner by default; direct client–contractor messaging becomes available after a quote request or scheduled assignment.</p></div>
@@ -228,14 +229,15 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
  <section class="msg-pane msg-tabpanel" id="msgOwnerReview" role="tabpanel" aria-labelledby="msgTabReview" aria-label="Tenant conversation review" hidden>
   <h2>Tenant conversation review</h2>
   <p class="muted">Owner-only, read-only review of conversations in this tenant. Reviews are recorded in an internal audit log and do not mark participants' messages as read.</p>
-  <label>Find a conversation <input id="msgReviewSearch" type="search" placeholder="Search participants or subject" style="width:100%;box-sizing:border-box"></label>
-  <div class="msg-workspace" style="margin-top:12px;min-height:0">
-   <div><h3>All tenant conversations</h3><div id="msgReviewThreads"></div></div>
-   <div><h3 id="msgReviewHeading">Select a conversation</h3><div id="msgReviewMessages" class="msg-history"><p>Select a thread to inspect the exchange.</p></div></div>
-  </div>
+  <div class="msg-toolbar"><label for="msgReviewSearch">Search conversations</label><button type="button" id="msgReviewRefresh" class="msg-secondary">↻ Refresh</button></div>
+  <input id="msgReviewSearch" type="search" placeholder="Find participants or subject…" autocomplete="off" style="width:100%;box-sizing:border-box">
+  <div class="msg-table-tools"><label for="msgReviewSort">Sort</label><select id="msgReviewSort"><option value="recent">Date/time: newest first</option><option value="oldest">Date/time: oldest first</option><option value="participants">Participant A–Z</option><option value="subject">Subject A–Z</option><option value="count">Most messages first</option></select></div>
+  <div class="msg-table-scroll"><table class="msg-conversation-table msg-review-table" aria-label="Tenant conversations"><thead><tr><th scope="col">Participants</th><th scope="col">Subject</th><th scope="col"><button type="button" id="msgReviewSortDate" class="msg-date-sort" aria-label="Sort by date and time, oldest first">Updated <span id="msgReviewSortArrow" aria-hidden="true">↓</span></button></th><th scope="col">Messages</th></tr></thead><tbody id="msgReviewThreads"></tbody></table></div>
+  <div class="msg-table-footer"><span id="msgReviewCount" role="status" aria-live="polite"></span><label for="msgReviewPageSize">Rows <select id="msgReviewPageSize"><option>10</option><option selected>25</option><option>50</option><option>100</option></select></label><button type="button" id="msgReviewPrev">Previous</button><span id="msgReviewPageInfo"></span><button type="button" id="msgReviewNext">Next</button></div>
+  <div class="msg-review-detail"><h3 id="msgReviewHeading">Select a conversation</h3><div id="msgReviewMessages" class="msg-history"><p>Select a conversation to inspect the exchange.</p></div></div>
  </section>
 
- <script defer src="<?=htmlspecialchars(app_url('/modules/messaging/owner-review.js?v=98i'),ENT_QUOTES,'UTF-8')?>"></script>
+ <script defer src="<?=htmlspecialchars(app_url('/modules/messaging/owner-review.js?v=98l'),ENT_QUOTES,'UTF-8')?>"></script>
  <?php endif; ?>
  <section class="msg-preferences msg-tabpanel msg-pane" id="msgPreferences" role="tabpanel" aria-labelledby="msgTabPreferences" hidden>
   <h2>Notification preferences</h2>
