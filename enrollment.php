@@ -227,11 +227,11 @@ require __DIR__ . '/partials/app_header.php';
 <p class="muted">Showing up to 100 most recent matching applications.</p>
 <?php if(!$rows): ?><p>No applications match these filters.</p><?php endif; ?>
 <?php foreach($rows as $item): ?>
-<article style="border-top:1px solid #cbd5e1;padding:12px 0;overflow-wrap:anywhere">
-<strong><?=$esc($item['full_name'])?></strong>
+<article class="card" style="margin:12px 0;padding:14px;overflow-wrap:anywhere" aria-label="Enrollment application #<?=$esc($item['id'])?>">
+<div class="row" style="align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"><strong><?=$esc($item['full_name'])?></strong><small class="muted">Application #<?=$esc($item['id'])?></small></div>
 <span class="muted"> · <?=$esc(ucfirst($item['applicant_type']))?> · <?=$esc(ucfirst($item['status']))?><?php if($item['invitation_state']): ?> · <?= $esc(ucfirst($item['invitation_state'])) ?><?php endif; ?></span>
 <div><a href="mailto:<?=$esc($item['email'])?>"><?=$esc($item['email'])?></a><?php if($item['phone']): ?> · <?=$esc($item['phone'])?><?php endif; ?></div>
-<small class="muted">Submitted <?=$esc($item['created_at'])?></small>
+<small class="muted">Submitted <?=$esc($item['created_at'])?><?php if($item['reviewed_at']): ?> · Reviewed <?=$esc($item['reviewed_at'])?><?php endif; ?></small>
 <?php if($item['notes']): ?><p><?=$esc($item['notes'])?></p><?php endif; ?>
 <?php if($item['decision_note']): ?><p><strong>Review note:</strong> <?=$esc($item['decision_note'])?></p><?php endif; ?>
 <?php if($canReview && $item['status']==='approved' && $item['invitation_state']==='invited'): ?>
@@ -247,7 +247,7 @@ require __DIR__ . '/partials/app_header.php';
 <input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>">
 <input type="hidden" name="action" value="invite">
 <input type="hidden" name="application_id" value="<?=$esc($item['id'])?>">
-<button type="submit">Generate activation invitation</button>
+<button type="submit" onclick="return confirm('Generate a new private activation link? Any previous unused link will be revoked.')"><?=$item['invitation_state']==='invited'?'Replace active invitation':'Generate activation invitation'?></button>
 </form>
 <?php endif; ?>
 <?php if($canReview && $item['status']==='pending'): ?>
@@ -256,7 +256,7 @@ require __DIR__ . '/partials/app_header.php';
 <input type="hidden" name="action" value="review">
 <input type="hidden" name="application_id" value="<?=$esc($item['id'])?>">
 <label>Review note <input name="decision_note" maxlength="1000"></label>
-<div class="row"><button type="submit" name="decision" value="approved">Approve</button><button type="submit" name="decision" value="rejected">Reject</button></div>
+<div class="row" style="gap:8px;flex-wrap:wrap"><button type="submit" name="decision" value="approved" onclick="return confirm('Approve this application? This does not create an account.')">Approve application</button><button type="submit" name="decision" value="rejected" onclick="return confirm('Reject this application? This decision cannot be reversed here.')">Reject application</button></div>
 </form>
 <?php endif; ?>
 </article>
