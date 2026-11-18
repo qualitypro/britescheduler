@@ -8,6 +8,7 @@ require __DIR__ . '/partials/app_header.php';
 .brite-activity-page{max-width:1250px;margin:auto;padding:18px}.brite-activity-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0}.brite-activity-toolbar input,.brite-activity-toolbar select{min-height:40px;padding:8px;border:1px solid #94a3b8;border-radius:8px;background:var(--brite-surface,#fff);color:inherit}.brite-activity-toolbar input{flex:1;min-width:190px}.brite-activity-toolbar button,.brite-activity-page button{min-height:36px;border:1px solid #94a3b8;border-radius:8px;padding:7px 12px;cursor:pointer;background:var(--brite-surface,#fff);color:inherit}.brite-activity-stats{display:flex;gap:10px;flex-wrap:wrap}.brite-activity-stats span{padding:9px 13px;background:var(--brite-surface-muted,#f1f5f9);border-radius:9px;font-weight:650}.brite-activity-record{--accent:#0f766e;border:1px solid #cbd5e1;border-left:5px solid var(--accent);border-radius:10px;padding:11px 14px;margin:8px 0;background:var(--brite-surface,#fff)}.brite-activity-record.marketplace{--accent:#7c3aed}.brite-activity-record.schedule{--accent:#2563eb}.brite-activity-record.warning{--accent:#b45309}.brite-activity-record.unread{background:var(--brite-surface-muted,#f8fafc)}.brite-activity-record header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.brite-activity-record p{margin:5px 0 8px;font-size:.9rem}.brite-activity-record small{color:var(--accent);font-weight:650}.brite-activity-record .actions{display:flex;gap:8px;flex-wrap:wrap}.brite-activity-record a{display:inline-block;padding:8px 10px;border-radius:7px;background:var(--accent);color:white;text-decoration:none;font-size:.85rem}.brite-activity-record button{font-size:.85rem}.brite-activity-record .actions{margin-top:10px}.brite-activity-record .actions .activity-primary{background:var(--accent);color:#fff;border-color:var(--accent)}.brite-activity-record .activity-detail{margin-top:10px;padding:10px 12px;border:1px solid var(--brite-border,#cbd5e1);border-radius:8px;background:var(--brite-surface-muted,#f8fafc)}.brite-activity-record .activity-detail dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0}.brite-activity-record .activity-detail dt{font-weight:650}.brite-activity-record .activity-detail dd{margin:0;overflow-wrap:anywhere}.brite-activity-record .activity-detail p{white-space:pre-wrap;overflow-wrap:anywhere}.brite-activity-record .actions button[disabled]{opacity:.6;cursor:wait}.brite-activity-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0}.brite-activity-page :is(button,input,select,a):focus-visible{outline:3px solid #2563eb;outline-offset:2px}
 .brite-activity-record{cursor:pointer}.brite-activity-record:focus-visible{outline:3px solid #2563eb;outline-offset:2px}.activity-modal{border:0;border-radius:12px;padding:0;width:min(640px,calc(100vw - 28px));max-height:min(85vh,820px);background:var(--brite-surface,#fff);color:inherit;box-shadow:0 20px 60px #0005}.activity-modal::backdrop{background:#0f172a99}.activity-modal-inner{padding:20px;display:grid;gap:12px}.activity-modal-head{display:flex;justify-content:space-between;align-items:start;gap:12px}.activity-modal-head h2{margin:0;font-size:1.15rem}.activity-modal-body{white-space:pre-wrap;overflow-wrap:anywhere}.activity-modal-meta{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 12px;font-size:.85rem}.activity-modal-meta dt{font-weight:650}.activity-modal-meta dd{margin:0;overflow-wrap:anywhere}.activity-modal-actions{display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--brite-border,#cbd5e1);padding-top:14px}.activity-modal-actions a,.activity-modal-actions button{display:inline-flex;align-items:center;min-height:36px;padding:8px 12px;border-radius:7px;border:1px solid #94a3b8;text-decoration:none;color:inherit;background:var(--brite-surface,#fff)}.activity-modal-actions .activity-primary{background:#2563eb;color:#fff;border-color:#2563eb}.activity-modal-status{font-size:.83rem;min-height:1em}.activity-modal button{cursor:pointer}
 .activity-modal .activity-enrollment{display:grid;gap:12px;padding:16px;border:1px solid var(--brite-border,#cbd5e1);border-radius:10px;background:var(--brite-surface-muted,#f8fafc);width:100%;box-sizing:border-box}.activity-enrollment .activity-enrollment-heading{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}.activity-enrollment .activity-enrollment-heading strong{font-size:1.05rem}.activity-enrollment .activity-enrollment-badge{border-radius:20px;padding:4px 10px;background:#dbeafe;color:#1e40af;font-weight:700;font-size:.8rem}.activity-enrollment dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px 12px;margin:0}.activity-enrollment dt{font-weight:700}.activity-enrollment dd{margin:0;overflow-wrap:anywhere}.activity-enrollment .activity-enrollment-note{padding:10px;border-radius:7px;background:var(--brite-surface,#fff);white-space:pre-wrap}.activity-enrollment .activity-enrollment-buttons{display:flex;gap:8px;flex-wrap:wrap}.activity-enrollment .activity-enrollment-buttons button{padding:9px 14px}.activity-enrollment textarea{width:100%;box-sizing:border-box;padding:10px;border-radius:7px;border:1px solid #94a3b8;background:var(--brite-surface,#fff);color:inherit}.activity-modal-actions{align-items:flex-start}.activity-modal-actions>.activity-enrollment{flex-basis:100%}
+.activity-progress{width:100%;border:1px solid var(--brite-border,#cbd5e1);border-radius:10px;padding:14px;box-sizing:border-box;background:var(--brite-surface-muted,#f8fafc)}.activity-progress h3{margin:0 0 8px;font-size:1rem}.activity-progress progress{width:100%;height:12px;accent-color:#2563eb}.activity-progress ol{padding-left:24px;margin:10px 0}.activity-progress li{padding:5px 0}.activity-progress small{display:block;color:var(--brite-text-muted,#64748b)}.activity-progress .activity-step-completed{color:#15803d}.activity-progress .activity-step-blocked,.activity-progress .activity-step-failed{color:#b45309}.activity-progress .activity-history{margin-top:12px;border-top:1px solid #cbd5e1;padding-top:10px}
 </style>
 <main class="brite-activity-page">
 <header><h1>Activity Hub</h1><p>Review activity, open related work, and manage notifications. Dismissing an alert does not complete the underlying task.</p></header>
@@ -70,6 +71,45 @@ function showModal(n){
  const appointment=validId(n.appointment_id);
  const enrollmentId=enrollmentApplicationId(n);
  if(enrollmentId){
+  const monitor=node('section',undefined,'activity-progress');
+  monitor.setAttribute('aria-label','Enrollment event progress');
+  monitor.append(node('p','Loading workflow progress…'));
+  actions.append(monitor);
+  const progressUrl=base+'/api/activity_workflow_progress.php?workflow_type=enrollment&record_id='+encodeURIComponent(String(enrollmentId));
+  const refreshProgress=async()=>{
+   try{
+    const response=await fetch(progressUrl,{credentials:'same-origin',cache:'no-store'});
+    const result=await response.json();
+    if(!response.ok||!result.ok)throw Error(result.error||'Progress unavailable');
+    if(modalNotification!==n)return;
+    monitor.replaceChildren();
+    monitor.append(node('h3','Enrollment progress — '+result.completed+' of '+result.total+' steps'));
+    const bar=node('progress');bar.max=result.total;bar.value=result.completed;
+    bar.setAttribute('aria-label','Workflow steps completed');monitor.append(bar);
+    const timeline=node('ol');
+    for(const step of result.steps){
+     const li=node('li',step.label+' — '+step.status,'activity-step-'+step.status);
+     if(step.at)li.append(node('small',String(step.at)));
+     timeline.append(li);
+    }
+    monitor.append(timeline);
+    const related=items.filter(item=>enrollmentApplicationId(item)===enrollmentId).sort((x,y)=>Number(x.id)-Number(y.id));
+    if(related.length){
+     const history=node('div',undefined,'activity-history');
+     history.append(node('strong','Related notifications ('+related.length+' loaded)'));
+     for(const item of related){
+      const line=node('p');
+      const button=node('button','#'+item.id+' · '+(item.title||'Notification'));
+      button.type='button';button.addEventListener('click',()=>showModal(item));
+      line.append(button);history.append(line);
+     }
+     monitor.append(history);
+    }
+   }catch(error){if(modalNotification===n)monitor.replaceChildren(node('p','Workflow progress unavailable: '+error.message));}
+  };
+  refreshProgress();
+  const progressTimer=window.setInterval(()=>{if(modalNotification!==n){window.clearInterval(progressTimer);return;}refreshProgress();},30000);
+
   const workflow=node('section',undefined,'activity-enrollment');workflow.setAttribute('aria-label','Enrollment application workflow');
   workflow.append(node('p','Loading enrollment workflow…'));
   actions.append(workflow);
