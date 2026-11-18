@@ -234,7 +234,7 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
   </div>
  </section>
 
- <script defer src="<?=htmlspecialchars(app_url('/modules/messaging/owner-review.js?v=75c'),ENT_QUOTES,'UTF-8')?>"></script>
+ <script defer src="<?=htmlspecialchars(app_url('/modules/messaging/owner-review.js?v=98i'),ENT_QUOTES,'UTF-8')?>"></script>
  <?php endif; ?>
  <section class="msg-preferences msg-tabpanel msg-pane" id="msgPreferences" role="tabpanel" aria-labelledby="msgTabPreferences" hidden>
   <h2>Notification preferences</h2>
@@ -267,4 +267,4 @@ document.addEventListener('DOMContentLoaded',function(){
  activate(0,false);
 });
 </script>
-<script defer src="<?=htmlspecialchars(app_url('/modules/messaging/messaging.js?v=98h'),ENT_QUOTES,'UTF-8')?>"></script>
+<script defer src="<?=htmlspecialchars(app_url('/modules/messaging/messaging.js?v=98i'),ENT_QUOTES,'UTF-8')?>"></script>
