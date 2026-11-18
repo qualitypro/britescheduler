@@ -49,6 +49,25 @@ if ($ready && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $notify=$db->prepare("INSERT INTO notifications (tenant_id,user_id,type,title,body) SELECT ?,m.user_id,'enrollment.submitted','New enrollment application',? FROM tenant_memberships m WHERE m.tenant_id=? AND m.role IN ('owner','admin') AND m.status='active'");
             $notify->execute([$tenantId,ucfirst($type).' application #'.$applicationId.' submitted for review.',$tenantId]);
             $notice = 'Application submitted for review.';
+        } elseif ($action === 'revoke' && $canReview) {
+            $id=filter_var($_POST['application_id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+            if(!$id) throw new DomainException('Invalid application');
+            $db->beginTransaction();
+            try {
+                $q=$db->prepare("SELECT id FROM enrollment_applications WHERE id=? AND tenant_id=? AND status='approved' FOR UPDATE");
+                $q->execute([$id,$tenantId]);
+                if(!$q->fetch()) throw new DomainException('Application unavailable');
+                $q=$db->prepare('UPDATE enrollment_invitations SET revoked_at=UTC_TIMESTAMP() WHERE tenant_id=? AND application_id=? AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at>UTC_TIMESTAMP()');
+                $q->execute([$tenantId,$id]);
+                if($q->rowCount()<1) throw new DomainException('No active invitation to revoke');
+                $q=$db->prepare('INSERT INTO audit_log (tenant_id,user_id,action,entity_type,entity_id,metadata) VALUES (?,?,?,?,?,?)');
+                $q->execute([$tenantId,$userId,'enrollment.revoke','enrollment_application',$id,json_encode(['reason'=>'manual'],JSON_THROW_ON_ERROR)]);
+                $db->commit();
+                $notice='Active invitation revoked.';
+            } catch(Throwable $e) {
+                if($db->inTransaction())$db->rollBack();
+                throw $e;
+            }
         } elseif ($action === 'invite' && $canReview) {
             $id = filter_var($_POST['application_id'] ?? null, FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]]);
             if (!$id) throw new DomainException('Invalid application');
@@ -178,6 +197,14 @@ require __DIR__ . '/partials/app_header.php';
 <small class="muted">Submitted <?=$esc($item['created_at'])?></small>
 <?php if($item['notes']): ?><p><?=$esc($item['notes'])?></p><?php endif; ?>
 <?php if($item['decision_note']): ?><p><strong>Review note:</strong> <?=$esc($item['decision_note'])?></p><?php endif; ?>
+<?php if($canReview && $item['status']==='approved' && $item['invitation_state']==='invited'): ?>
+<form method="post" style="margin-top:8px">
+<input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>">
+<input type="hidden" name="action" value="revoke">
+<input type="hidden" name="application_id" value="<?=$esc($item['id'])?>">
+<button type="submit" onclick="return confirm('Revoke the current activation invitation?')">Revoke active invitation</button>
+</form>
+<?php endif; ?>
 <?php if($canReview && $item['status']==='approved'): ?>
 <form method="post" style="margin-top:8px">
 <input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>">
