@@ -10,11 +10,6 @@ $error='';
 $success=false;
 $invite=null;
 $db=Database::connection();
-if($validToken && ($_SERVER['REQUEST_METHOD']??'GET')==='GET'){
-    // Remove the bearer token from browser history before showing the form.
-    // The token remains server-side for this request and is placed in a POST-only field.
-    header('Referrer-Policy: no-referrer');
-}
 if($validToken){
     $q=$db->prepare("SELECT i.id,i.tenant_id,i.application_id,a.applicant_type,a.full_name,a.email,a.phone
         FROM enrollment_invitations i JOIN enrollment_applications a ON a.id=i.application_id AND a.tenant_id=i.tenant_id
