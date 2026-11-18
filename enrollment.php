@@ -18,9 +18,10 @@ $error = '';
 $ready = true;
 try {
     $db->query('SELECT id FROM enrollment_applications LIMIT 0');
+    $db->query('SELECT id FROM enrollment_invitations LIMIT 0');
 } catch (PDOException $e) {
     $ready = false;
-    $error = 'Enrollment database setup required. Apply migration 039_enrollment_management.sql.';
+    $error = 'Enrollment database setup required. Apply migrations 039_enrollment_management.sql and 040_enrollment_invitations.sql.';
 }
 if ($ready && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     try {
