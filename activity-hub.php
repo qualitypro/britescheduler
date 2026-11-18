@@ -16,7 +16,7 @@ require __DIR__ . '/partials/app_header.php';
 <div class="brite-activity-stats" aria-live="polite"><span id="activityOutstanding">Outstanding: —</span><span id="activityLoaded">Showing: —</span></div>
 <div class="brite-activity-toolbar" role="search" aria-label="Filter activity">
 <input id="activitySearch" type="search" placeholder="Search titles, messages, or IDs" aria-label="Search notifications">
-<select id="activityStatus" aria-label="Notification status"><option value="outstanding">Unread / active</option><option value="all" selected>All notifications</option><option value="dismissed">Dismissed</option><option value="read">Read</option></select>
+<select id="activityStatus" aria-label="Notification status"><option value="outstanding" selected>Active (not dismissed)</option><option value="all">All notifications</option><option value="dismissed">Dismissed</option><option value="read">Read</option></select>
 <select id="activityType" aria-label="Notification category"><option value="all">All categories</option><option value="booking_requests">Booking requests</option><option value="marketplace">Marketplace</option><option value="schedule">Scheduling</option><option value="warning">Attention</option><option value="general">General</option></select>
 <button id="activityRefresh" type="button">Refresh</button>
 </div>
