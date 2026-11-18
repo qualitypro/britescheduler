@@ -107,6 +107,8 @@
  const cardLists=new WeakMap();
  function enhanceCards(root){
    if(cardLists.has(root)||root.closest('.brite-marketplace,[data-brite-list="off"]'))return;
+   // Client directory is already paginated by its API; never add a second client-side pager.
+   if(root.hasAttribute('data-directory-list') && root.closest('[data-directory="clients"]')?.querySelector('[data-directory-pagination]'))return;
    if(root.id==='rows'&&document.getElementById('contractorPagination'))return;
    if(root.id==='staffRecords'||root.id==='inviteRecords'||root.hasAttribute('data-directory-list')){
      const cards=[...root.children].filter(el=>el.matches('details.brite-directory-record'));
