@@ -182,7 +182,7 @@ if ($ready) {
     if($invitation==='not_sent') $sql.=' AND NOT EXISTS (SELECT 1 FROM enrollment_invitations ix WHERE ix.tenant_id=a.tenant_id AND ix.application_id=a.id)';
     elseif($invitation!=='all') {
         $stateSql=['invited'=>'ix.accepted_at IS NULL AND ix.revoked_at IS NULL AND ix.expires_at>UTC_TIMESTAMP()', 'expired'=>'ix.accepted_at IS NULL AND ix.revoked_at IS NULL AND ix.expires_at<=UTC_TIMESTAMP()', 'revoked'=>'ix.revoked_at IS NOT NULL', 'activated'=>'ix.accepted_at IS NOT NULL'];
-        $sql.=' AND EXISTS (SELECT 1 FROM enrollment_invitations ix WHERE ix.id=(SELECT MAX(iy.id) FROM enrollment_invitations iy WHERE iy.tenant_id=a.tenant_id AND iy.application_id=a.id) AND ix.tenant_id=a.tenant_id AND '.$stateSql[$invitation].')';
+        $sql.=' AND EXISTS (SELECT 1 FROM enrollment_invitations ix WHERE ix.tenant_id=a.tenant_id AND ix.application_id=a.id AND NOT EXISTS (SELECT 1 FROM enrollment_invitations iy WHERE iy.tenant_id=ix.tenant_id AND iy.application_id=ix.application_id AND iy.id>ix.id) AND '.$stateSql[$invitation].')';
     }
     $sql.=' ORDER BY a.created_at DESC,a.id DESC LIMIT 100';
     $q=$db->prepare($sql);$q->execute($params);$rows=$q->fetchAll(PDO::FETCH_ASSOC);
