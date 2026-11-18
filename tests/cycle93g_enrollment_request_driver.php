@@ -17,4 +17,5 @@ if ($argv[4]==='submit') {
 }
 if (isset($argv[5]))$_POST['application_id']=$argv[5];
 if (isset($argv[6]))$_POST['decision']=$argv[6];
+if (getenv('CYCLE93_BAD_CSRF') === '1') $_POST['_csrf']='invalid';
 include dirname(__DIR__).'/enrollment.php';
