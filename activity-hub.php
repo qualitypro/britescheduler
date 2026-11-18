@@ -92,18 +92,11 @@ function renderEventHistory(card,key){
  }
  details.append(list);panel.append(details);card.append(panel);
 }
-// Activity Hub is a self-contained inspection workspace. Links within its
-// records open the notification dialog instead of navigating away.
+// Keep the Activity Hub tab intact while opening the real workflow in a new tab.
 function keepInActivityHub(link,n){
- link.addEventListener('click',event=>{
-  event.preventDefault();
-  event.stopPropagation();
-  if(modal.open&&modalNotification===n){
-   el('activityModalStatus').textContent='Related record details are displayed above. Activity Hub remains open.';
-   const section=el('activityModalActions').querySelector('.activity-enrollment,.activity-progress');
-   if(section)section.scrollIntoView({block:'nearest',behavior:'smooth'});
-  }else showModal(n);
- });
+ link.target='_blank';
+ link.rel='noopener noreferrer';
+ link.setAttribute('aria-label',(link.textContent||'Open workspace')+' (opens in a new tab)');
  return link;
 }
 function showModal(n){
