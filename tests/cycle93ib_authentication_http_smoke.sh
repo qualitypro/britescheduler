@@ -28,6 +28,11 @@ if [[ "$(sql "SELECT COUNT(*) FROM information_schema.table_constraints WHERE co
   "$MYSQL_BIN" "${ARGS[@]}" "$DB_NAME" < migrations/006_client_location_integrity.sql
 fi
 # Credentials are fixed, disposable-test-only passwords from the prior HTTP activation runs.
+# Migration 007 adds appointments.client_location_id after migrations 005 and 006.
+if [[ "$(sql "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='appointments' AND column_name='client_location_id'")" == 0 ]]; then
+  echo 'Preparing disposable dashboard dependency: migration 007'
+  "$MYSQL_BIN" "${ARGS[@]}" "$DB_NAME" < migrations/007_appointment_client_locations.sql
+fi
 CONTRACTOR="$(sql "SELECT u.email FROM users u JOIN tenant_memberships m ON m.user_id=u.id WHERE m.role='contractor' AND m.tenant_id=1 AND u.email LIKE 'http93i_%@example.invalid' ORDER BY u.id DESC LIMIT 1")"
 CLIENT="$(sql "SELECT u.email FROM users u JOIN tenant_memberships m ON m.user_id=u.id WHERE m.role='client' AND m.tenant_id=1 AND u.email LIKE 'http93f_%@example.invalid' ORDER BY u.id DESC LIMIT 1")"
 [[ -n "$CONTRACTOR" && -n "$CLIENT" ]] || { echo 'FAIL missing previously activated 93F client or 93I contractor; run those smoke tests first'; exit 1; }
