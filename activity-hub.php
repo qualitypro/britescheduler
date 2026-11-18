@@ -129,7 +129,21 @@ function showModal(n){
    catch(error){dismiss.disabled=false;el('activityModalStatus').textContent=error.message;}
   });actions.append(dismiss);
  }
- if(!appointment&&!enrollmentId){const info=node('p','No linked workflow record is available for this notification.');actions.append(info);}
+ if(!appointment&&!enrollmentId){
+  const info=node('section',undefined,'activity-enrollment');
+  const type=String(n.type||'general');
+  const synthetic=/\\b(synthetic|demo|test notification)\\b/i.test(String(n.title||'')+' '+String(n.body||''));
+  const heading=node('div',undefined,'activity-enrollment-heading');
+  heading.append(node('strong',synthetic?'Demo / test event':'Notification details'),node('span',synthetic?'TEST EVENT':'INFORMATIONAL','activity-enrollment-badge'));
+  info.append(heading);
+  const fields=node('dl');
+  const field=(label,value)=>{if(value!==null&&value!==undefined&&String(value).trim()!=='')fields.append(node('dt',label),node('dd',value));};
+  field('Event type',type);field('Notification','#'+n.id);field('State',n.read_at===null?'Outstanding':'Dismissed');
+  field('Created',n.created_at);field('Description',n.body);
+  info.append(fields);
+  info.append(node('p',synthetic?'This notification was generated for demonstration or testing. It has no real business record or transaction controls.':'This event has no verified related record. Its details are available here; business actions require a linked record.'));
+  actions.append(info);
+ }
  el('activityModalStatus').textContent='';
  if(!modal.open)modal.showModal();
 }
