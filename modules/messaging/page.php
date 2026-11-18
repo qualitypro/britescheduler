@@ -154,6 +154,34 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
 .msg-table-footer button:disabled{opacity:.45;cursor:default}
 @media(max-width:1120px){.msg-module-body .msg-inbox-table-layout{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:650px){.msg-conversation-table th:nth-child(3),.msg-conversation-table td:nth-child(3){display:none}.msg-conversation-table th:nth-child(1){width:32%}.msg-conversation-table th:nth-child(2){width:53%}.msg-conversation-table th:nth-child(4){width:15%}}
+
+/* Cycle 98G — readable full-width Messages workspace, without nested scrollbars.
+   Compact means efficient spacing, not constrained content or clipped columns. */
+.msg-module-layout{grid-template-columns:156px minmax(0,1fr);align-items:start}
+.msg-module-body{width:100%;min-width:0}
+.msg-module-body .msg-inbox-table-layout,
+.msg-module-body .msg-workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;min-height:0;max-width:none;width:100%}
+.msg-module-body .msg-inbox-table-layout>.msg-pane,
+.msg-module-body .msg-workspace>.msg-pane{min-width:0;width:100%;max-width:none;box-sizing:border-box}
+.msg-table-scroll{overflow:visible;max-width:none;width:100%;border-radius:7px}
+.msg-conversation-table{width:100%;table-layout:auto}
+.msg-conversation-table th:nth-child(1){width:24%}
+.msg-conversation-table th:nth-child(2){width:48%}
+.msg-conversation-table th:nth-child(3){width:20%}
+.msg-conversation-table th:nth-child(4){width:8%}
+.msg-conversation-table td{overflow:visible;word-break:normal}
+.msg-conversation-table .msg-cell-select{overflow-wrap:anywhere;white-space:normal;overflow:visible;text-overflow:clip;min-height:34px}
+.msg-conversation-table .msg-table-subject,
+.msg-conversation-table .msg-table-preview{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+.msg-conversation-table .msg-table-date{white-space:normal;overflow-wrap:anywhere}
+.msg-module-body .msg-history{max-height:none!important;min-height:90px;overflow:visible!important;height:auto;display:flex;flex-direction:column}
+.msg-module-body .msg-bubble{max-width:min(90%,850px)}
+.msg-module-body #msgOwnerReview .msg-workspace{grid-template-columns:minmax(0,1fr)}
+.msg-module-body #msgOwnerReview .msg-workspace>div{min-width:0}
+.msg-module-body #msgReviewThreads{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:6px}
+.msg-module-body #msgReviewThreads .msg-review-item{margin:0}
+@media(max-width:850px){.msg-module-layout{grid-template-columns:132px minmax(0,1fr)}.msg-module-body .msg-inbox-table-layout,.msg-module-body .msg-workspace{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:650px){.msg-module-layout{grid-template-columns:minmax(0,1fr)}.msg-conversation-table th:nth-child(3),.msg-conversation-table td:nth-child(3){display:table-cell}.msg-conversation-table th:nth-child(1){width:25%}.msg-conversation-table th:nth-child(2){width:45%}.msg-conversation-table th:nth-child(3){width:22%}.msg-conversation-table th:nth-child(4){width:8%}.msg-conversation-table th,.msg-conversation-table .msg-cell-select{font-size:.7rem!important;padding:5px 3px!important}}
 </style>
 <section class="card msg-module" data-brite-pills="off" style="display:grid;gap:8px">
  <div><h1 style="margin:0 0 4px">Messages</h1><p class="muted" style="margin:0;font-size:.85rem">Private conversations within your organization. Clients and contractors can contact the tenant owner by default; direct client–contractor messaging becomes available after a quote request or scheduled assignment.</p></div>
