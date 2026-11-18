@@ -43,38 +43,8 @@ final class FreshInstallOrchestrator
             if ($tables !== 0) {
                 throw new DomainException('Refusing to install into nonempty database');
             }
-            // Validate owner fields before irreversible DDL by using the same
-            // syntactic constraints as provisioning (without storing secrets).
-            foreach (['tenant_name','tenant_slug','owner_email','owner_first_name','owner_last_name','owner_password'] as $key) {
-                if (!isset($owner[$key]) || !is_string($owner[$key]) || trim($owner[$key]) === '') {
-                    throw new DomainException('Missing owner field: ' . $key);
-                }
-            }
-            if (!filter_var($owner['owner_email'], FILTER_VALIDATE_EMAIL) ||
-                !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/D', $owner['tenant_slug']) ||
-                strlen($owner['owner_password']) < 12 ||
-                strlen($owner['owner_password']) > 1024) {
-                throw new DomainException('Invalid initial owner details');
-            }
-            // Validate configuration without writing it before schema operations.
-            foreach (['APP_URL','DB_HOST','DB_PORT','DB_NAME','DB_USER','DB_PASS'] as $key) {
-                if (!isset($configuration[$key]) || !is_string($configuration[$key])) {
-                    throw new DomainException('Missing configuration field: ' . $key);
-                }
-            }
-            if (!filter_var($configuration['APP_URL'], FILTER_VALIDATE_URL) ||
-                !in_array(parse_url($configuration['APP_URL'], PHP_URL_SCHEME), ['http','https'], true) ||
-                !preg_match('/^[A-Za-z0-9.-]+$/D', $configuration['DB_HOST']) ||
-                !preg_match('/^[A-Za-z0-9_]+$/D', $configuration['DB_NAME']) ||
-                !preg_match('/^[A-Za-z0-9_.-]+$/D', $configuration['DB_USER']) ||
-                !ctype_digit($configuration['DB_PORT']) ||
-                (int)$configuration['DB_PORT'] < 1 || (int)$configuration['DB_PORT'] > 65535) {
-                throw new DomainException('Invalid database configuration');
-            }
             $actualDatabase = (string)$pdo->query('SELECT DATABASE()')->fetchColumn();
-            if ($configuration['DB_NAME'] !== $actualDatabase) {
-                throw new DomainException('Configuration database does not match connected database');
-            }
+            FreshInstallInput::validate($root, $configuration, $owner, $actualDatabase);
             $migrations = MigrationRunner::run($root, $pdo, true, true);
             $created = InitialOwnerProvisioner::provision($pdo, $owner, true, true);
             ConfigurationWriter::write($root, $configuration);
