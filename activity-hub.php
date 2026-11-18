@@ -147,9 +147,9 @@ function showModal(n){
    catch(error){dismiss.disabled=false;el('activityModalStatus').textContent=error.message;}
   });actions.append(dismiss);
  }
- const billingEvent=/\\b(bill(?:ing)?|invoice|payment|receivable)\\b/i.test([n.type,n.title,n.body].join(' '));
+ const billingEvent=/\b(bill(?:ing)?|invoice|payment|receivable)\b/i.test([n.type,n.title,n.body].join(' '));
  if(billingEvent){
-  const invoiceMatch=([n.title,n.body].join(' ')).match(/\\binvoice\\s*(?:#|number\\s*[:#]?\\s*)([1-9][0-9]*)\\b/i);
+  const invoiceMatch=([n.title,n.body].join(' ')).match(/\binvoice\s*(?:#|number\s*[:#]?\s*)([1-9][0-9]*)\b/i);
   const syntheticBilling=/\b(synthetic|demo|test notification)\b/i.test([n.title,n.body].join(' '));
   const invoiceId=!syntheticBilling&&invoiceMatch?Number(invoiceMatch[1]):null;
   const billingLink=node('a','Open billing workspace','activity-primary');
@@ -185,7 +185,7 @@ function showModal(n){
  if(!appointment&&!enrollmentId){
   const info=node('section',undefined,'activity-enrollment');
   const type=String(n.type||'general');
-  const synthetic=/\\b(synthetic|demo|test notification)\\b/i.test(String(n.title||'')+' '+String(n.body||''));
+  const synthetic=/\b(synthetic|demo|test notification)\b/i.test(String(n.title||'')+' '+String(n.body||''));
   const heading=node('div',undefined,'activity-enrollment-heading');
   heading.append(node('strong',synthetic?'Demo / test event':'Notification details'),node('span',synthetic?'TEST EVENT':'INFORMATIONAL','activity-enrollment-badge'));
   info.append(heading);
