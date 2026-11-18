@@ -178,8 +178,9 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
 .msg-module-body .msg-bubble{max-width:min(90%,850px)}
 .msg-module-body #msgOwnerReview .msg-workspace{grid-template-columns:minmax(0,1fr)}
 .msg-module-body #msgOwnerReview .msg-workspace>div{min-width:0}
-.msg-module-body #msgReviewThreads{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:6px}
-.msg-module-body #msgReviewThreads .msg-review-item{margin:0}
+.msg-module-body #msgReviewThreads{display:table-row-group}
+.msg-module-body #msgReviewThreads>tr{display:table-row}
+.msg-module-body #msgReviewThreads>tr>td{display:table-cell;vertical-align:middle}
 @media(max-width:850px){.msg-module-layout{grid-template-columns:132px minmax(0,1fr)}.msg-module-body .msg-inbox-table-layout,.msg-module-body .msg-workspace{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:650px){.msg-module-layout{grid-template-columns:minmax(0,1fr)}.msg-conversation-table th:nth-child(3),.msg-conversation-table td:nth-child(3){display:table-cell}.msg-conversation-table th:nth-child(1){width:25%}.msg-conversation-table th:nth-child(2){width:45%}.msg-conversation-table th:nth-child(3){width:22%}.msg-conversation-table th:nth-child(4){width:8%}.msg-conversation-table th,.msg-conversation-table .msg-cell-select{font-size:.7rem!important;padding:5px 3px!important}}
 .msg-conversation-table .msg-date-sort{display:inline-flex;align-items:center;gap:4px;padding:2px 3px;border:0;background:transparent;color:inherit;font:inherit;font-weight:700;cursor:pointer;text-align:left}.msg-conversation-table .msg-date-sort:hover{text-decoration:underline}.msg-conversation-table .msg-date-sort:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
