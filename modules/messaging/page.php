@@ -128,6 +128,32 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
 .msg-preferences p{font-size:.77rem;line-height:1.4;margin:7px 0}
 @media(max-width:850px){.msg-module-layout{grid-template-columns:142px minmax(0,1fr)}.msg-module-body .msg-workspace{grid-template-columns:minmax(145px,205px) minmax(0,1fr)}}
 @media(max-width:650px){.msg-module-layout{grid-template-columns:minmax(0,1fr)}.msg-module-nav{flex-direction:row;flex-wrap:wrap}.msg-module-nav .msg-tab{width:auto;flex:1 1 auto;justify-content:center;border-left:0!important;border-bottom:3px solid transparent!important}.msg-module-nav .msg-tab[aria-selected="true"]{border-left:0!important;border-bottom-color:#2563eb!important}.msg-module-body .msg-workspace{grid-template-columns:minmax(0,1fr);min-height:0}.msg-module-body .msg-history{max-height:290px}}
+
+/* Cycle 98F — high-volume conversation table with selected-row detail. */
+.msg-module-body .msg-inbox-table-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,1fr);gap:8px}
+.msg-module-body .msg-inbox-table-layout>.msg-pane:first-child{min-width:0}
+.msg-table-tools{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:6px 0;font-size:.72rem}
+.msg-table-tools select{min-height:29px;padding:3px 5px;font-size:.75rem;max-width:170px}
+.msg-table-scroll{overflow-x:auto;max-width:100%;border:1px solid var(--brite-border,#cbd5e1);border-radius:7px}
+.msg-conversation-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:.76rem}
+.msg-conversation-table th{position:sticky;top:0;text-align:left;background:var(--brite-surface-muted,#f1f5f9);font-size:.71rem;font-weight:700;padding:7px 6px;border-bottom:1px solid var(--brite-border,#cbd5e1)}
+.msg-conversation-table th:nth-child(1){width:25%}.msg-conversation-table th:nth-child(2){width:39%}.msg-conversation-table th:nth-child(3){width:23%}.msg-conversation-table th:nth-child(4){width:13%}
+.msg-conversation-table td{padding:0!important;border-bottom:1px solid var(--brite-border,#e2e8f0);vertical-align:top;overflow:hidden}
+.msg-conversation-table tbody tr:last-child td{border-bottom:0}
+.msg-conversation-table tbody tr[aria-selected="true"]{background:rgba(37,99,235,.09)}
+.msg-conversation-table tbody tr:hover{background:var(--brite-surface-muted,#f1f5f9)}
+.msg-conversation-table .msg-cell-select{display:block;width:100%;min-height:35px;border:0!important;background:transparent!important;color:inherit!important;text-align:left!important;padding:7px 6px!important;font-size:.76rem!important;font-weight:inherit;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-radius:0!important}
+.msg-conversation-table .msg-cell-select:focus-visible{outline:2px solid #2563eb!important;outline-offset:-2px}
+.msg-conversation-table .msg-table-subject{font-weight:600;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msg-conversation-table .msg-table-preview{font-size:.7rem;color:var(--brite-muted,#64748b);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msg-conversation-table .msg-table-date{display:block;padding:8px 5px;font-size:.7rem;overflow-wrap:anywhere}
+.msg-conversation-table .msg-table-unread{display:inline-block;margin:7px 3px;padding:2px 5px;border-radius:10px;background:#1d4ed8;color:#fff;font-size:.69rem}
+.msg-table-footer{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-top:7px;font-size:.72rem}
+.msg-table-footer #msgThreadCount{margin-right:auto}
+.msg-table-footer select,.msg-table-footer button{min-height:27px;padding:3px 6px;font-size:.72rem}
+.msg-table-footer button:disabled{opacity:.45;cursor:default}
+@media(max-width:1120px){.msg-module-body .msg-inbox-table-layout{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:650px){.msg-conversation-table th:nth-child(3),.msg-conversation-table td:nth-child(3){display:none}.msg-conversation-table th:nth-child(1){width:32%}.msg-conversation-table th:nth-child(2){width:53%}.msg-conversation-table th:nth-child(4){width:15%}}
 </style>
 <section class="card msg-module" data-brite-pills="off" style="display:grid;gap:8px">
  <div><h1 style="margin:0 0 4px">Messages</h1><p class="muted" style="margin:0;font-size:.85rem">Private conversations within your organization. Clients and contractors can contact the tenant owner by default; direct client–contractor messaging becomes available after a quote request or scheduled assignment.</p></div>
@@ -141,11 +167,13 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
  <button type="button" class="msg-tab" id="msgTabPreferences" role="tab" aria-controls="msgPreferences" aria-selected="false" tabindex="-1">Preferences</button>
  </nav>
  <div class="msg-module-body">
- <div id="msgPanelInbox" class="msg-workspace msg-tabpanel" role="tabpanel" aria-labelledby="msgTabInbox">
+ <div id="msgPanelInbox" class="msg-workspace msg-tabpanel msg-inbox-table-layout" role="tabpanel" aria-labelledby="msgTabInbox">
   <aside class="msg-pane" aria-label="Conversations">
    <div class="msg-toolbar"><h2>Inbox</h2><button id="msgRefresh" type="button" class="msg-secondary" title="Refresh conversations">↻ Refresh</button></div>
    <button id="msgNew" type="button" class="msg-primary" style="width:100%;margin-bottom:8px">+ New conversation</button><label for="msgThreadSearch" class="brite-sr-only">Search conversations</label><input id="msgThreadSearch" type="search" placeholder="Find a conversation…" autocomplete="off">
-   <div id="msgThreads" aria-label="Conversation list"></div>
+   <div class="msg-table-tools"><label for="msgUnreadFilter">Show</label><select id="msgUnreadFilter"><option value="all">All conversations</option><option value="unread">Unread only</option><option value="read">Read only</option></select><label for="msgThreadSort">Sort</label><select id="msgThreadSort"><option value="recent">Most recent</option><option value="oldest">Oldest activity</option><option value="unread">Unread first</option><option value="participant">Participant A–Z</option><option value="subject">Subject A–Z</option></select></div>
+   <div class="msg-table-scroll"><table class="msg-conversation-table" aria-label="Conversations"><thead><tr><th scope="col">Participant</th><th scope="col">Subject / latest message</th><th scope="col">Updated</th><th scope="col">Unread</th></tr></thead><tbody id="msgThreads"></tbody></table></div>
+   <div class="msg-table-footer"><span id="msgThreadCount" role="status" aria-live="polite"></span><label for="msgPageSize">Rows <select id="msgPageSize"><option>10</option><option selected>25</option><option>50</option><option>100</option></select></label><button type="button" id="msgPagePrev">Previous</button><span id="msgPageInfo"></span><button type="button" id="msgPageNext">Next</button></div>
   </aside>
   <div class="msg-pane">
    <div id="msgCompose" hidden>
@@ -211,4 +239,4 @@ document.addEventListener('DOMContentLoaded',function(){
  activate(0,false);
 });
 </script>
-<script defer src="<?=htmlspecialchars(app_url('/modules/messaging/messaging.js?v=75l'),ENT_QUOTES,'UTF-8')?>"></script>
+<script defer src="<?=htmlspecialchars(app_url('/modules/messaging/messaging.js?v=98f'),ENT_QUOTES,'UTF-8')?>"></script>
