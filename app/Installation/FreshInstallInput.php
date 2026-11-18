@@ -20,7 +20,7 @@ final class FreshInstallInput
             if (!array_key_exists($key, $config) || !is_string($config[$key]) ||
                 ($key !== 'DB_PASS' && $config[$key] === '') ||
                 strlen($config[$key]) > 2048 ||
-                preg_match('/[\\x00-\\x1f\\x7f\\s#"\\x27\\\\]/', $config[$key]) ||
+                (bool)preg_match('/[[:cntrl:][:space:]#"\\x27\\\\]/', $config[$key]) ||
                 !preg_match('/^' . preg_quote($key, '/') . '=/m', $template)) {
                 throw new DomainException('Invalid configuration field: ' . $key);
             }
