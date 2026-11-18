@@ -291,6 +291,48 @@ const limit=500;
 let activitySortField='created_at',activitySortDirection=-1;
 const activityCollator=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
 function category(n){const t=String(n.type||'').toLowerCase();return /marketplace|bid|award/.test(t)?'marketplace':/cancel|fail|declin|reject|overdue|urgent/.test(t)?'warning':/appointment|booking|assign|schedul/.test(t)?'schedule':'general';}
+// Choose a distinctive icon by workflow/event type, not only the broad filter category.
+function activityIcon(n){
+ const t=String(n.type||'').toLowerCase(),title=String(n.title||'').toLowerCase(),body=String(n.body||'').toLowerCase();
+ const signal=t+' '+title;
+ const icons={
+  enrollment:['Enrollment','<path d="M4 4h12l4 4v12H4zM16 4v5h4M8 13h8M8 17h5"/>'],
+  invitation:['Invitation','<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>'],
+  billing:['Billing','<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h4M15 16h2"/>'],
+  payment:['Payment','<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>'],
+  quote:['Quote','<path d="M5 3h11l4 4v14H5zM16 3v5h4M9 12h7M9 16h5"/>'],
+  marketplace:['Marketplace','<path d="M3 9h18l-2-5H5zM5 9v12h14V9M9 21v-7h6v7"/>'],
+  bid:['Bid','<path d="m4 14 7-7 6 6-7 7zM13 5l2-2 6 6-2 2M3 21h18"/>'],
+  award:['Award','<circle cx="12" cy="9" r="6"/><path d="m8 14-2 8 6-3 6 3-2-8"/>'],
+  booking:['Booking request','<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M9 16h6M12 13v6"/>'],
+  appointment:['Appointment','<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 15l3 3 5-5"/>'],
+  assignment:['Assignment','<circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2M17 14l2 2 3-3"/>'],
+  cancellation:['Cancellation','<circle cx="12" cy="12" r="9"/><path d="m8 8 8 8M16 8l-8 8"/>'],
+  warning:['Attention required','<path d="M12 3 2 21h20zM12 9v5M12 18h.01"/>'],
+  message:['Message','<path d="M4 4h16v13H8l-4 4zM8 9h8M8 13h5"/>'],
+  client:['Client','<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>'],
+  location:['Location','<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="2"/>'],
+  general:['Notification','<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>']
+ };
+ let key='general';
+ if(/enrollment/.test(signal))key='enrollment';
+ else if(/invit(?:ation|ed|e)/.test(signal))key='invitation';
+ else if(/payment|paid|refund/.test(signal))key='payment';
+ else if(/bill|invoice|receivable/.test(signal))key='billing';
+ else if(/quote|estimate/.test(signal))key='quote';
+ else if(/award|selected bid/.test(signal))key='award';
+ else if(/\bbid\b|bidding/.test(signal))key='bid';
+ else if(/marketplace|listing/.test(signal))key='marketplace';
+ else if(/cancel|declin|reject|fail/.test(signal))key='cancellation';
+ else if(/booking|request/.test(signal))key='booking';
+ else if(/assign|reassign/.test(signal))key='assignment';
+ else if(/appointment|schedul/.test(signal))key='appointment';
+ else if(/message|chat|conversation/.test(signal))key='message';
+ else if(/location|address/.test(signal))key='location';
+ else if(/client/.test(signal))key='client';
+ else if(/overdue|urgent|action.required|attention/.test(signal+' '+body))key='warning';
+ return {key,label:icons[key][0],path:icons[key][1]};
+}
 function isBookingRequest(n){const t=String(n.type||'').toLowerCase();const title=String(n.title||'').trim().toLowerCase();return /booking_request|client_booking_request|appointment_request|booking_requested/.test(t)||(t==='appointment'&&title==='new client booking request');}
 function node(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=String(text);if(cls)e.className=cls;return e;}
 function renderWorkflowCards(){
@@ -360,9 +402,11 @@ const activeEvents=processEvents(key).filter(event=>!event.dismissed_at);
 const unreadItem=activeEvents.some(event=>event.read_at===null),cat=category(n),article=node('article',undefined,'brite-activity-record '+cat+(unreadItem?' unread':''));
 const enrollmentId=enrollmentApplicationId(n);if(enrollmentId)article.dataset.enrollmentId=String(enrollmentId);
 const header=node('header'),title=node('strong',n.title||'Notification'),meta=node('small',cat[0].toUpperCase()+cat.slice(1)+' · '+(unreadItem?'Unread':'Read'));
-const icon=node('span',undefined,'brite-list-flat-icon');icon.setAttribute('role','img');icon.setAttribute('aria-label',cat+' activity');
-const paths={marketplace:'<path d="M4 7h16v14H4zM8 7V4h8v3"/>',schedule:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/>',warning:'<path d="M12 3 2 21h20zM12 9v5M12 18h.01"/>',general:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8"/>'};
-icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">'+(paths[cat]||paths.general)+'</svg>';
+const iconSpec=activityIcon(n);
+const icon=node('span',undefined,'brite-list-flat-icon');icon.dataset.kind=iconSpec.key;
+icon.setAttribute('role','img');icon.setAttribute('aria-label',iconSpec.label);
+icon.title=iconSpec.label;
+icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+iconSpec.path+'</svg>';
 header.append(icon,title,meta);
 article.tabIndex=0;article.setAttribute('role','button');article.setAttribute('aria-label','View details for '+(n.title||'notification'));
 article.addEventListener('click',event=>{if(event.target.closest('button,a,summary'))return;showModal(n);});
