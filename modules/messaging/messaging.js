@@ -4,37 +4,60 @@ const $=id=>document.getElementById(id);
 const base=(window.BRITE_BASE||'')+'/modules/messaging/api.php';
 let current=null,currentTitle='',busy=false,refreshing=false,selectionToken=0,composing=false;
 const status=message=>{$('msgStatus').textContent=message;};
-let threadCache=[];
-function filterThreads(){const term=$('msgThreadSearch').value.trim().toLocaleLowerCase();for(const button of $('msgThreads').querySelectorAll('.msg-thread'))button.hidden=!!term&&!button.dataset.search.includes(term);}
-$('msgThreadSearch').addEventListener('input',filterThreads);
+let threadCache=[],tablePage=1;
 const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=String(text);return n;};
-async function call(action,data,params={}){
- const post=data instanceof FormData;
- const url=new URL(base,location.href);
- if(!post){url.searchParams.set('action',action);for(const [key,value] of Object.entries(params))url.searchParams.set(key,String(value));}
- else data.set('action',action);
- const r=await fetch(url.toString(),{method:post?'POST':'GET',credentials:'same-origin',headers:{Accept:'application/json',...(post?{'X-CSRF-Token':window.BRITE_CSRF}:{})},...(post?{body:data}:{})});
- let result;try{result=await r.json();}catch{throw Error('Server returned an invalid response');}
- if(!r.ok)throw Error(result.error||'Request failed');
- return result;
-}
-async function load(){
- const result=await call('list'),list=$('msgThreads');threadCache=result.threads;list.replaceChildren();
- if(!result.threads.length){list.append(el('p','No conversations yet. Select New conversation to message another member of your organization.'));return result.threads;}
- for(const t of result.threads){
-  const button=el('button');button.type='button';button.className='msg-thread';button.dataset.search=[t.other_names,t.subject,t.last_body].filter(Boolean).join(' ').toLocaleLowerCase();
-  if(Number(t.id)===Number(current))button.setAttribute('aria-current','true');
-  const title=el('strong',t.other_names||t.subject);title.className='msg-thread-name';
-  const subject=el('span',t.subject);subject.className='msg-thread-subject';
-  const preview=el('span',t.last_body||'No messages yet');preview.className='msg-thread-preview';
-  const meta=el('span');meta.className='msg-thread-meta';
-  meta.append(el('small',t.updated_at||''));
-  if(Number(t.unread)){const count=el('span',t.unread+' unread');count.className='msg-unread';meta.append(count);}
-  button.append(title,subject,preview,meta);
-  button.addEventListener('click',()=>openThread(t.id,t.subject));
-  list.append(button);
+const tableControls=['msgThreadSearch','msgUnreadFilter','msgThreadSort','msgPageSize'];
+function renderThreads(){
+ const term=$('msgThreadSearch').value.trim().toLocaleLowerCase();
+ const filter=$('msgUnreadFilter').value,sort=$('msgThreadSort').value;
+ const filtered=threadCache.filter(t=>{
+  const unread=Number(t.unread||0)>0;
+  return (filter==='all'||(filter==='unread'?unread:!unread))&&
+   [t.other_names,t.subject,t.last_body].filter(Boolean).join(' ').toLocaleLowerCase().includes(term);
+ });
+ filtered.sort((a,b)=>{
+  const text=(x,k)=>String(x[k]||'').toLocaleLowerCase();
+  if(sort==='participant')return text(a,'other_names').localeCompare(text(b,'other_names'));
+  if(sort==='subject')return text(a,'subject').localeCompare(text(b,'subject'));
+  if(sort==='unread')return Number(b.unread||0)-Number(a.unread||0)||text(b,'updated_at').localeCompare(text(a,'updated_at'));
+  return (sort==='oldest'?1:-1)*text(a,'updated_at').localeCompare(text(b,'updated_at'));
+ });
+ const size=Number($('msgPageSize').value)||25,pages=Math.max(1,Math.ceil(filtered.length/size));
+ tablePage=Math.min(Math.max(1,tablePage),pages);
+ const list=$('msgThreads');list.replaceChildren();
+ const pageRows=filtered.slice((tablePage-1)*size,tablePage*size);
+ for(const t of pageRows){
+  const row=el('tr');row.setAttribute('aria-selected',Number(t.id)===Number(current)?'true':'false');
+  const participant=el('td'),subject=el('td'),date=el('td'),unread=el('td');
+  const open=el('button',t.other_names||'Unknown participant');
+  open.type='button';open.className='msg-cell-select';open.title='Open conversation with '+(t.other_names||'participant');
+  open.addEventListener('click',()=>openThread(t.id,t.subject).catch(e=>status('Unable to open: '+e.message)));
+  participant.append(open);
+  const subjectButton=el('button');subjectButton.type='button';subjectButton.className='msg-cell-select';
+  const title=el('span',t.subject||'(No subject)');title.className='msg-table-subject';
+  const preview=el('span',t.last_body||'No messages yet');preview.className='msg-table-preview';
+  subjectButton.title=(t.subject||'')+' — '+(t.last_body||'');
+  subjectButton.append(title,preview);
+  subjectButton.addEventListener('click',()=>openThread(t.id,t.subject).catch(e=>status('Unable to open: '+e.message)));
+  subject.append(subjectButton);
+  const timestamp=el('time',t.updated_at||'');timestamp.className='msg-table-date';date.append(timestamp);
+  if(Number(t.unread||0)){const badge=el('span',String(t.unread));badge.className='msg-table-unread';badge.setAttribute('aria-label',t.unread+' unread messages');unread.append(badge);}
+  else unread.append(el('span','—'));
+  row.append(participant,subject,date,unread);list.append(row);
  }
- filterThreads();return result.threads;
+ if(!pageRows.length){const row=el('tr'),cell=el('td',threadCache.length?'No matching conversations.':'No conversations yet. Select New conversation to start.');cell.colSpan=4;cell.style.padding='12px';row.append(cell);list.append(row);}
+ $('msgThreadCount').textContent=filtered.length+' of '+threadCache.length+' conversations';
+ $('msgPageInfo').textContent='Page '+tablePage+' of '+pages;
+ $('msgPagePrev').disabled=tablePage<=1;$('msgPageNext').disabled=tablePage>=pages;
+}
+for(const id of tableControls)$(id).addEventListener(id==='msgThreadSearch'?'input':'change',()=>{tablePage=1;renderThreads();});
+$('msgPagePrev').addEventListener('click',()=>{tablePage--;renderThreads();});
+$('msgPageNext').addEventListener('click',()=>{tablePage++;renderThreads();});
+async function load(){
+ const result=await call('list');
+ threadCache=Array.isArray(result.threads)?result.threads:[];
+ renderThreads();
+ return threadCache;
 }
 async function openThread(id,subject,{silent=false}={}){
  const requested=Number(id);if(!requested)return;
