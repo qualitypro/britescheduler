@@ -59,6 +59,37 @@ function enrollmentApplicationId(n){
   :body.match(/(?:contractor|client) application #([1-9][0-9]*) submitted for review\./i);
  return match?validId(match[1]):null;
 }
+function processKey(n){
+ const enrollment=enrollmentApplicationId(n);
+ if(enrollment)return 'enrollment:'+enrollment;
+ const appointment=validId(n.appointment_id);
+ if(appointment)return 'appointment:'+appointment;
+ return 'notification:'+String(n.id);
+}
+function processEvents(key){return items.filter(n=>processKey(n)===key).sort((a,b)=>Number(a.id)-Number(b.id));}
+function renderEventHistory(card,key){
+ if(key.startsWith('enrollment:'))return;
+ const events=processEvents(key);
+ if(events.length<2)return;
+ const panel=node('section',undefined,'activity-workflow-card');
+ panel.setAttribute('aria-label','Process notification history');
+ panel.append(node('h3','Process activity · '+events.length+' notifications'));
+ const status=node('p',events.length+' recorded events · current process completion is not verified');
+ panel.append(status);
+ const details=node('details');
+ details.append(node('summary','View event steps and related notifications'));
+ const list=node('ol');
+ for(const event of events){
+  const li=node('li');
+  const button=node('button',(event.title||'Notification')+' · #'+event.id);
+  button.type='button';
+  button.addEventListener('click',()=>showModal(event));
+  li.append(button);
+  if(event.created_at)li.append(node('small',event.created_at));
+  list.append(li);
+ }
+ details.append(list);panel.append(details);card.append(panel);
+}
 function showModal(n){
  modalNotification=n;
  el('activityModalTitle').textContent=n.title||'Notification';
@@ -302,19 +333,17 @@ filtered.sort((a,b)=>{
  return activitySortDirection*result;
 });
 el('activityOutstanding').textContent='Unread: '+unread;
-el('activityLoaded').textContent='Showing: '+filtered.length+' matching notifications (enrollment events grouped) of '+items.length+' loaded';
+el('activityLoaded').textContent='Showing: '+new Set(filtered.map(processKey)).size+' process rows ('+filtered.length+' matching notifications)';
 el('activityPageLabel').textContent='History batch '+(Math.floor(offset/limit)+1);
 el('activityPrev').disabled=offset===0;
 el('activityNext').disabled=!hasMore;
 message.textContent=filtered.length?'':(items.length?'No matches in this batch. Try another filter or the next batch.':'No notifications in this batch.');
-// One visible notification row per enrollment workflow; retain all related alerts in its progress details.
-const seenEnrollments=new Set();
+// One row per known process; standalone notifications remain individual.
+const seenProcesses=new Set();
 for(const n of filtered){
-const workflowId=enrollmentApplicationId(n);
-if(workflowId){
- if(seenEnrollments.has(workflowId))continue;
- seenEnrollments.add(workflowId);
-}
+const key=processKey(n);
+if(seenProcesses.has(key))continue;
+seenProcesses.add(key);
 const unreadItem=n.read_at===null,cat=category(n),article=node('article',undefined,'brite-activity-record '+cat+(unreadItem?' unread':''));
 const enrollmentId=enrollmentApplicationId(n);if(enrollmentId)article.dataset.enrollmentId=String(enrollmentId);
 const header=node('header'),title=node('strong',n.title||'Notification'),meta=node('small',cat[0].toUpperCase()+cat.slice(1)+' · '+(unreadItem?'Unread':'Read'));
@@ -357,7 +386,7 @@ dismiss.addEventListener('click',async()=>{dismiss.disabled=true;try{await dismi
 }
 article.append(header,body);
 if(peopleLine)article.append(peopleLine);
-article.append(date,actions,detail);records.append(article);
+article.append(date,actions,detail);renderEventHistory(article,key);records.append(article);
 }
 renderWorkflowCards();
 }
