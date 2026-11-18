@@ -22,3 +22,60 @@
   .brite-app .brite-content .brite-directory-header button {min-height:32px}
   .brite-app .brite-content .brite-directory [role=status] {margin:5px 0}
 }
+
+/* Cycle 97D — client editor density. Explicitly target the expanded record
+   rather than relying on shared form defaults (which still use 40px controls).
+   No effect on contractor editors, scheduling, or enrollment. */
+@media (min-width: 701px) {
+  .brite-app .brite-content .brite-directory[data-directory="clients"] .brite-directory-record[open] > .brite-directory-form {
+    padding: 8px 10px;
+  }
+  .brite-app .brite-content .brite-directory[data-directory="clients"] .brite-directory-record[open] .brite-directory-fields {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 7px 10px;
+  }
+  .brite-app .brite-content .brite-directory[data-directory="clients"] .brite-directory-record[open] .brite-directory-field label {
+    font-size: .75rem;
+    line-height: 1.2;
+    margin: 0 0 2px;
+  }
+  .brite-app .brite-content .brite-directory[data-directory="clients"] .brite-directory-record[open] .brite-directory-field :is(input:not([type="checkbox"]):not([type="radio"]),select) {
+    display: block;
+    width: 100%;
+    height: 30px;
+    min-height: 30px;
+    padding: 4px 8px;
+    font-size: .81rem;
+    line-height: 1.2;
+  }
+  .brite-app .brite-content .brite-directory[data-directory="clients"] .brite-directory-record[open] .brite-directory-field textarea {
+    display: block;
+    width: 100%;
+    height: 54px;
+    min-height: 54px;
+    padding: 5px 8px;
+    font-size: .81rem;
+    line-height: 1.3;
+    resize: vertical;
+  }
+  .brite-app .brite-content .brite-directory[data-directory="clients"] .brite-directory-record[open] .brite-directory-actions {
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .brite-app .brite-content .brite-directory[data-directory="clients"] .brite-directory-record[open] .brite-directory-actions button {
+    min-height: 30px;
+    padding: 4px 10px;
+    font-size: .81rem;
+  }
+}
+@media (min-width: 701px) and (max-width: 1150px) {
+  .brite-app .brite-content .brite-directory[data-directory="clients"] .brite-directory-record[open] .brite-directory-fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .brite-app .brite-content .brite-directory[data-directory="clients"] .brite-directory-record[open] .brite-directory-fields {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+    gap: 9px;
+  }
+}
