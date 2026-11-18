@@ -257,6 +257,7 @@ if ($ready) {
     $type=(string)($_GET['type']??'all');
     if (!in_array($type,['all','contractor','client'],true)) $type='all';
     $sql="SELECT a.id,a.applicant_type,a.full_name,a.email,a.phone,a.notes,a.status,a.decision_note,a.created_at,a.reviewed_at,
+      (SELECT b.reason FROM enrollment_blocks b WHERE b.tenant_id=a.tenant_id AND b.email=a.email AND b.unblocked_at IS NULL LIMIT 1) AS block_reason,
       (SELECT CASE WHEN i.accepted_at IS NOT NULL THEN 'activated'
                    WHEN i.revoked_at IS NOT NULL THEN 'revoked'
                    WHEN i.expires_at<=UTC_TIMESTAMP() THEN 'expired'
@@ -300,8 +301,8 @@ require __DIR__ . '/partials/app_header.php';
 </div>
 <?php if($canReview): ?>
 <section class="card" style="margin:14px 0">
-<h2>Blocked applicants</h2>
-<p class="muted">Tenant-only email blocks. Blocking revokes unused invitations, not existing memberships.</p>
+<h2>Enrollment restrictions</h2>
+<p class="muted">Block an email to stop new applications, approvals and invitations in this business. Any unused invitations are revoked. Existing memberships are not suspended. You can also block directly from an application card below.</p>
 <form method="post" style="display:flex;gap:9px;flex-wrap:wrap;align-items:end">
 <input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>">
 <input type="hidden" name="action" value="block">
@@ -334,7 +335,7 @@ require __DIR__ . '/partials/app_header.php';
 <label>Application notes <textarea name="notes" maxlength="5000" rows="3"></textarea></label>
 <button type="submit">Submit application</button>
 </form></section>
-<section class="card"><h2>Application queue</h2>
+<section class="card"><h2>Review applications</h2>
 <form method="get" class="row" style="align-items:end;flex-wrap:wrap">
 <label>Search <input type="search" name="q" maxlength="190" value="<?=$esc($search??'')?>" placeholder="Name, email or phone"></label>
 <label>Invitation <select name="invitation"><?php foreach(['all','not_sent','invited','expired','revoked','activated'] as $v): ?><option value="<?=$esc($v)?>" <?=($invitation??'all')===$v?'selected':''?>><?=$esc(ucwords(str_replace('_',' ',$v)))?></option><?php endforeach; ?></select></label>
@@ -349,11 +350,28 @@ require __DIR__ . '/partials/app_header.php';
 <article class="card" style="margin:12px 0;padding:14px;overflow-wrap:anywhere" aria-label="Enrollment application #<?=$esc($item['id'])?>">
 <div class="row" style="align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"><strong><?=$esc($item['full_name'])?></strong><small class="muted">Application #<?=$esc($item['id'])?></small></div>
 <span class="muted"> · <?=$esc(ucfirst($item['applicant_type']))?> · <?=$esc(ucfirst($item['status']))?><?php if($item['invitation_state']): ?> · <?= $esc(ucfirst($item['invitation_state'])) ?><?php endif; ?></span>
+<?php if($item['block_reason']!==null): ?><p role="status" class="danger" style="margin:8px 0"><strong>Enrollment blocked</strong> — <?=$esc($item['block_reason'])?>. Approval and invitations are unavailable until unblocked.</p><?php endif; ?>
 <div><a href="mailto:<?=$esc($item['email'])?>"><?=$esc($item['email'])?></a><?php if($item['phone']): ?> · <?=$esc($item['phone'])?><?php endif; ?></div>
 <small class="muted">Submitted <?=$esc($item['created_at'])?><?php if($item['reviewed_at']): ?> · Reviewed <?=$esc($item['reviewed_at'])?><?php endif; ?></small>
 <?php if($item['notes']): ?><p><?=$esc($item['notes'])?></p><?php endif; ?>
 <?php if($item['decision_note']): ?><p><strong>Review note:</strong> <?=$esc($item['decision_note'])?></p><?php endif; ?>
-<?php if($canReview && $item['status']==='approved' && $item['invitation_state']==='invited'): ?>
+<?php if($canReview): ?>
+<details style="margin:10px 0">
+<summary style="cursor:pointer;font-weight:600"><?=$item['block_reason']!==null?'Manage enrollment restriction':'Block this applicant'?></summary>
+<?php if($item['block_reason']!==null): ?>
+<p class="muted">Unblocking allows future enrollment actions. It does not restore revoked invitations or change review decisions.</p>
+<form method="post"><input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>"><input type="hidden" name="action" value="unblock"><input type="hidden" name="email" value="<?=$esc($item['email'])?>"><button type="submit" onclick="return confirm('Unblock this email for this business?')">Unblock applicant</button></form>
+<?php else: ?>
+<form method="post" style="display:grid;gap:8px;margin-top:8px">
+<input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>"><input type="hidden" name="action" value="block"><input type="hidden" name="email" value="<?=$esc($item['email'])?>">
+<p class="muted">Blocking <?=$esc($item['email'])?> will revoke unused invitations, but will not suspend an existing account.</p>
+<label>Reason for block <input name="reason" maxlength="1000" required placeholder="Explain why enrollment is restricted"></label>
+<div><button type="submit" onclick="return confirm('Block this email and revoke unused invitations?')">Block applicant</button></div>
+</form>
+<?php endif; ?>
+</details>
+<?php endif; ?>
+<?php if($canReview && $item['block_reason']===null && $item['status']==='approved' && $item['invitation_state']==='invited'): ?>
 <form method="post" style="margin-top:8px">
 <input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>">
 <input type="hidden" name="action" value="revoke">
@@ -361,7 +379,7 @@ require __DIR__ . '/partials/app_header.php';
 <button type="submit" onclick="return confirm('Revoke the current activation invitation?')">Revoke active invitation</button>
 </form>
 <?php endif; ?>
-<?php if($canReview && $item['status']==='approved'): ?>
+<?php if($canReview && $item['block_reason']===null && $item['status']==='approved'): ?>
 <form method="post" style="margin-top:8px">
 <input type="hidden" name="_csrf" value="<?=$esc(csrf_token())?>">
 <input type="hidden" name="action" value="invite">
@@ -375,7 +393,7 @@ require __DIR__ . '/partials/app_header.php';
 <input type="hidden" name="action" value="review">
 <input type="hidden" name="application_id" value="<?=$esc($item['id'])?>">
 <label>Review note <input name="decision_note" maxlength="1000"></label>
-<div class="row" style="gap:8px;flex-wrap:wrap"><button type="submit" name="decision" value="approved" onclick="return confirm('Approve this application? This does not create an account.')">Approve application</button><button type="submit" name="decision" value="rejected" onclick="return confirm('Reject this application? This decision cannot be reversed here.')">Reject application</button></div>
+<div class="row" style="gap:8px;flex-wrap:wrap"><button type="submit" name="decision" value="approved" <?=$item['block_reason']!==null?'disabled title="Unblock this email before approving"':''?> onclick="return confirm('Approve this application? This does not create an account.')">Approve application</button><button type="submit" name="decision" value="rejected" onclick="return confirm('Reject this application? This decision cannot be reversed here.')">Reject application</button></div>
 </form>
 <?php endif; ?>
 </article>
