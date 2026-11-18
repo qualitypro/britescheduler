@@ -17,5 +17,9 @@ if ($argv[4]==='submit') {
 }
 if (isset($argv[5]))$_POST['application_id']=$argv[5];
 if (isset($argv[6]))$_POST['decision']=$argv[6];
+// Optional query-string injection for disposable CLI GET filter tests.
+if ($argv[3] === 'GET' && getenv('CYCLE95_QUERY') !== false) {
+    parse_str((string)getenv('CYCLE95_QUERY'), $_GET);
+}
 if (getenv('CYCLE93_BAD_CSRF') === '1') $_POST['_csrf']='invalid';
 include dirname(__DIR__).'/enrollment.php';
