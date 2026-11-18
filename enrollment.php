@@ -58,6 +58,8 @@ if ($ready && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $applicationId=(int)$db->lastInsertId();
             $notify=$db->prepare("INSERT INTO notifications (tenant_id,user_id,type,title,body) SELECT ?,m.user_id,'enrollment.submitted','New enrollment application',? FROM tenant_memberships m WHERE m.tenant_id=? AND m.role IN ('owner','admin') AND m.status='active'");
             $notify->execute([$tenantId,ucfirst($type).' application #'.$applicationId.' submitted for review.',$tenantId]);
+            $step=$db->prepare("INSERT INTO activity_workflow_steps (tenant_id,workflow_type,record_id,step_key,step_label,step_order,status,details) VALUES (?,'enrollment',?,'submitted','Application submitted',1,'completed',?)");
+            $step->execute([$tenantId,$applicationId,ucfirst($type).' application submitted for review']);
                 $db->commit();
             } catch(Throwable $e) {
                 if($db->inTransaction())$db->rollBack();
@@ -217,6 +219,8 @@ HTML;
                 $audit->execute([$tenantId,$userId,'enrollment.review','enrollment_application',$id,json_encode(['decision'=>$decision],JSON_THROW_ON_ERROR)]);
                 $notify=$db->prepare("INSERT INTO notifications (tenant_id,user_id,type,title,body) SELECT ?,m.user_id,'enrollment.reviewed','Enrollment decision recorded',? FROM tenant_memberships m WHERE m.tenant_id=? AND m.role IN ('owner','admin') AND m.status='active'");
                 $notify->execute([$tenantId,'Application #'.$id.' marked '.$decision.'.',$tenantId]);
+                $step=$db->prepare("INSERT INTO activity_workflow_steps (tenant_id,workflow_type,record_id,step_key,step_label,step_order,status,details) VALUES (?,'enrollment',?,'decision','Decision recorded',3,?,?)");
+                $step->execute([$tenantId,$id,$decision==='rejected'?'blocked':'completed','Application '.$decision]);
                 $db->commit();
             } catch (Throwable $e) {
                 if ($db->inTransaction()) $db->rollBack();
