@@ -16,7 +16,7 @@ require __DIR__ . '/partials/app_header.php';
 <div class="brite-activity-stats" aria-live="polite"><span id="activityOutstanding">Outstanding: —</span><span id="activityLoaded">Showing: —</span></div>
 <div class="brite-activity-toolbar" role="search" aria-label="Filter activity">
 <input id="activitySearch" type="search" placeholder="Search titles, messages, or IDs" aria-label="Search notifications">
-<select id="activityStatus" aria-label="Notification status"><option value="outstanding">Unread / active</option><option value="all" selected>All notifications</option><option value="dismissed">Read / dismissed</option></select>
+<select id="activityStatus" aria-label="Notification status"><option value="outstanding">Unread / active</option><option value="all" selected>All notifications</option><option value="dismissed">Dismissed</option><option value="read">Read</option></select>
 <select id="activityType" aria-label="Notification category"><option value="all">All categories</option><option value="booking_requests">Booking requests</option><option value="marketplace">Marketplace</option><option value="schedule">Scheduling</option><option value="warning">Attention</option><option value="general">General</option></select>
 <button id="activityRefresh" type="button">Refresh</button>
 </div>
@@ -45,11 +45,13 @@ el('activityModalClose').addEventListener('click',closeModal);
 modal.addEventListener('click',event=>{if(event.target===modal)closeModal();});
 modal.addEventListener('close',()=>{modalNotification=null;});
 async function dismissNotification(n){
- const res=await fetch(base+'/api/user_notification_read.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':window.BRITE_CSRF||''},body:JSON.stringify({notification_id:n.id})});
+ const res=await fetch(base+'/api/user_notification_dismiss.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':window.BRITE_CSRF||''},body:JSON.stringify({notification_id:n.id})});
  const data=await res.json();if(!res.ok||data.ok!==true)throw Error(data.error||'Unable to dismiss notification');
- if(n.read_at===null){n.read_at=new Date().toISOString();unread=Math.max(0,unread-1);}
+ n.dismissed_at=new Date().toISOString();
+ if(n.read_at===null)unread=Math.max(0,unread-1);
  render();
 }
+
 function enrollmentApplicationId(n){
  const type=String(n.type||'');
  if(type!=='enrollment.submitted'&&type!=='enrollment.reviewed')return null;
@@ -215,11 +217,11 @@ function showModal(n){
    const m=node('a','Review marketplace');m.href=base+'/bidding.php?appointment_id='+encodeURIComponent(String(appointment));actions.append(m);
   }
  }
- if(n.read_at===null){
+ if(!n.dismissed_at){
   const dismiss=node('button','Dismiss notification');dismiss.type='button';
   dismiss.addEventListener('click',async()=>{
    dismiss.disabled=true;el('activityModalStatus').textContent='Saving…';
-   try{await dismissNotification(n);closeModal();message.textContent='Notification #'+n.id+' dismissed. It remains available under Read / dismissed or All notifications.';}
+   try{await dismissNotification(n);closeModal();message.textContent='Notification #'+n.id+' dismissed. It remains available under Dismissed or All notifications.';}
    catch(error){dismiss.disabled=false;el('activityModalStatus').textContent=error.message;}
   });actions.append(dismiss);
  }
@@ -326,7 +328,7 @@ function renderWorkflowCards(){
 function render(){
 records.replaceChildren();
 const q=el('activitySearch').value.trim().toLowerCase(),st=el('activityStatus').value,ty=el('activityType').value;
-const filtered=items.filter(n=>(st==='all'||(st==='outstanding')===(n.read_at===null))&&(ty==='all'||(ty==='booking_requests'?isBookingRequest(n):category(n)===ty))&&(!q||[n.title,n.body,n.id,n.appointment_id].some(x=>String(x??'').toLowerCase().includes(q))));
+const filtered=items.filter(n=>(st==='all'||(st==='outstanding'&&!n.dismissed_at)||(st==='dismissed'&&!!n.dismissed_at)||(st==='read'&&n.read_at!==null&&!n.dismissed_at))&&(ty==='all'||(ty==='booking_requests'?isBookingRequest(n):category(n)===ty))&&(!q||[n.title,n.body,n.id,n.appointment_id].some(x=>String(x??'').toLowerCase().includes(q))));
 filtered.sort((a,b)=>{
  const field=activitySortField;
  const val=n=>field==='type'?category(n):field==='status'?(n.read_at===null?'Unread':'Read'):n[field];
@@ -347,8 +349,8 @@ if(seenProcesses.has(key))continue;
 seenProcesses.add(key);
 // Grouped processes may have a read newest event but older unread events.
 // Keep the visible row actionable until all related notifications are read.
-const unreadEvents=processEvents(key).filter(event=>event.read_at===null);
-const unreadItem=unreadEvents.length>0,cat=category(n),article=node('article',undefined,'brite-activity-record '+cat+(unreadItem?' unread':''));
+const activeEvents=processEvents(key).filter(event=>!event.dismissed_at);
+const unreadItem=activeEvents.some(event=>event.read_at===null),cat=category(n),article=node('article',undefined,'brite-activity-record '+cat+(unreadItem?' unread':''));
 const enrollmentId=enrollmentApplicationId(n);if(enrollmentId)article.dataset.enrollmentId=String(enrollmentId);
 const header=node('header'),title=node('strong',n.title||'Notification'),meta=node('small',cat[0].toUpperCase()+cat.slice(1)+' · '+(unreadItem?'Unread':'Read'));
 const icon=node('span',undefined,'brite-list-flat-icon');icon.setAttribute('role','img');icon.setAttribute('aria-label',cat+' activity');
@@ -390,20 +392,21 @@ if(Number.isSafeInteger(appointmentId)&&appointmentId>0){
 const link=node('a',isBookingRequest(n)?'Open booking':'Open appointment');link.className='activity-primary';link.href=base+'/scheduling.php?appointment_id='+encodeURIComponent(String(appointmentId));actions.append(link);
 if(cat==='marketplace'){const market=node('a','Marketplace');market.href=base+'/bidding.php?appointment_id='+encodeURIComponent(String(appointmentId));actions.append(market);}
 }
-if(unreadItem){
-const dismiss=node('button',unreadEvents.length>1?'Dismiss '+unreadEvents.length+' notifications':'Dismiss');dismiss.type='button';
+if(activeEvents.length){
+const dismiss=node('button',activeEvents.length>1?'Dismiss '+activeEvents.length+' notifications':'Dismiss');dismiss.type='button';
 dismiss.addEventListener('click',async()=>{
  dismiss.disabled=true;
  try{
-  // Mark each unread notification in this process as read; never mutate unrelated records.
-  for(const event of unreadEvents)await dismissNotification(event);
-  message.textContent=unreadEvents.length+' notification'+(unreadEvents.length===1?'':'s')+' dismissed. They remain in All notifications.';
+  let done=0;
+  for(const event of activeEvents){await dismissNotification(event);done++;}
+  message.textContent=done+' notification'+(done===1?'':'s')+' dismissed. View them under Dismissed or All notifications.';
  }catch(err){
   dismiss.disabled=false;
-  message.textContent='Unable to dismiss all process notifications: '+err.message;
+  message.textContent='Dismissal blocked: '+err.message;
  }
 });actions.append(dismiss);
 }
+
 article.append(header,body);
 if(peopleLine)article.append(peopleLine);
 article.append(date,actions,detail);renderEventHistory(article,key);records.append(article);
