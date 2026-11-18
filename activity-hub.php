@@ -345,7 +345,10 @@ for(const n of filtered){
 const key=processKey(n);
 if(seenProcesses.has(key))continue;
 seenProcesses.add(key);
-const unreadItem=n.read_at===null,cat=category(n),article=node('article',undefined,'brite-activity-record '+cat+(unreadItem?' unread':''));
+// Grouped processes may have a read newest event but older unread events.
+// Keep the visible row actionable until all related notifications are read.
+const unreadEvents=processEvents(key).filter(event=>event.read_at===null);
+const unreadItem=unreadEvents.length>0,cat=category(n),article=node('article',undefined,'brite-activity-record '+cat+(unreadItem?' unread':''));
 const enrollmentId=enrollmentApplicationId(n);if(enrollmentId)article.dataset.enrollmentId=String(enrollmentId);
 const header=node('header'),title=node('strong',n.title||'Notification'),meta=node('small',cat[0].toUpperCase()+cat.slice(1)+' · '+(unreadItem?'Unread':'Read'));
 const icon=node('span',undefined,'brite-list-flat-icon');icon.setAttribute('role','img');icon.setAttribute('aria-label',cat+' activity');
@@ -388,8 +391,18 @@ const link=node('a',isBookingRequest(n)?'Open booking':'Open appointment');link.
 if(cat==='marketplace'){const market=node('a','Marketplace');market.href=base+'/bidding.php?appointment_id='+encodeURIComponent(String(appointmentId));actions.append(market);}
 }
 if(unreadItem){
-const dismiss=node('button','Dismiss');dismiss.type='button';
-dismiss.addEventListener('click',async()=>{dismiss.disabled=true;try{await dismissNotification(n);message.textContent='Notification #'+n.id+' dismissed. View it under Read / dismissed or All notifications.';}catch(err){dismiss.disabled=false;message.textContent='Unable to dismiss notification #'+n.id+': '+err.message;}});actions.append(dismiss);
+const dismiss=node('button',unreadEvents.length>1?'Dismiss '+unreadEvents.length+' notifications':'Dismiss');dismiss.type='button';
+dismiss.addEventListener('click',async()=>{
+ dismiss.disabled=true;
+ try{
+  // Mark each unread notification in this process as read; never mutate unrelated records.
+  for(const event of unreadEvents)await dismissNotification(event);
+  message.textContent=unreadEvents.length+' notification'+(unreadEvents.length===1?'':'s')+' dismissed. They remain in All notifications.';
+ }catch(err){
+  dismiss.disabled=false;
+  message.textContent='Unable to dismiss all process notifications: '+err.message;
+ }
+});actions.append(dismiss);
 }
 article.append(header,body);
 if(peopleLine)article.append(peopleLine);
