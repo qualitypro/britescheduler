@@ -351,8 +351,8 @@ const icon=node('span',undefined,'brite-list-flat-icon');icon.setAttribute('role
 const paths={marketplace:'<path d="M4 7h16v14H4zM8 7V4h8v3"/>',schedule:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/>',warning:'<path d="M12 3 2 21h20zM12 9v5M12 18h.01"/>',general:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8"/>'};
 icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">'+(paths[cat]||paths.general)+'</svg>';
 header.append(icon,title,meta);
-article.tabIndex=0;article.setAttribute('role','button');article.setAttribute('aria-label','Review '+(n.title||'notification'));
-article.addEventListener('click',event=>{if(event.target.closest('button,a'))return;showModal(n);});
+article.tabIndex=0;article.setAttribute('role','button');article.setAttribute('aria-label','View details for '+(n.title||'notification'));
+article.addEventListener('click',event=>{if(event.target.closest('button,a,summary'))return;showModal(n);});
 article.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target===article){event.preventDefault();showModal(n);}});
 const body=node('p',n.body||'');
 const readable=value=>{if(!value)return '';const raw=String(value),d=new Date(raw.includes('T')?raw:raw.replace(' ','T')+'Z');return Number.isNaN(d.getTime())?'':new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(d);};
@@ -372,9 +372,15 @@ addDetail('Created',readable(n.created_at));
 addDetail('Updated',readable(n.updated_at));
 detail.append(details);
 if(n.body){detail.append(node('p',n.body));}
-const inspect=node('button','Review');inspect.type='button';inspect.setAttribute('aria-expanded','false');
+const inspect=node('button','View details');inspect.type='button';inspect.classList.add('activity-primary');inspect.setAttribute('aria-haspopup','dialog');
 inspect.addEventListener('click',()=>showModal(n));
 actions.append(inspect);
+const isBilling=/\b(bill(?:ing)?|invoice|payment|receivable)\b/i.test([n.type,n.title,n.body].join(' '));
+if(isBilling){
+ const billing=node('a','Open billing workspace');
+ billing.href=base+'/billing.php';
+ actions.append(billing);
+}
 const appointmentId=Number(n.appointment_id);
 if(Number.isSafeInteger(appointmentId)&&appointmentId>0){
 const link=node('a',isBookingRequest(n)?'Open booking':'Open appointment');link.className='activity-primary';link.href=base+'/scheduling.php?appointment_id='+encodeURIComponent(String(appointmentId));actions.append(link);
