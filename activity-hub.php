@@ -49,8 +49,12 @@ async function dismissNotification(n){
  render();
 }
 function enrollmentApplicationId(n){
- if(String(n.type||'')!=='enrollment.submitted')return null;
- const match=String(n.body||'').match(/(?:contractor|client) application #([1-9][0-9]*) submitted for review\./i);
+ const type=String(n.type||'');
+ if(type!=='enrollment.submitted'&&type!=='enrollment.reviewed')return null;
+ const body=String(n.body||'');
+ const match=type==='enrollment.reviewed'
+  ?body.match(/\bApplication #([1-9][0-9]*) marked (?:approved|rejected)\b/i)
+  :body.match(/(?:contractor|client) application #([1-9][0-9]*) submitted for review\./i);
  return match?validId(match[1]):null;
 }
 function showModal(n){
@@ -110,7 +114,7 @@ function showModal(n){
    }
   }).catch(error=>{if(modalNotification===n)workflow.replaceChildren(node('p','Unable to load enrollment workflow: '+error.message));});
 
-  const review=node('a','Open enrollment management');
+  const review=node('a','Open enrollment record');
   review.href=base+'/enrollment.php?application_id='+encodeURIComponent(String(enrollmentId));
   actions.append(review);
  }
