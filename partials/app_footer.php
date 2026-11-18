@@ -18,6 +18,6 @@
 <link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-tooltips.css'),ENT_QUOTES,'UTF-8')?>">
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-tooltips.js'),ENT_QUOTES,'UTF-8')?>"></script>
 <!-- Final workspace density layer: intentionally after page/module styles. -->
-<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-dense-workspaces.css?v=98b'),ENT_QUOTES,'UTF-8')?>">
+<link rel="stylesheet" href="<?=htmlspecialchars(app_url('/assets/css/brite-dense-workspaces.css?v=98c'),ENT_QUOTES,'UTF-8')?>">
 </body>
 </html>
