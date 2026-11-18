@@ -57,4 +57,14 @@ echo 'PASS client login and dashboard redirect'
 status="$(curl -sS -o "$TMP/client.denied" -w '%{http_code}' -b "$TMP/client.cookie" "$BASE/enrollment.php")"
 [[ "$status" == 403 ]] || { echo "FAIL client administration restriction HTTP $status"; exit 1; }
 echo 'PASS authenticated client denied enrollment administration'
-echo 'PASS 93I-B HTTP authentication and session smoke'
+echo '=== DASHBOARD RENDERING ==='
+for role in contractor client; do
+  status="$(curl -sS -o "$TMP/$role.dashboard" -w '%{http_code}' -b "$TMP/$role.cookie" "$BASE/$role-dashboard.php")"
+  [[ "$status" == 200 ]] || { echo "FAIL $role dashboard HTTP $status"; tail -30 "$TMP/server.log"; exit 1; }
+  grep -qi "$role Dashboard" "$TMP/$role.dashboard" || { echo "FAIL $role dashboard heading missing"; exit 1; }
+  if grep -Eqi 'Fatal error|Uncaught PDOException|Warning:.*(include|require)' "$TMP/$role.dashboard"; then
+    echo "FAIL $role dashboard PHP runtime error"; exit 1
+  fi
+  echo "PASS authenticated $role dashboard renders"
+done
+echo 'PASS 93I-B HTTP authentication and dashboard smoke'
