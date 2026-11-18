@@ -179,14 +179,7 @@
 
         const appointmentId = Number(notification.appointment_id);
 
-        const bookingLinkTypes = [
-            'appointment',
-            'marketplace_bid_selected',
-            'marketplace_contractor_assigned'
-        ];
-
         if (
-            bookingLinkTypes.includes(notification.type) &&
             notification.appointment_id !== null &&
             Number.isSafeInteger(appointmentId) &&
             appointmentId > 0
@@ -194,7 +187,7 @@
             const link = makeElement(
                 'a',
                 '',
-                'Review Booking'
+                'Open appointment'
             );
 
             link.href = base +
@@ -203,6 +196,27 @@
 
             actions.appendChild(link);
         }
+
+        const detailButton = makeElement('button', '', 'Details');
+        detailButton.type = 'button';
+        detailButton.setAttribute('aria-expanded', 'false');
+        const detail = makeElement('div', 'brite-activity-hub-item-detail');
+        detail.hidden = true;
+        detail.style.cssText = 'margin-top:8px;padding:9px;border:1px solid var(--brite-border,#cbd5e1);border-radius:7px;overflow-wrap:anywhere;';
+        const detailText = [
+            'Notification #'+notification.id,
+            'Type: '+(notification.type||'General'),
+            Number.isSafeInteger(appointmentId)&&appointmentId>0?'Appointment #'+appointmentId:null,
+            notification.client_name?'Client: '+notification.client_name:null,
+            notification.contractor_name?'Contractor: '+notification.contractor_name:null
+        ].filter(Boolean).join(' · ');
+        detail.textContent = detailText;
+        detailButton.addEventListener('click', () => {
+            detail.hidden = !detail.hidden;
+            detailButton.setAttribute('aria-expanded', String(!detail.hidden));
+            detailButton.textContent = detail.hidden ? 'Details' : 'Hide details';
+        });
+        actions.appendChild(detailButton);
 
         if (unread) {
             const button = makeElement(
@@ -223,6 +237,7 @@
         item.append(title, body);
         if (peopleLabel) item.appendChild(peopleLabel);
         item.appendChild(meta);
+        item.appendChild(detail);
 
         if (actions.childElementCount > 0) {
             item.appendChild(actions);
