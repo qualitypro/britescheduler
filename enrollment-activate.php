@@ -52,6 +52,15 @@ if($invite && ($_SERVER['REQUEST_METHOD']??'GET')==='POST'){
         $q->execute([(int)$invite['tenant_id'],$userId,$first,$last,$invite['email'],$invite['phone']]);
         $q=$db->prepare('UPDATE enrollment_invitations SET accepted_at=UTC_TIMESTAMP() WHERE id=? AND tenant_id=?');
         $q->execute([(int)$invite['id'],(int)$invite['tenant_id']]);
+        // Inform tenant administrators only after membership creation succeeds.
+        // Keep the notification in the same transaction as account activation.
+        $q=$db->prepare("INSERT INTO notifications (tenant_id,user_id,type,title,body)
+            SELECT ?,m.user_id,'enrollment.activated','Enrollment activated',?
+            FROM tenant_memberships m
+            WHERE m.tenant_id=? AND m.role IN ('owner','admin') AND m.status='active'");
+        $q->execute([(int)$invite['tenant_id'],
+            ucfirst((string)$invite['applicant_type']).' enrollment activated for '.(string)$invite['email'].'.',
+            (int)$invite['tenant_id']]);
         $q=$db->prepare('INSERT INTO audit_log (tenant_id,user_id,action,entity_type,entity_id,metadata) VALUES (?,?,?,?,?,?)');
         $q->execute([(int)$invite['tenant_id'],$userId,'enrollment.activate','enrollment_application',(int)$invite['application_id'],json_encode(['role'=>$invite['applicant_type']],JSON_THROW_ON_ERROR)]);
         $db->commit();
