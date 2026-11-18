@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/app/bootstrap.php';
+require_once __DIR__.'/app/EnrollmentBlocks.php';
 header('Referrer-Policy: no-referrer');
 header('Cache-Control: no-store');
 $esc=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
@@ -16,6 +17,7 @@ if($validToken){
         WHERE i.token_hash=? AND i.accepted_at IS NULL AND i.revoked_at IS NULL AND i.expires_at>UTC_TIMESTAMP() AND a.status='approved' LIMIT 1");
     $q->execute([hash('sha256',$token)]);
     $invite=$q->fetch(PDO::FETCH_ASSOC) ?: null;
+    if ($invite && EnrollmentBlocks::isBlocked($db,(int)$invite['tenant_id'],(string)$invite['email'])) $invite=null;
 }
 if(!$invite) $error='Invitation invalid, expired, or already used.';
 if($invite && ($_SERVER['REQUEST_METHOD']??'GET')==='POST'){
@@ -33,6 +35,7 @@ if($invite && ($_SERVER['REQUEST_METHOD']??'GET')==='POST'){
         $q=$db->prepare("SELECT i.id FROM enrollment_invitations i JOIN enrollment_applications a ON a.id=i.application_id AND a.tenant_id=i.tenant_id WHERE i.id=? AND i.tenant_id=? AND i.accepted_at IS NULL AND i.revoked_at IS NULL AND i.expires_at>UTC_TIMESTAMP() AND a.status='approved' FOR UPDATE");
         $q->execute([(int)$invite['id'],(int)$invite['tenant_id']]);
         if(!$q->fetch())throw new DomainException('Invitation no longer available');
+        EnrollmentBlocks::assertAllowed($db,(int)$invite['tenant_id'],(string)$invite['email']);
         $q=$db->prepare('SELECT id FROM users WHERE email=? LIMIT 1');
         $q->execute([$invite['email']]);
         if($q->fetch())throw new DomainException('Account already exists; contact the administrator');
