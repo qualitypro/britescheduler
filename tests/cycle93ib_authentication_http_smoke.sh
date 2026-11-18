@@ -17,6 +17,16 @@ cleanup(){ [[ -z "${SERVER_PID:-}" ]] || kill "$SERVER_PID" 2>/dev/null || true;
 trap cleanup EXIT
 trap 'echo "FAIL 93I-B line $LINENO" >&2; tail -30 "$TMP/server.log" >&2' ERR
 sql 'SELECT id FROM enrollment_applications LIMIT 1' >/dev/null
+# Dashboard dependencies: the enrollment-only fixture does not include client locations.
+# Prepare these exclusively in the guarded disposable DB, never the live application DB.
+if [[ "$(sql "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='client_locations'")" == 0 ]]; then
+  echo 'Preparing disposable dashboard dependency: migration 005'
+  "$MYSQL_BIN" "${ARGS[@]}" "$DB_NAME" < migrations/005_client_locations.sql
+fi
+if [[ "$(sql "SELECT COUNT(*) FROM information_schema.table_constraints WHERE constraint_schema=DATABASE() AND table_name='client_locations' AND constraint_name='fk_cl_tenant_client'")" == 0 ]]; then
+  echo 'Preparing disposable dashboard integrity dependency: migration 006'
+  "$MYSQL_BIN" "${ARGS[@]}" "$DB_NAME" < migrations/006_client_location_integrity.sql
+fi
 # Credentials are fixed, disposable-test-only passwords from the prior HTTP activation runs.
 CONTRACTOR="$(sql "SELECT u.email FROM users u JOIN tenant_memberships m ON m.user_id=u.id WHERE m.role='contractor' AND m.tenant_id=1 AND u.email LIKE 'http93i_%@example.invalid' ORDER BY u.id DESC LIMIT 1")"
 CLIENT="$(sql "SELECT u.email FROM users u JOIN tenant_memberships m ON m.user_id=u.id WHERE m.role='client' AND m.tenant_id=1 AND u.email LIKE 'http93f_%@example.invalid' ORDER BY u.id DESC LIMIT 1")"
