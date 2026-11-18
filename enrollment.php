@@ -144,11 +144,19 @@ if ($ready && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
 }
 $rows=[];
+$invitationCounts=['not_sent'=>0,'invited'=>0,'expired'=>0,'revoked'=>0,'activated'=>0];
 $counts=['pending'=>0,'approved'=>0,'rejected'=>0];
 if ($ready) {
     $q=$db->prepare('SELECT status,COUNT(*) AS total FROM enrollment_applications WHERE tenant_id=? GROUP BY status');
     $q->execute([$tenantId]);
     foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $r) $counts[$r['status']] = (int)$r['total'];
+    $invitationSql="SELECT CASE WHEN i.id IS NULL THEN 'not_sent' WHEN i.accepted_at IS NOT NULL THEN 'activated' WHEN i.revoked_at IS NOT NULL THEN 'revoked' WHEN i.expires_at<=UTC_TIMESTAMP() THEN 'expired' ELSE 'invited' END AS state,COUNT(*) AS total FROM enrollment_applications a LEFT JOIN enrollment_invitations i ON i.id=(SELECT i2.id FROM enrollment_invitations i2 WHERE i2.application_id=a.id AND i2.tenant_id=a.tenant_id ORDER BY i2.id DESC LIMIT 1) WHERE a.tenant_id=? GROUP BY state";
+    $q=$db->prepare($invitationSql);$q->execute([$tenantId]);
+    foreach($q->fetchAll(PDO::FETCH_ASSOC) as $r) $invitationCounts[$r['state']]=(int)$r['total'];
+    $search=trim((string)($_GET['q']??''));
+    if(strlen($search)>190) $search=substr($search,0,190);
+    $invitation=(string)($_GET['invitation']??'all');
+    if(!in_array($invitation,['all','not_sent','invited','expired','revoked','activated'],true)) $invitation='all';
     $status=(string)($_GET['status']??'all');
     if (!in_array($status,['all','pending','approved','rejected'],true)) $status='all';
     $type=(string)($_GET['type']??'all');
@@ -165,6 +173,17 @@ if ($ready) {
     $params=[$tenantId];
     if ($status!=='all') {$sql.=' AND a.status=?';$params[]=$status;}
     if ($type!=='all') {$sql.=' AND a.applicant_type=?';$params[]=$type;}
+    if ($search!=='') {
+        $sql.=' AND (a.full_name LIKE ? OR a.email LIKE ? OR a.phone LIKE ?)';
+        $pattern='%'.str_replace(['!','%','_'],['!!','!%','!_'],$search).'%';
+        $sql=str_replace('a.full_name LIKE ? OR a.email LIKE ? OR a.phone LIKE ?', "a.full_name LIKE ? ESCAPE '!' OR a.email LIKE ? ESCAPE '!' OR a.phone LIKE ? ESCAPE '!'", $sql);
+        array_push($params,$pattern,$pattern,$pattern);
+    }
+    if($invitation==='not_sent') $sql.=' AND NOT EXISTS (SELECT 1 FROM enrollment_invitations ix WHERE ix.tenant_id=a.tenant_id AND ix.application_id=a.id)';
+    elseif($invitation!=='all') {
+        $stateSql=['invited'=>'ix.accepted_at IS NULL AND ix.revoked_at IS NULL AND ix.expires_at>UTC_TIMESTAMP()', 'expired'=>'ix.accepted_at IS NULL AND ix.revoked_at IS NULL AND ix.expires_at<=UTC_TIMESTAMP()', 'revoked'=>'ix.revoked_at IS NOT NULL', 'activated'=>'ix.accepted_at IS NOT NULL'];
+        $sql.=' AND EXISTS (SELECT 1 FROM enrollment_invitations ix WHERE ix.id=(SELECT MAX(iy.id) FROM enrollment_invitations iy WHERE iy.tenant_id=a.tenant_id AND iy.application_id=a.id) AND ix.tenant_id=a.tenant_id AND '.$stateSql[$invitation].')';
+    }
     $sql.=' ORDER BY a.created_at DESC,a.id DESC LIMIT 100';
     $q=$db->prepare($sql);$q->execute($params);$rows=$q->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -181,6 +200,9 @@ require __DIR__ . '/partials/app_header.php';
 <div class="grid" style="margin:12px 0">
 <?php foreach($counts as $label=>$count): ?><div class="card"><strong class="metric"><?=$esc($count)?></strong><div><?=$esc(ucfirst($label))?></div></div><?php endforeach; ?>
 </div>
+<div class="grid" style="margin:12px 0">
+<?php foreach($invitationCounts as $label=>$count): ?><div class="card"><strong class="metric"><?=$esc($count)?></strong><div><?=$esc(ucwords(str_replace('_',' ',$label)))?> invitations</div></div><?php endforeach; ?>
+</div>
 <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px">
 <section class="card"><h2>New application</h2>
 <form method="post" style="display:grid;gap:9px">
@@ -194,10 +216,13 @@ require __DIR__ . '/partials/app_header.php';
 <button type="submit">Submit application</button>
 </form></section>
 <section class="card"><h2>Application queue</h2>
-<form method="get" class="row" style="align-items:end">
+<form method="get" class="row" style="align-items:end;flex-wrap:wrap">
+<label>Search <input type="search" name="q" maxlength="190" value="<?=$esc($search??'')?>" placeholder="Name, email or phone"></label>
+<label>Invitation <select name="invitation"><?php foreach(['all','not_sent','invited','expired','revoked','activated'] as $v): ?><option value="<?=$esc($v)?>" <?=($invitation??'all')===$v?'selected':''?>><?=$esc(ucwords(str_replace('_',' ',$v)))?></option><?php endforeach; ?></select></label>
 <label>Status <select name="status"><?php foreach(['all','pending','approved','rejected'] as $v): ?><option value="<?=$esc($v)?>" <?=($status??'all')===$v?'selected':''?>><?=$esc(ucfirst($v))?></option><?php endforeach; ?></select></label>
 <label>Type <select name="type"><?php foreach(['all','contractor','client'] as $v): ?><option value="<?=$esc($v)?>" <?=($type??'all')===$v?'selected':''?>><?=$esc(ucfirst($v))?></option><?php endforeach; ?></select></label>
 <button type="submit">Filter</button>
+<a href="enrollment.php">Clear filters</a>
 </form>
 <p class="muted">Showing up to 100 most recent matching applications.</p>
 <?php if(!$rows): ?><p>No applications match these filters.</p><?php endif; ?>
