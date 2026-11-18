@@ -34,3 +34,54 @@
 @media(prefers-reduced-motion:reduce){
  .brite-app .brite-quick-actions a{transition:none}
 }
+
+/* Cycle 97A — compact, presentation-only application controls.
+   Scheduling and Enrollment Management intentionally retain their approved layouts.
+   All rules are scoped to the main content; sidebar and overlays are unchanged. */
+.brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content {
+  --brite-compact-control-height: 36px;
+  --brite-compact-gap: 10px;
+}
+@media (min-width: 701px) {
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content {
+    padding-top: 14px;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content :where(.card,.brite-ui-card) {
+    padding: 14px;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content :where(.grid) {
+    gap: var(--brite-compact-gap);
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content :where(.row) {
+    gap: 8px;
+    margin-bottom: 9px;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content :where(th,td) {
+    padding: 7px 9px;
+    vertical-align: middle;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),select,button,.brite-ui-button) {
+    min-height: var(--brite-compact-control-height);
+    padding: 6px 10px;
+    line-height: 1.3;
+    box-sizing: border-box;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content :where(textarea) {
+    padding: 8px 10px;
+    line-height: 1.4;
+    box-sizing: border-box;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content :where(h2,h3) {
+    margin-block: 8px;
+  }
+}
+/* Maintain comfortable tap targets and avoid horizontal overflow on phones. */
+@media (max-width: 700px) {
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content :where(.card,.brite-ui-card) {
+    padding: 12px;
+  }
+  .brite-app:not(.brite-page-scheduling):not(.brite-page-enrollment) .brite-content :where(input:not([type="checkbox"]):not([type="radio"]),select,button,.brite-ui-button) {
+    min-height: 40px;
+    box-sizing: border-box;
+  }
+}
