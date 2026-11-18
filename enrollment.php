@@ -657,6 +657,18 @@ if($hasApplication) continue;
     target.hidden=!expand;
     button.setAttribute('aria-expanded',expand?'true':'false');
   });
+  const requested=new URLSearchParams(window.location.search).get('application_id');
+  if(requested&&/^[1-9][0-9]*$/.test(requested)){
+    const row=document.getElementById('en-detail-app-'+requested);
+    const toggle=table.querySelector('.en-manage-toggle[aria-controls="en-detail-app-'+requested+'"]');
+    if(row&&toggle){
+      row.hidden=false;
+      toggle.setAttribute('aria-expanded','true');
+      toggle.scrollIntoView({block:'center',behavior:'instant'});
+      row.querySelector('.en-record-panel')?.setAttribute('tabindex','-1');
+      row.querySelector('.en-record-panel')?.focus({preventScroll:true});
+    }
+  }
 })();
 </script>
 <?php require __DIR__ . '/partials/app_footer.php'; ?>
