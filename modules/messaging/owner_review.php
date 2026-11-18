@@ -10,7 +10,7 @@ $tid=(int)$tenant['tenant_id'];$uid=(int)$user['id'];$db=Database::connection();
 if(($_SERVER['REQUEST_METHOD']??'GET')!=='GET'){header('Allow: GET');json_response(['error'=>'Method not allowed'],405);}
 $action=(string)($_GET['action']??'list');
 if($action==='list'){
- $q=$db->prepare("SELECT t.id,t.subject,t.updated_at,
+ $q=$db->prepare("SELECT t.id,t.subject,t.updated_at,DATE_FORMAT(t.updated_at,'%b %e, %Y %l:%i %p') updated_at_display,
  (SELECT GROUP_CONCAT(CONCAT(u.first_name,' ',u.last_name,' (',m.role,')') ORDER BY u.first_name SEPARATOR ', ')
  FROM module_message_participants p JOIN users u ON u.id=p.user_id
  LEFT JOIN tenant_memberships m ON m.user_id=p.user_id AND m.tenant_id=p.tenant_id
@@ -25,7 +25,7 @@ if($action==='thread'){
  $q=$db->prepare('SELECT subject FROM module_message_threads WHERE tenant_id=? AND id=?');
  $q->execute([$tid,$thread]);$subject=$q->fetchColumn();
  if($subject===false)json_response(['error'=>'Conversation unavailable'],404);
- $q=$db->prepare('SELECT msg.id,msg.sender_id,msg.body,msg.created_at,u.first_name,u.last_name FROM module_messages msg JOIN users u ON u.id=msg.sender_id WHERE msg.tenant_id=? AND msg.thread_id=? ORDER BY msg.id DESC LIMIT 200');
+ $q=$db->prepare('SELECT msg.id,msg.sender_id,msg.body,msg.created_at,DATE_FORMAT(msg.created_at,'%b %e, %Y %l:%i %p') created_at_display,u.first_name,u.last_name FROM module_messages msg JOIN users u ON u.id=msg.sender_id WHERE msg.tenant_id=? AND msg.thread_id=? ORDER BY msg.id DESC LIMIT 200');
  $q->execute([$tid,$thread]);$messages=array_reverse($q->fetchAll());
  try{
   $q=$db->prepare('INSERT INTO module_message_owner_audit(tenant_id,owner_user_id,thread_id) VALUES(?,?,?)');
