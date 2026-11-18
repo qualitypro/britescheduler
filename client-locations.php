@@ -175,6 +175,7 @@ const locationPager = new BritePagination({
             const id=Number(x.id);
             return `<details class="brite-directory-record" data-location-id="${id}" title="${escapeHtml(locationTooltip(x))}">
               <summary class="brite-directory-summary">
+                <span class="brite-list-flat-icon brite-location-row-icon" data-kind="location" role="img" aria-label="Service location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="2"/></svg></span>
                 <span class="brite-directory-summary-main">${allClientsMode()?`<span><strong>Client Name:</strong> ${escapeHtml(clientName(x))}</span>`:''}<strong>Location: ${escapeHtml(x.label)}</strong>
                 <small>${escapeHtml([x.address1,x.city,x.state,x.postal_code].filter(Boolean).join(', '))}</small><small class="brite-record-timestamps">${recordTimestampMarkup(x)}</small></span>
                 <span class="brite-directory-state">${Number(x.is_primary)?'Primary':'Location'}</span>
