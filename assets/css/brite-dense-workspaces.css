@@ -194,3 +194,181 @@
 .brite-app .brite-content :is(.brite-directory-summary,.brite-tab-button,button,input,select,textarea):focus-visible {
   outline-offset: 2px;
 }
+
+/* Cycle 98B — Marketplace and Activity Hub compact enterprise layouts.
+   Scoped to the two pages; preserves all disclosure, sorting and pagination logic. */
+@media (min-width: 701px) {
+  .brite-app .brite-content .brite-marketplace .bidding-heading {
+    gap: 7px;
+    margin-bottom: 9px;
+    align-items: center;
+  }
+  .brite-app .brite-content .brite-marketplace .bidding-heading p {
+    font-size: .76rem;
+    margin: 2px 0;
+  }
+  .brite-app .brite-content .brite-marketplace .bidding-controls {
+    gap: 7px;
+    padding: 7px 9px;
+    margin-bottom: 9px;
+    border-radius: 8px;
+  }
+  .brite-app .brite-content .brite-marketplace .bidding-controls :is(input,select,button) {
+    min-height: 30px;
+    padding: 4px 8px;
+    font-size: .8rem;
+  }
+  .brite-app .brite-content .brite-marketplace .brite-marketplace-sort-headers {
+    padding: 4px 9px;
+    margin-top: 6px;
+    gap: 7px;
+    border-radius: 8px 8px 0 0;
+  }
+  .brite-app .brite-content .brite-marketplace .brite-marketplace-sort-heading {
+    min-height: 27px;
+    padding: 3px 5px;
+    font-size: .78rem;
+  }
+  .brite-app .brite-content .brite-marketplace .brite-marketplace-record-summary {
+    gap: 8px;
+    padding: 6px 10px;
+    min-height: 40px;
+  }
+  .brite-app .brite-content .brite-marketplace .brite-marketplace-record-main {
+    gap: 1px;
+  }
+  .brite-app .brite-content .brite-marketplace .brite-marketplace-record-title {
+    font-size: .84rem;
+    line-height: 1.25;
+  }
+  .brite-app .brite-content .brite-marketplace .brite-marketplace-record-meta {
+    font-size: .72rem;
+    line-height: 1.3;
+  }
+  .brite-app .brite-content .brite-marketplace .brite-marketplace-record-state {
+    font-size: .7rem;
+    padding: 2px 7px;
+  }
+  .brite-app .brite-content .brite-marketplace .brite-marketplace-record-icon {
+    width: 28px;
+    height: 28px;
+    flex-basis: 28px;
+    border-radius: 7px;
+  }
+  .brite-app .brite-content .brite-marketplace .brite-marketplace-record-icon svg {
+    width: 17px;
+    height: 17px;
+  }
+  .brite-app .brite-content .brite-marketplace .brite-marketplace-record-sheet {
+    padding: 9px 11px 10px;
+  }
+  .brite-app .brite-content .brite-marketplace .bidding-project p {
+    margin: 4px 0;
+    font-size: .8rem;
+    line-height: 1.35;
+  }
+  .brite-app .brite-content .brite-marketplace .bidding-actions {
+    gap: 6px;
+    margin-top: 7px;
+  }
+  .brite-app .brite-content .brite-marketplace .bidding-actions :is(a,button) {
+    min-height: 30px;
+    padding: 4px 8px;
+    font-size: .8rem;
+  }
+  .brite-app .brite-content .brite-marketplace .bidding-bid-form {
+    padding: 9px;
+    border-radius: 8px;
+  }
+  .brite-app .brite-content .brite-marketplace .bidding-bid-form :is(input,select) {
+    min-height: 30px;
+    padding: 4px 8px;
+  }
+  .brite-app .brite-content .brite-marketplace .bidding-bid-form textarea {
+    min-height: 56px;
+    padding: 5px 8px;
+  }
+  .brite-app .brite-content .brite-marketplace .brite-marketplace-list-tools {
+    padding: 5px 9px;
+    gap: 6px;
+  }
+  .brite-app .brite-content .brite-marketplace .brite-marketplace-list-tools :is(button,select) {
+    min-height: 29px;
+    padding: 3px 7px;
+    font-size: .78rem;
+  }
+  .brite-app .brite-content .brite-marketplace .brite-marketplace-pagination-top .brite-pagination {
+    padding: 4px 8px;
+    margin-block: 5px;
+    border-radius: 7px;
+  }
+
+  .brite-app .brite-content .brite-activity-page {
+    max-width: none;
+    padding: 3px 0 10px;
+  }
+  .brite-app .brite-content .brite-activity-page > header p {
+    margin: 2px 0 6px;
+    font-size: .76rem;
+  }
+  .brite-app .brite-content .brite-activity-stats {
+    gap: 6px;
+  }
+  .brite-app .brite-content .brite-activity-stats span {
+    padding: 4px 8px;
+    font-size: .76rem;
+    border-radius: 6px;
+  }
+  .brite-app .brite-content .brite-activity-toolbar {
+    gap: 6px;
+    margin: 7px 0;
+  }
+  .brite-app .brite-content .brite-activity-toolbar :is(input,select,button) {
+    min-height: 30px;
+    padding: 4px 8px;
+    font-size: .8rem;
+    border-radius: 6px;
+  }
+  .brite-app .brite-content .brite-activity-page .brite-list-card-headings {
+    padding: 5px 8px;
+    margin: 6px 0 3px;
+  }
+  .brite-app .brite-content .brite-activity-record {
+    border-left-width: 3px;
+    padding: 7px 9px;
+    margin: 5px 0;
+    border-radius: 7px;
+  }
+  .brite-app .brite-content .brite-activity-record header {
+    gap: 6px;
+  }
+  .brite-app .brite-content .brite-activity-record header strong {
+    font-size: .82rem;
+  }
+  .brite-app .brite-content .brite-activity-record p {
+    font-size: .78rem;
+    line-height: 1.35;
+    margin: 3px 0 5px;
+  }
+  .brite-app .brite-content .brite-activity-record small {
+    font-size: .72rem;
+  }
+  .brite-app .brite-content .brite-activity-record .actions {
+    gap: 5px;
+  }
+  .brite-app .brite-content .brite-activity-record :is(a,button) {
+    min-height: 29px;
+    padding: 4px 8px;
+    font-size: .77rem;
+    border-radius: 6px;
+  }
+  .brite-app .brite-content .brite-activity-pagination {
+    gap: 7px;
+    margin: 7px 0;
+    font-size: .8rem;
+  }
+  .brite-app .brite-content .brite-activity-pagination button {
+    min-height: 29px;
+    padding: 4px 8px;
+  }
+}
