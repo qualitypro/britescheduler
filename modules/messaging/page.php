@@ -182,6 +182,7 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
 .msg-module-body #msgReviewThreads .msg-review-item{margin:0}
 @media(max-width:850px){.msg-module-layout{grid-template-columns:132px minmax(0,1fr)}.msg-module-body .msg-inbox-table-layout,.msg-module-body .msg-workspace{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:650px){.msg-module-layout{grid-template-columns:minmax(0,1fr)}.msg-conversation-table th:nth-child(3),.msg-conversation-table td:nth-child(3){display:table-cell}.msg-conversation-table th:nth-child(1){width:25%}.msg-conversation-table th:nth-child(2){width:45%}.msg-conversation-table th:nth-child(3){width:22%}.msg-conversation-table th:nth-child(4){width:8%}.msg-conversation-table th,.msg-conversation-table .msg-cell-select{font-size:.7rem!important;padding:5px 3px!important}}
+.msg-conversation-table .msg-date-sort{display:inline-flex;align-items:center;gap:4px;padding:2px 3px;border:0;background:transparent;color:inherit;font:inherit;font-weight:700;cursor:pointer;text-align:left}.msg-conversation-table .msg-date-sort:hover{text-decoration:underline}.msg-conversation-table .msg-date-sort:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
 </style>
 <section class="card msg-module" data-brite-pills="off" style="display:grid;gap:8px">
  <div><h1 style="margin:0 0 4px">Messages</h1><p class="muted" style="margin:0;font-size:.85rem">Private conversations within your organization. Clients and contractors can contact the tenant owner by default; direct client–contractor messaging becomes available after a quote request or scheduled assignment.</p></div>
@@ -199,8 +200,8 @@ if(!defined('BRITE_MODULE_DISPATCH')){http_response_code(403);exit;}
   <aside class="msg-pane" aria-label="Conversations">
    <div class="msg-toolbar"><h2>Inbox</h2><button id="msgRefresh" type="button" class="msg-secondary" title="Refresh conversations">↻ Refresh</button></div>
    <button id="msgNew" type="button" class="msg-primary" style="width:100%;margin-bottom:8px">+ New conversation</button><label for="msgThreadSearch" class="brite-sr-only">Search conversations</label><input id="msgThreadSearch" type="search" placeholder="Find a conversation…" autocomplete="off">
-   <div class="msg-table-tools"><label for="msgUnreadFilter">Show</label><select id="msgUnreadFilter"><option value="all">All conversations</option><option value="unread">Unread only</option><option value="read">Read only</option></select><label for="msgThreadSort">Sort</label><select id="msgThreadSort"><option value="recent">Most recent</option><option value="oldest">Oldest activity</option><option value="unread">Unread first</option><option value="participant">Participant A–Z</option><option value="subject">Subject A–Z</option></select></div>
-   <div class="msg-table-scroll"><table class="msg-conversation-table" aria-label="Conversations"><thead><tr><th scope="col">Participant</th><th scope="col">Subject / latest message</th><th scope="col">Updated</th><th scope="col">Unread</th></tr></thead><tbody id="msgThreads"></tbody></table></div>
+   <div class="msg-table-tools"><label for="msgUnreadFilter">Show</label><select id="msgUnreadFilter"><option value="all">All conversations</option><option value="unread">Unread only</option><option value="read">Read only</option></select><label for="msgThreadSort">Sort</label><select id="msgThreadSort"><option value="recent">Date/time: newest first</option><option value="oldest">Date/time: oldest first</option><option value="unread">Unread first</option><option value="participant">Participant A–Z</option><option value="subject">Subject A–Z</option></select></div>
+   <div class="msg-table-scroll"><table class="msg-conversation-table" aria-label="Conversations"><thead><tr><th scope="col">Participant</th><th scope="col">Subject / latest message</th><th scope="col"><button type="button" id="msgSortDate" class="msg-date-sort" title="Sort by date and time" aria-label="Sort by date and time, newest first">Updated <span id="msgSortDateArrow" aria-hidden="true">↓</span></button></th><th scope="col">Unread</th></tr></thead><tbody id="msgThreads"></tbody></table></div>
    <div class="msg-table-footer"><span id="msgThreadCount" role="status" aria-live="polite"></span><label for="msgPageSize">Rows <select id="msgPageSize"><option>10</option><option selected>25</option><option>50</option><option>100</option></select></label><button type="button" id="msgPagePrev">Previous</button><span id="msgPageInfo"></span><button type="button" id="msgPageNext">Next</button></div>
   </aside>
   <div class="msg-pane">
@@ -267,4 +268,4 @@ document.addEventListener('DOMContentLoaded',function(){
  activate(0,false);
 });
 </script>
-<script defer src="<?=htmlspecialchars(app_url('/modules/messaging/messaging.js?v=98i'),ENT_QUOTES,'UTF-8')?>"></script>
+<script defer src="<?=htmlspecialchars(app_url('/modules/messaging/messaging.js?v=98k'),ENT_QUOTES,'UTF-8')?>"></script>
