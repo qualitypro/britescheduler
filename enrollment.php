@@ -39,6 +39,9 @@ if ($ready && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 strlen($phone)>40 || strlen($notes)>5000) {
                 throw new DomainException('Please provide valid applicant details');
             }
+            $q=$db->prepare("SELECT id FROM enrollment_applications WHERE tenant_id=? AND applicant_type=? AND email=? AND status IN ('pending','approved') LIMIT 1");
+            $q->execute([$tenantId,$type,$email]);
+            if ($q->fetch()) throw new DomainException('An active application already exists for this email and type');
             $q=$db->prepare('INSERT INTO enrollment_applications (tenant_id,applicant_type,full_name,email,phone,notes,submitted_by) VALUES (?,?,?,?,?,?,?)');
             $q->execute([$tenantId,$type,$name,$email,$phone ?: null,$notes ?: null,$userId]);
             $notice = 'Application submitted for review.';
