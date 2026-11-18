@@ -246,7 +246,7 @@ $counts=['pending'=>0,'approved'=>0,'rejected'=>0];
 if ($ready) {
     // Restriction register: tenant-scoped, server-paginated, and sortable by allowlisted columns.
     $restrictionSearch=trim((string)($_GET['restriction_q']??''));
-    if (mb_strlen($restrictionSearch)>190) $restrictionSearch=mb_substr($restrictionSearch,0,190);
+    if (strlen($restrictionSearch)>190) $restrictionSearch=substr($restrictionSearch,0,190);
     $restrictionState=(string)($_GET['restriction_state']??'active');
     if (!in_array($restrictionState,['active','cleared','all'],true)) $restrictionState='active';
     $restrictionSort=(string)($_GET['restriction_sort']??'newest');
@@ -398,7 +398,7 @@ require __DIR__ . '/partials/app_header.php';
 <?php foreach($invitationCounts as $label=>$count): ?><div class="en-stat"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-mail"></use></svg><strong><?=$esc($count)?></strong><span><?=$esc(ucwords(str_replace('_',' ',$label)))?> invites</span></div><?php endforeach; ?>
 </div>
 <?php if($canReview): ?>
-<details class="en-panel en-register" id="en-restrictions" <?=isset($_GET['restriction_q'],$_GET['restriction_state'])||isset($_GET['restriction_page'])?'open':''?>>
+<details class="en-panel en-register" id="en-restrictions" open>
 <summary><svg class="en-icon" aria-hidden="true"><use href="#en-icon-shield"></use></svg> Enrollment restriction register (<?=$restrictionActiveTotal?> active)</summary>
 <p class="muted">Tenant-specific restrictions prevent new applications, approval and invitations. Blocking revokes unused invitations, but does not suspend existing memberships.</p>
 <div class="en-stats" aria-label="Restriction totals">
