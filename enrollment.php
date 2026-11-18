@@ -302,6 +302,8 @@ if ($ready) {
     if(!in_array($invitation,['all','not_sent','invited','expired','revoked','activated'],true)) $invitation='all';
     $status=(string)($_GET['status']??'all');
     if (!in_array($status,['all','pending','approved','rejected'],true)) $status='all';
+    $visibility=(string)($_GET['visibility']??'attention');
+    if (!in_array($visibility,['attention','all','active'],true)) $visibility='attention';
     $type=(string)($_GET['type']??'all');
     if (!in_array($type,['all','contractor','client'],true)) $type='all';
     $sql="SELECT a.id,a.applicant_type,a.full_name,a.email,a.phone,a.notes,a.status,a.decision_note,a.created_at,a.reviewed_at,
@@ -315,6 +317,12 @@ if ($ready) {
        FROM enrollment_applications a WHERE a.tenant_id=?";
 
     $params=[$tenantId];
+    // The latest accepted invitation marks enrollment activation. A currently blocked
+    // address always remains visible in the default attention view.
+    $activeEnrollment="EXISTS (SELECT 1 FROM enrollment_invitations ia WHERE ia.tenant_id=a.tenant_id AND ia.application_id=a.id AND ia.accepted_at IS NOT NULL AND NOT EXISTS (SELECT 1 FROM enrollment_invitations newer WHERE newer.tenant_id=ia.tenant_id AND newer.application_id=ia.application_id AND newer.id>ia.id))";
+    $isBlocked="EXISTS (SELECT 1 FROM enrollment_blocks eb WHERE eb.tenant_id=a.tenant_id AND eb.email=a.email AND eb.unblocked_at IS NULL)";
+    if ($visibility==='attention') $sql.=' AND (NOT '.$activeEnrollment.' OR '.$isBlocked.')';
+    elseif ($visibility==='active') $sql.=' AND '.$activeEnrollment.' AND NOT '.$isBlocked;
     if ($status!=='all') {$sql.=' AND a.status=?';$params[]=$status;}
     if ($type!=='all') {$sql.=' AND a.applicant_type=?';$params[]=$type;}
     if ($search!=='') {
@@ -409,11 +417,12 @@ require __DIR__ . '/partials/app_header.php';
 <a class="en-command" href="#en-review"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-clipboard"></use></svg> Review <span class="en-command-count"><?=$counts['pending']?></span></a>
 <a class="en-command" href="#en-new" data-en-open="en-new"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-plus"></use></svg> New application</a>
 <?php if($canReview): ?><a class="en-command" href="#en-restrictions" data-en-open="en-restrictions"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-shield"></use></svg> Restrictions <span class="en-command-count"><?=$restrictionActiveTotal?></span></a><?php endif; ?>
-<button class="en-command" type="button" id="en-filter-toggle" aria-controls="en-command-filters" aria-expanded="<?=isset($_GET['q'])||isset($_GET['status'])||isset($_GET['type'])||isset($_GET['invitation'])?'true':'false'?>"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-filter"></use></svg> Filters</button>
+<button class="en-command" type="button" id="en-filter-toggle" aria-controls="en-command-filters" aria-expanded="<?=isset($_GET['q'])||isset($_GET['status'])||isset($_GET['type'])||isset($_GET['invitation'])||isset($_GET['visibility'])||isset($_GET['visibility'])?'true':'false'?>"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-filter"></use></svg> Filters</button>
 <a class="en-command" href="enrollment.php"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-refresh"></use></svg> Reset</a>
 </div>
 <form method="get" id="en-command-filters" class="en-toolbar" <?=isset($_GET['q'])||isset($_GET['status'])||isset($_GET['type'])||isset($_GET['invitation'])?'':'hidden'?>>
 <label>Search <input type="search" name="q" maxlength="190" value="<?=$esc($search??'')?>" placeholder="Name, email or phone"></label>
+<label>Show <select name="visibility"><option value="attention" <?=$visibility==='attention'?'selected':''?>>Needs attention (default)</option><option value="all" <?=$visibility==='all'?'selected':''?>>All applications</option><option value="active" <?=$visibility==='active'?'selected':''?>>Activated only</option></select></label>
 <label>Invitation <select name="invitation"><?php foreach(['all','not_sent','invited','expired','revoked','activated'] as $v): ?><option value="<?=$esc($v)?>" <?=($invitation??'all')===$v?'selected':''?>><?=$esc(ucwords(str_replace('_',' ',$v)))?></option><?php endforeach; ?></select></label>
 <label>Status <select name="status"><?php foreach(['all','pending','approved','rejected'] as $v): ?><option value="<?=$esc($v)?>" <?=($status??'all')===$v?'selected':''?>><?=$esc(ucfirst($v))?></option><?php endforeach; ?></select></label>
 <label>Type <select name="type"><?php foreach(['all','contractor','client'] as $v): ?><option value="<?=$esc($v)?>" <?=($type??'all')===$v?'selected':''?>><?=$esc(ucfirst($v))?></option><?php endforeach; ?></select></label>
@@ -503,7 +512,7 @@ require __DIR__ . '/partials/app_header.php';
 </form></details>
 <section class="en-panel" id="en-review"><h2 class="en-heading"><svg class="en-icon" aria-hidden="true"><use href="#en-icon-clipboard"></use></svg> Review applications</h2>
 
-<p class="muted" style="font-size:.8rem">Showing <?=count($rows)?> of up to 100 matching applications. Select an applicant to see available actions.</p>
+<p class="muted" style="font-size:.8rem">Showing <?=count($rows)?> of up to 100 matching applications. <?=($visibility??'attention')==='attention'?'Default view hides activated enrollments unless blocked.':(($visibility??'attention')==='active'?'Showing activated enrollments without restrictions.':'Showing all enrollment records.')?> Select an applicant to see available actions.</p>
 <?php if(!$rows): ?><p>No applications match these filters.</p><?php endif; ?>
 <?php foreach($rows as $item): ?>
 <article class="en-card" aria-label="Enrollment application #<?=$esc($item['id'])?>">
