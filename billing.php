@@ -53,7 +53,7 @@ require __DIR__.'/partials/app_header.php';
 <button type="button" id="billingInvoicesTab" aria-pressed="true">Invoices</button>
 <button type="button" id="billingPaymentsTab" aria-pressed="false">Payment History</button>
 </nav>
-<div class="card" id="billingInvoicesView"
+<div class="card" data-brite-list="off" id="billingInvoicesView"
      style="margin-top:12px">
 
     <h2>Invoices</h2>
@@ -172,7 +172,7 @@ require __DIR__.'/partials/app_header.php';
 
 </div>
 
-<div class="card" id="billingPaymentsView"
+<div class="card" data-brite-list="off" id="billingPaymentsView"
      style="margin-top:12px" hidden>
 
     <h2>Payment History</h2>
