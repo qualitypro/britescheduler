@@ -267,4 +267,4 @@ document.addEventListener('DOMContentLoaded',function(){
  activate(0,false);
 });
 </script>
-<script defer src="<?=htmlspecialchars(app_url('/modules/messaging/messaging.js?v=98f'),ENT_QUOTES,'UTF-8')?>"></script>
+<script defer src="<?=htmlspecialchars(app_url('/modules/messaging/messaging.js?v=98h'),ENT_QUOTES,'UTF-8')?>"></script>
