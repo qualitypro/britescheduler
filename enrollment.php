@@ -40,6 +40,13 @@ if ($ready && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 strlen($phone)>40 || strlen($notes)>5000) {
                 throw new DomainException('Please provide valid applicant details');
             }
+            // Serialize intake within the tenant so two concurrent requests cannot
+            // both pass the duplicate check before inserting.
+            $db->beginTransaction();
+            try {
+                $lock=$db->prepare('SELECT id FROM tenants WHERE id=? FOR UPDATE');
+                $lock->execute([$tenantId]);
+                if(!$lock->fetch()) throw new DomainException('Tenant unavailable');
             $q=$db->prepare("SELECT id FROM enrollment_applications WHERE tenant_id=? AND applicant_type=? AND email=? AND status IN ('pending','approved') LIMIT 1");
             $q->execute([$tenantId,$type,$email]);
             if ($q->fetch()) throw new DomainException('An active application already exists for this email and type');
@@ -48,6 +55,11 @@ if ($ready && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $applicationId=(int)$db->lastInsertId();
             $notify=$db->prepare("INSERT INTO notifications (tenant_id,user_id,type,title,body) SELECT ?,m.user_id,'enrollment.submitted','New enrollment application',? FROM tenant_memberships m WHERE m.tenant_id=? AND m.role IN ('owner','admin') AND m.status='active'");
             $notify->execute([$tenantId,ucfirst($type).' application #'.$applicationId.' submitted for review.',$tenantId]);
+                $db->commit();
+            } catch(Throwable $e) {
+                if($db->inTransaction())$db->rollBack();
+                throw $e;
+            }
             $notice = 'Application submitted for review.';
         } elseif ($action === 'revoke' && $canReview) {
             $id=filter_var($_POST['application_id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
