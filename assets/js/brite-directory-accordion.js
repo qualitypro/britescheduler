@@ -59,6 +59,17 @@ function renderRecord(record,schema,type) {
   const organization=type==='clients'?record.company_name:record.business_name;
   const summary=document.createElement('summary');
   summary.className='brite-directory-summary';
+  // Render the client icon here, not in the optional unified-list enhancer:
+  // the server-paginated client directory deliberately skips that enhancer.
+  if(type==='clients'){
+    const icon=document.createElement('span');
+    icon.className='brite-list-flat-icon brite-client-row-icon';
+    icon.dataset.kind='client';
+    icon.setAttribute('role','img');
+    icon.setAttribute('aria-label','Client');
+    icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>';
+    summary.prepend(icon);
+  }
   const label=document.createElement('span');
   label.className='brite-directory-summary-main';
   const strong=document.createElement('strong');strong.textContent=name;label.append(strong);
