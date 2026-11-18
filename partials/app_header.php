@@ -214,6 +214,10 @@ Schedule
 
 <?php if(in_array($tenant['role'],['owner','admin','scheduler','accounting'],true)): ?>
 <div class="brite-nav-group-label">Management</div>
+<a href="<?=htmlspecialchars(app_url('/enrollment.php'),ENT_QUOTES,'UTF-8')?>">
+<span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l4 4v14H4V3h4Z"/><path d="M14 3v5h6M8 12h8M8 16h5"/><circle cx="17" cy="16" r="3"/><path d="m15.8 16 1 1 1.8-2"/></svg></span>
+Enrollment
+</a>
 
 <a href="<?=htmlspecialchars(app_url('/clients.v2.php'))?>">
 <span class="brite-nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
