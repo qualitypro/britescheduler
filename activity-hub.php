@@ -9,7 +9,7 @@ require __DIR__ . '/partials/app_header.php';
 .brite-activity-record{cursor:pointer}.brite-activity-record:focus-visible{outline:3px solid #2563eb;outline-offset:2px}.activity-modal{border:0;border-radius:12px;padding:0;width:min(640px,calc(100vw - 28px));max-height:min(85vh,820px);background:var(--brite-surface,#fff);color:inherit;box-shadow:0 20px 60px #0005}.activity-modal::backdrop{background:#0f172a99}.activity-modal-inner{padding:20px;display:grid;gap:12px}.activity-modal-head{display:flex;justify-content:space-between;align-items:start;gap:12px}.activity-modal-head h2{margin:0;font-size:1.15rem}.activity-modal-body{white-space:pre-wrap;overflow-wrap:anywhere}.activity-modal-meta{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 12px;font-size:.85rem}.activity-modal-meta dt{font-weight:650}.activity-modal-meta dd{margin:0;overflow-wrap:anywhere}.activity-modal-actions{display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--brite-border,#cbd5e1);padding-top:14px}.activity-modal-actions a,.activity-modal-actions button{display:inline-flex;align-items:center;min-height:36px;padding:8px 12px;border-radius:7px;border:1px solid #94a3b8;text-decoration:none;color:inherit;background:var(--brite-surface,#fff)}.activity-modal-actions .activity-primary{background:#2563eb;color:#fff;border-color:#2563eb}.activity-modal-status{font-size:.83rem;min-height:1em}.activity-modal button{cursor:pointer}
 .activity-modal .activity-enrollment{display:grid;gap:12px;padding:16px;border:1px solid var(--brite-border,#cbd5e1);border-radius:10px;background:var(--brite-surface-muted,#f8fafc);width:100%;box-sizing:border-box}.activity-enrollment .activity-enrollment-heading{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}.activity-enrollment .activity-enrollment-heading strong{font-size:1.05rem}.activity-enrollment .activity-enrollment-badge{border-radius:20px;padding:4px 10px;background:#dbeafe;color:#1e40af;font-weight:700;font-size:.8rem}.activity-enrollment dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px 12px;margin:0}.activity-enrollment dt{font-weight:700}.activity-enrollment dd{margin:0;overflow-wrap:anywhere}.activity-enrollment .activity-enrollment-note{padding:10px;border-radius:7px;background:var(--brite-surface,#fff);white-space:pre-wrap}.activity-enrollment .activity-enrollment-buttons{display:flex;gap:8px;flex-wrap:wrap}.activity-enrollment .activity-enrollment-buttons button{padding:9px 14px}.activity-enrollment textarea{width:100%;box-sizing:border-box;padding:10px;border-radius:7px;border:1px solid #94a3b8;background:var(--brite-surface,#fff);color:inherit}.activity-modal-actions{align-items:flex-start}.activity-modal-actions>.activity-enrollment{flex-basis:100%}
 .activity-progress{width:100%;border:1px solid var(--brite-border,#cbd5e1);border-radius:10px;padding:14px;box-sizing:border-box;background:var(--brite-surface-muted,#f8fafc)}.activity-progress h3{margin:0 0 8px;font-size:1rem}.activity-progress progress{width:100%;height:12px;accent-color:#2563eb}.activity-progress ol{padding-left:24px;margin:10px 0}.activity-progress li{padding:5px 0}.activity-progress small{display:block;color:var(--brite-text-muted,#64748b)}.activity-progress .activity-step-completed{color:#15803d}.activity-progress .activity-step-blocked,.activity-progress .activity-step-failed{color:#b45309}.activity-progress .activity-history{margin-top:12px;border-top:1px solid #cbd5e1;padding-top:10px}
-.activity-workflows{margin:18px 0;padding:16px;border:1px solid var(--brite-border,#cbd5e1);border-radius:12px;background:var(--brite-surface,#fff)}.activity-workflows>header h2{margin:0;font-size:1.2rem}.activity-workflows>header p{margin:4px 0 12px;color:var(--brite-text-muted,#64748b)}.activity-workflow-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:12px}.activity-workflow-card{padding:14px;border:1px solid var(--brite-border,#cbd5e1);border-radius:10px;background:var(--brite-surface-muted,#f8fafc)}.activity-workflow-card h3{margin:0 0 8px;font-size:1rem}.activity-workflow-card progress{width:100%;height:12px;accent-color:#2563eb}.activity-workflow-card .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.activity-workflow-card a{display:inline-block;padding:8px 12px;border-radius:7px;background:#2563eb;color:white;text-decoration:none}.activity-workflow-card details{margin-top:10px}.activity-workflow-card li{padding:4px 0}.activity-workflow-card small{display:block;color:var(--brite-text-muted,#64748b)}
+.activity-workflows{margin:18px 0;padding:16px;border:1px solid var(--brite-border,#cbd5e1);border-radius:12px;background:var(--brite-surface,#fff)}.activity-workflows>header h2{margin:0;font-size:1.2rem}.activity-workflows>header p{margin:4px 0 12px;color:var(--brite-text-muted,#64748b)}.activity-workflow-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:12px}.activity-workflow-card{margin-top:12px;padding:14px;border:1px solid var(--brite-border,#cbd5e1);border-radius:10px;background:var(--brite-surface-muted,#f8fafc)}.activity-workflow-card h3{margin:0 0 8px;font-size:1rem}.activity-workflow-card progress{width:100%;height:12px;accent-color:#2563eb}.activity-workflow-card .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.activity-workflow-card a{display:inline-block;padding:8px 12px;border-radius:7px;background:#2563eb;color:white;text-decoration:none}.activity-workflow-card details{margin-top:10px}.activity-workflow-card li{padding:4px 0}.activity-workflow-card small{display:block;color:var(--brite-text-muted,#64748b)}
 </style>
 <main class="brite-activity-page">
 <header><h1>Activity Hub</h1><p>Review activity, open related work, and manage notifications. Dismissing an alert does not complete the underlying task.</p></header>
@@ -28,7 +28,6 @@ require __DIR__ . '/partials/app_header.php';
 <button type="button" class="brite-list-sort" data-sort="created_at">Created On</button>
 <button type="button" class="brite-list-sort" data-sort="updated_at">Last Edited</button>
 </div>
-<section class="activity-workflows" aria-label="Workflow progress"><header><h2>Event Progress Monitor</h2><p>Track related notifications and the next workflow action.</p></header><div id="activityWorkflows"></div></section>
 <section id="activityRecords" aria-label="Notifications"></section>
 <div class="brite-activity-pagination"><button id="activityPrev" type="button">Previous</button><span id="activityPageLabel"></span><button id="activityNext" type="button">Next</button></div>
 </main>
@@ -254,7 +253,7 @@ function category(n){const t=String(n.type||'').toLowerCase();return /marketplac
 function isBookingRequest(n){const t=String(n.type||'').toLowerCase();const title=String(n.title||'').trim().toLowerCase();return /booking_request|client_booking_request|appointment_request|booking_requested/.test(t)||(t==='appointment'&&title==='new client booking request');}
 function node(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=String(text);if(cls)e.className=cls;return e;}
 function renderWorkflowCards(){
- const host=el('activityWorkflows');host.replaceChildren();
+ records.querySelectorAll('.activity-workflow-card').forEach(card=>card.remove());
  const groups=new Map();
  for(const n of items){
   const id=enrollmentApplicationId(n);
@@ -262,10 +261,11 @@ function renderWorkflowCards(){
   if(!groups.has(id))groups.set(id,[]);
   groups.get(id).push(n);
  }
- if(!groups.size){host.append(node('p','No enrollment workflow notifications in this history batch. New applications and review decisions will appear here.'));return;}
- const grid=node('div',undefined,'activity-workflow-grid');host.append(grid);
+ 
+ 
  for(const [id,events] of [...groups.entries()].sort((a,b)=>b[0]-a[0])){
-  const card=node('article',undefined,'activity-workflow-card');
+  const visible=records.querySelector('[data-enrollment-id="'+id+'"]');if(!visible)continue;
+   const card=node('section',undefined,'activity-workflow-card');
   const heading=node('h3','Enrollment #'+id);
   const summary=node('p','Loading current progress…');
   const bar=node('progress');bar.max=5;bar.value=0;bar.setAttribute('aria-label','Enrollment #'+id+' progress');
@@ -277,7 +277,7 @@ function renderWorkflowCards(){
   details.append(list);
   const actions=node('div',undefined,'actions');
   const link=node('a','Open enrollment record');link.href=base+'/enrollment.php?application_id='+encodeURIComponent(String(id));actions.append(link);
-  card.append(heading,summary,bar,details,actions);grid.append(card);
+  card.append(heading,summary,bar,details,actions);visible.append(card);
   fetch(base+'/api/activity_workflow_progress.php?workflow_type=enrollment&record_id='+encodeURIComponent(String(id)),{credentials:'same-origin',cache:'no-store'}).then(async response=>{
    const data=await response.json();if(!response.ok||!data.ok)throw Error(data.error||'Unavailable');
    if(!card.isConnected)return;
@@ -307,6 +307,7 @@ el('activityNext').disabled=!hasMore;
 message.textContent=filtered.length?'':(items.length?'No matches in this batch. Try another filter or the next batch.':'No notifications in this batch.');
 for(const n of filtered){
 const unreadItem=n.read_at===null,cat=category(n),article=node('article',undefined,'brite-activity-record '+cat+(unreadItem?' unread':''));
+const enrollmentId=enrollmentApplicationId(n);if(enrollmentId)article.dataset.enrollmentId=String(enrollmentId);
 const header=node('header'),title=node('strong',n.title||'Notification'),meta=node('small',cat[0].toUpperCase()+cat.slice(1)+' · '+(unreadItem?'Unread':'Read'));
 const icon=node('span',undefined,'brite-list-flat-icon');icon.setAttribute('role','img');icon.setAttribute('aria-label',cat+' activity');
 const paths={marketplace:'<path d="M4 7h16v14H4zM8 7V4h8v3"/>',schedule:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/>',warning:'<path d="M12 3 2 21h20zM12 9v5M12 18h.01"/>',general:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8"/>'};
@@ -349,6 +350,7 @@ article.append(header,body);
 if(peopleLine)article.append(peopleLine);
 article.append(date,actions,detail);records.append(article);
 }
+renderWorkflowCards();
 }
 document.querySelectorAll('#activitySort [data-sort]').forEach(button=>button.addEventListener('click',()=>{
  const field=button.dataset.sort;
@@ -366,7 +368,7 @@ try{
 const res=await fetch(base+'/api/user_notifications.php?all=1&offset='+offset,{credentials:'same-origin',cache:'no-store'});
 if(!res.ok)throw Error('HTTP '+res.status);
 const data=await res.json();if(!data.ok||!Array.isArray(data.notifications))throw Error('Invalid response');
-items=data.notifications;unread=Number(data.unread_count)||0;hasMore=items.length===limit;render();renderWorkflowCards();
+items=data.notifications;unread=Number(data.unread_count)||0;hasMore=items.length===limit;render();
 const target=new URLSearchParams(window.location.search).get('notification_id');
 if(target&&/^[1-9][0-9]*$/.test(target)){
  const found=items.find(n=>String(n.id)===target);
