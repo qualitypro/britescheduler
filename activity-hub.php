@@ -147,6 +147,38 @@ function showModal(n){
    catch(error){dismiss.disabled=false;el('activityModalStatus').textContent=error.message;}
   });actions.append(dismiss);
  }
+ const billingEvent=/\\b(bill(?:ing)?|invoice|payment|receivable)\\b/i.test([n.type,n.title,n.body].join(' '));
+ if(billingEvent){
+  const invoiceMatch=([n.title,n.body].join(' ')).match(/\\binvoice\\s*(?:#|number\\s*[:#]?\\s*)([1-9][0-9]*)\\b/i);
+  const invoiceId=invoiceMatch?Number(invoiceMatch[1]):null;
+  const billingLink=node('a','Open billing workspace','activity-primary');
+  billingLink.href=base+'/billing.php';
+  actions.append(billingLink);
+  if(invoiceId){
+   const invoiceLink=node('a','Open invoice #'+invoiceId);
+   invoiceLink.href=base+'/invoice.php?id='+encodeURIComponent(String(invoiceId));
+   actions.append(invoiceLink);
+   const panel=node('section',undefined,'activity-enrollment');
+   panel.append(node('p','Loading invoice status…'));actions.append(panel);
+   fetch(base+'/api/invoices.php?id='+encodeURIComponent(String(invoiceId)),{credentials:'same-origin',cache:'no-store'})
+    .then(async response=>{
+     const result=await response.json();
+     if(!response.ok||!result.invoice)throw Error(result.error||'Invoice unavailable');
+     if(modalNotification!==n)return;
+     const invoice=result.invoice;
+     panel.replaceChildren();
+     const heading=node('div',undefined,'activity-enrollment-heading');
+     heading.append(node('strong','Invoice '+(invoice.invoice_number||'#'+invoiceId)),node('span',String(invoice.status||'Unknown'),'activity-enrollment-badge'));
+     panel.append(heading);
+     const details=node('dl');
+     for(const [label,value] of [['Client',invoice.client_name],['Total',invoice.total],['Paid',invoice.amount_paid],['Balance due',invoice.balance_due],['Due',invoice.due_at]]){
+      if(value!==null&&value!==undefined&&String(value)!=='')details.append(node('dt',label),node('dd',String(value)));
+     }
+     panel.append(details);
+     panel.append(node('p','Open the invoice to use its existing authorized payment, send, and void controls.'));
+    }).catch(error=>{if(modalNotification===n)panel.replaceChildren(node('p','Invoice details unavailable: '+error.message));});
+  }
+ }
  if(!appointment&&!enrollmentId){
   const info=node('section',undefined,'activity-enrollment');
   const type=String(n.type||'general');
