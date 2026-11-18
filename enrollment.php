@@ -304,7 +304,18 @@ if ($ready) {
         $stateSql=['invited'=>'ix.accepted_at IS NULL AND ix.revoked_at IS NULL AND ix.expires_at>UTC_TIMESTAMP()', 'expired'=>'ix.accepted_at IS NULL AND ix.revoked_at IS NULL AND ix.expires_at<=UTC_TIMESTAMP()', 'revoked'=>'ix.revoked_at IS NOT NULL', 'activated'=>'ix.accepted_at IS NOT NULL'];
         $sql.=' AND EXISTS (SELECT 1 FROM enrollment_invitations ix WHERE ix.tenant_id=a.tenant_id AND ix.application_id=a.id AND NOT EXISTS (SELECT 1 FROM enrollment_invitations iy WHERE iy.tenant_id=ix.tenant_id AND iy.application_id=ix.application_id AND iy.id>ix.id) AND '.$stateSql[$invitation].')';
     }
-    $sql.=' ORDER BY a.created_at DESC,a.id DESC LIMIT 100';
+    $requestedId=filter_var($_GET['application_id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+    if($requestedId){
+        // A deep link must not depend on the current register filters or first 100 records.
+        $sql="SELECT a.id,a.applicant_type,a.full_name,a.email,a.phone,a.notes,a.status,a.decision_note,a.created_at,a.reviewed_at,
+        (SELECT m.status FROM tenant_memberships m JOIN users u ON u.id=m.user_id WHERE m.tenant_id=a.tenant_id AND u.email=a.email AND m.role=a.applicant_type LIMIT 1) AS membership_state,
+        (SELECT b.reason FROM enrollment_blocks b WHERE b.tenant_id=a.tenant_id AND b.email=a.email AND b.unblocked_at IS NULL LIMIT 1) AS block_reason,
+        (SELECT CASE WHEN i.accepted_at IS NOT NULL THEN 'activated' WHEN i.revoked_at IS NOT NULL THEN 'revoked' WHEN i.expires_at<=UTC_TIMESTAMP() THEN 'expired' ELSE 'invited' END FROM enrollment_invitations i WHERE i.application_id=a.id AND i.tenant_id=a.tenant_id ORDER BY i.id DESC LIMIT 1) AS invitation_state
+        FROM enrollment_applications a WHERE a.tenant_id=? AND a.id=?";
+        $params=[$tenantId,$requestedId];
+    } else {
+        $sql.=' ORDER BY a.created_at DESC,a.id DESC LIMIT 100';
+    }
     $q=$db->prepare($sql);$q->execute($params);$rows=$q->fetchAll(PDO::FETCH_ASSOC);
 }
 $pageTitle='Enrollment Management';
@@ -679,8 +690,8 @@ if($hasApplication) continue;
   const content=document.getElementById('enProfileModalContent');
   let originalRow=null,activePanel=null,previousFocus=null;
   function closeProfile(){if(modal.open)modal.close();}
-  function openProfile(id){
-    const row=document.getElementById('en-detail-app-'+id);
+  function openProfile(id,kind='app'){
+    const row=document.getElementById('en-detail-'+kind+'-'+id);
     if(!row)return false;
     const panel=row.querySelector('.en-record-panel');
     if(!panel)return false;
@@ -689,7 +700,7 @@ if($hasApplication) continue;
     originalRow=row;activePanel=panel;
     content.replaceChildren(panel);
     row.hidden=false;
-    document.getElementById('enProfileModalTitle').textContent='Enrollment application #'+id;
+    document.getElementById('enProfileModalTitle').textContent=(kind==='block'?'Enrollment restriction #':'Enrollment application #')+id;
     if(!modal.open)modal.showModal();
     document.getElementById('enProfileModalClose').focus();
     return true;
@@ -704,12 +715,10 @@ if($hasApplication) continue;
   table.addEventListener('click',function(event){
     const button=event.target.closest('.en-manage-toggle');
     if(!button||!table.contains(button))return;
-    const id=button.getAttribute('aria-controls').replace(/^en-detail-app-/,'');
-    if(/^[1-9][0-9]*$/.test(id)){openProfile(id);return;}
-    const target=document.getElementById(button.getAttribute('aria-controls'));
-    if(!target)return;
-    const expand=button.getAttribute('aria-expanded')!=='true';
-    target.hidden=!expand;button.setAttribute('aria-expanded',String(expand));
+    const targetId=button.getAttribute('aria-controls')||'';
+    const match=targetId.match(/^en-detail-(app|block)-([1-9][0-9]*)$/);
+    if(!match)return;
+    openProfile(match[2],match[1]);
   });
   const requested=new URLSearchParams(window.location.search).get('application_id');
   if(requested&&/^[1-9][0-9]*$/.test(requested)){
