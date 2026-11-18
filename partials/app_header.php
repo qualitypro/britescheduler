@@ -418,14 +418,11 @@ My Locations
 </div></div>
 <?php endif; ?>
             <!-- Notifications live beside the signed-in user's identity. -->
-    <button
-        type="button"
+    <a
+        href="<?=htmlspecialchars(app_url('/activity-hub.php'),ENT_QUOTES,'UTF-8')?>"
         id="briteActivityHubToggle"
         class="brite-activity-hub-toggle"
-        aria-label="Open activity hub"
-        aria-controls="briteActivityHub"
-        aria-expanded="false"
-        hidden>
+        aria-label="Activity Hub">
         <svg
             aria-hidden="true"
             width="24"
@@ -439,7 +436,7 @@ My Locations
             <path d="M3 12h4l3-7 4 14 3-7h4"/>
         </svg>
         <span id="briteActivityHubToggleCount">0</span>
-    </button>
+    </a>
             <div class="brite-account">
                 <div class="brite-avatar" aria-hidden="true">
                     <?=htmlspecialchars(strtoupper(substr($user['first_name'],0,1).substr($user['last_name'],0,1)))?>
@@ -460,50 +457,6 @@ My Locations
                     onclick="briteSignOut()">Sign Out</button>
         </div>
     </header>
-
-
-    <!-- Brite Activity Hub: shared notification UI -->
-        <aside
-        id="briteActivityHub"
-        class="brite-activity-hub"
-        aria-label="Activity hub"
-        aria-hidden="true"
-        hidden>
-
-        <div class="brite-activity-hub-header">
-            <div>
-                <strong>Activity Hub</strong>
-                <p>Bookings and business activity</p>
-                <a href="<?=htmlspecialchars(app_url('/activity-hub.php'),ENT_QUOTES,'UTF-8')?>" style="font-size:.82rem;font-weight:700">Open full Activity Hub</a>
-            </div>
-
-            <button
-                type="button"
-                id="briteActivityHubClose"
-                aria-label="Collapse activity hub"
-                aria-controls="briteActivityHub">
-                &#10005;
-            </button>
-        </div>
-
-        <div class="brite-activity-hub-summary">
-            <span>Unread notifications</span>
-            <span id="briteActivityHubCount">0</span>
-        </div>
-
-        <p
-            id="briteActivityHubStatus"
-            role="status"
-            aria-live="polite">
-            Loading activity…
-        </p>
-
-        <div
-            id="briteActivityHubList"
-            class="brite-activity-hub-list"
-            aria-label="Recent notifications">
-        </div>
-    </aside>
 
 
 <script src="<?=htmlspecialchars(app_url('/assets/js/brite-page-heading-icons.js?v=90au'),ENT_QUOTES,'UTF-8')?>" defer></script>
